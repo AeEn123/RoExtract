@@ -1,6 +1,7 @@
 html {
     color-scheme: light dark;
 }
+
 body {
     /* background-color: #1b1b1b; */
     font-family: Arial, Helvetica, sans-serif;
@@ -13,7 +14,7 @@ main {
     padding-left: 10px;
     padding-right: 10px;
     max-width: 1000px;
-    margin: 20px auto;; 
+    margin: 20px auto;
 }
 
 details {
@@ -83,6 +84,14 @@ h1 {
     color: white;
     background: rgb(0,121,213);
     background: linear-gradient(225deg, rgb(202, 98, 0) 0%, rgb(102, 58, 0) 100%);
+}
+
+.notice {
+    /* position: fixed; */
+    top: 0px;
+    left: 0px;
+    width: 100%;
+    background-color: light-dark(#F00, #500);
 }
 
 #background {
