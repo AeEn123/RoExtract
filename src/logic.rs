@@ -10,7 +10,7 @@ use std::{
 use fluent_bundle::{FluentArgs, FluentBundle, FluentResource};
 use lazy_static::lazy_static;
 
-use crate::{config, locale, log};
+use crate::{config, locale};
 
 // Define mutable static values
 lazy_static! {
@@ -174,7 +174,7 @@ fn extract_bytes(header: &str, bytes: Vec<u8>) -> Vec<u8> {
         // Return all the bytes after the found header index
         return bytes[index..].to_vec()
     }
-    log::warn("Failed to extract a file!");
+    log_warn!("Failed to extract a file!");
     // Return bytes instead if this fails
     return bytes
 }
@@ -196,7 +196,7 @@ fn create_asset_info(path: &PathBuf, file: &str) -> AssetInfo {
             }
         }
         Err(e) => {
-            log::warn(&format!("Failed to get asset info: {}", e));
+            log_warn!("Failed to get asset info: {}", e);
             return AssetInfo {
                 name: file.to_string(),
                 size: 0,
@@ -347,7 +347,7 @@ pub fn delete_all_directory_contents(dir: PathBuf) {
                 Err(e) => {
                     // Abort operation, error occurred
                     update_status(locale::get_message(&locale::get_locale(None), "error-check-logs", None)); 
-                    log::error(&format!("Error listing directory: {e}"));
+                    log_error!("Error listing directory: {e}");
                     return
                 }
             };
@@ -367,7 +367,7 @@ pub fn delete_all_directory_contents(dir: PathBuf) {
 
                 // Error checking
                 if entry.is_err() {
-                    log::error(&format!("Failed to delete file: {}: {}", count, entry.unwrap_err()));
+                    log_error!("Failed to delete file: {}: {}", count, entry.unwrap_err());
                     update_status(locale::get_message(&locale, "failed-deleting-file", Some(&args)));
                     continue;
                 }
@@ -380,7 +380,7 @@ pub fn delete_all_directory_contents(dir: PathBuf) {
 
                         // If it's an error, log it and show on GUI
                         Err(e) => {
-                            log::error(&format!("Failed to delete file: {}: {}", count, e));
+                            log_error!("Failed to delete file: {}: {}", count, e);
                             update_status(locale::get_message(&locale, "failed-deleting-file", Some(&args)));
                         }
                     }
@@ -391,7 +391,7 @@ pub fn delete_all_directory_contents(dir: PathBuf) {
 
                         // If it's an error, log it and show on GUI
                         Err(e) => {
-                            log::error(&format!("Failed to delete file: {}: {}", count, e));
+                            log_error!("Failed to delete file: {}: {}", count, e);
                             update_status(locale::get_message(&locale, "failed-deleting-file", Some(&args)));
                         }
                     }    
@@ -455,7 +455,7 @@ pub fn refresh(dir: PathBuf, mode: String, cli_list_mode: bool, yield_for_thread
             Err(e) => {
                 // Abort operation, error occurred
                 update_status(locale::get_message(&locale::get_locale(None), "error-check-logs", None)); 
-                log::error(&format!("Error listing directory: {e}"));
+                log_error!("Error listing directory: {e}");
                 return
             }
         };
@@ -528,7 +528,7 @@ pub fn refresh(dir: PathBuf, mode: String, cli_list_mode: bool, yield_for_thread
                         update_status(locale::get_message(&locale, "filtering-files", Some(&args)));
                     }
                     Err(e) => {
-                        log::error(&format!("Couldn't open file: {}", e));
+                        log_error!("Couldn't open file: {}", e);
                         update_status(locale::get_message(&locale, "failed-opening-file", Some(&args)));
                     }
                 }
@@ -574,14 +574,14 @@ pub fn extract_file(file: PathBuf, mode: &str, destination: PathBuf, add_extensi
 
                         match fs::write(destination.clone(), extracted_bytes) {
                             Ok(_) => (),
-                            Err(e) => log::error(&format!("Error writing file: {}", e)),
+                            Err(e) => log_error!("Error writing file: {}", e),
                         }
 
                         if let Ok(sys_modified_time) = metadata.modified() {
                             let modified_time = filetime::FileTime::from_system_time(sys_modified_time);
                             match filetime::set_file_times(&destination, modified_time, modified_time) {
                                 Ok(_) => (),
-                                Err(e) => log::error(&format!("Failed to write file modification time {}", e))
+                                Err(e) => log_error!("Failed to write file modification time {}", e)
                             }
                         }                        
 
@@ -591,7 +591,7 @@ pub fn extract_file(file: PathBuf, mode: &str, destination: PathBuf, add_extensi
                     }
                     Err(e) => {
                         update_status(locale::get_message(&locale::get_locale(None), "failed-opening-file", None));
-                        log::error(&format!("Failed to open file: {}", e));
+                        log_error!("Failed to open file: {}", e);
                         return PathBuf::new();
                     }
                 }
@@ -602,7 +602,7 @@ pub fn extract_file(file: PathBuf, mode: &str, destination: PathBuf, add_extensi
             let mut args = FluentArgs::new();
             args.set("error", e.to_string());
 
-            log::error(&format!("Error extracting file: '{}' {}", file.display(), e));
+            log_error!("Error extracting file: '{}' {}", file.display(), e);
             update_status(locale::get_message(&locale::get_locale(None), "idling", Some(&args)));
             return PathBuf::new();
         }
@@ -627,7 +627,7 @@ pub fn extract_file_to_bytes(file: PathBuf, mode: &str) -> Vec<u8> {
         }
         Err(e) => {
             update_status(locale::get_message(&locale::get_locale(None), "failed-opening-file", None));
-            log::error(&format!("Failed to open file: {}", e));
+            log_error!("Failed to open file: {}", e);
             return "None".as_bytes().to_vec();
         }
     }
@@ -638,7 +638,7 @@ pub fn extract_dir(dir: PathBuf, destination: PathBuf, mode: String, yield_for_t
     // Create directory if it doesn't exist
     match fs::create_dir_all(destination.clone()) {
         Ok(_) => (),
-        Err(e) => log::error(&format!("Error creating directory: {}", e))
+        Err(e) => log_error!("Error creating directory: {}", e)
     };
     let running = {
         let task = TASK_RUNNING.lock().unwrap();
@@ -841,7 +841,7 @@ pub fn extract_all(destination: PathBuf, yield_for_thread: bool, use_alias: bool
                         update_status(locale::get_message(&locale, "stage", Some(&args)));
                     }
                     Err(e) => {
-                        log::error(&format!("Couldn't open file: {}", e));
+                        log_error!("Couldn't open file: {}", e);
                         args.set("status", locale::get_message(&locale, "failed-opening-file", Some(&args)));
                         update_status(locale::get_message(&locale, "stage", Some(&args)));
                     }
@@ -921,7 +921,7 @@ pub fn swap_assets(dir: PathBuf, asset_a: &str, asset_b: &str) {
         Err(e) => {
             args.set("error", e.to_string());
             update_status(locale::get_message(&locale, "failed-opening-file", Some(&args)));
-            log::error(&format!("Error opening file '{}'", e));
+            log_error!("Error opening file '{}'", e);
         }
     }
 }
@@ -949,7 +949,7 @@ pub fn copy_assets(dir: PathBuf, asset_a: &str, asset_b: &str) {
         Err(e) => {
             args.set("error", e.to_string());
             update_status(locale::get_message(&locale, "failed-opening-file", Some(&args)));
-            log::error(&format!("Error opening file '{}'", e));
+            log_error!("Error opening file '{}'", e);
         }
     }
 }
@@ -1031,10 +1031,10 @@ pub fn clean_up() {
     let temp_dir = get_temp_dir(false);
     // Just in case if it somehow resolves to "/"
     if temp_dir != PathBuf::new() && temp_dir != PathBuf::from("/") {
-        log::info(&format!("Cleaning up {}", temp_dir.display()));
+        log_info!("Cleaning up {}", temp_dir.display());
         match fs::remove_dir_all(temp_dir) {
-            Ok(_) => log::info("Done cleaning up directory"),
-            Err(e) => log::error(&format!("Failed to clean up directory: {}", e)),
+            Ok(_) => log_info!("Done cleaning up directory"),
+            Err(e) => log_error!("Failed to clean up directory: {}", e),
         }
     }
 }

@@ -1,10 +1,10 @@
-use std::{ffi::OsString, fs, path::PathBuf, sync::Mutex};
+use std::{fs, path::PathBuf, sync::Mutex};
 
 use reqwest::blocking::Client;
 use serde::Deserialize;
 use lazy_static::lazy_static;
 
-use crate::{config, log, logic};
+use crate::{config, logic};
 
 mod gui;
 
@@ -51,14 +51,14 @@ fn detect_download_binary(assets: &Vec<Asset>) -> &Asset {
         }
     }
 
-    log::warn("Failed to find asset, going for first asset listed.");
+    log_warn!("Failed to find asset, going for first asset listed.");
     return &assets[0];
 }
 
 fn update_action(json: Release, run_gui: bool, auto_download_update: bool) {
-    log::info("An update is available.");
-    log::info(&json.name);
-    log::info(&json.body);
+    log_info!("An update is available.");
+    log_info!("{}", &json.name);
+    log_info!("{}", &json.body);
 
     let correct_asset = detect_download_binary(&json.assets);
 
@@ -71,8 +71,8 @@ fn update_action(json: Release, run_gui: bool, auto_download_update: bool) {
         download_update(&correct_asset.browser_download_url, tag_name);
     } else if run_gui {
         match gui::run_gui(json.clone(), correct_asset.browser_download_url.clone()) {
-            Ok(_) => log::info("User exited GUI"),
-            Err(e) => log::critical_error(&format!("GUI failed: {}",e))
+            Ok(_) => log_info!("User exited GUI"),
+            Err(e) => log_critical!("GUI failed: {}",e)
         }
     }
 }
@@ -84,8 +84,8 @@ fn save_install_script() -> PathBuf {
 
     if temp_dir != PathBuf::new() {
         match fs::write(&path, include_str!("installer/installer.sh")) {
-            Ok(_) => log::info(&format!("File written to {}", path.display())),
-            Err(e) => log::critical_error(&format!("Failed to write to {}: {}", path.display(), e))
+            Ok(_) => log_info!("File written to {}", path.display()),
+            Err(e) => log_error!("Failed to write to {}: {}", path.display(), e)
         }
         
         return path;
@@ -101,8 +101,8 @@ fn save_install_script() -> PathBuf {
 
     if temp_dir != PathBuf::new() {
         match fs::write(&path, include_str!("installer/installer.bat")) {
-            Ok(_) => log::info(&format!("File written to {}", path.display())),
-            Err(e) => log::critical_error(&format!("Failed to write to {}: {}", path.display(), e))
+            Ok(_) => log_info!("File written to {}", path.display()),
+            Err(e) => log_error!("Failed to write to {}: {}", path.display(), e)
         }
         
         return path;
@@ -113,7 +113,7 @@ fn save_install_script() -> PathBuf {
 
 pub fn download_update(url: &str, tag_name: Option<&str>) {
     if !config::get_system_config_bool("allow-updates").unwrap_or(true) {
-        log::warn("Updating has been disabled by the system.");
+        log_warn!("Updating has been disabled by the system.");
         return
     }
     let client = Client::new();
@@ -135,13 +135,13 @@ pub fn download_update(url: &str, tag_name: Option<&str>) {
                             set_update_file(path);
                             config::set_config_value("current_tag_name", tag_name.clone().into());
                         },
-                        Err(e) => log::error(&format!("Failed to write file: {}", e))
+                        Err(e) => log_error!("Failed to write file: {}", e)
                     }
                 }
-                Err(e) => log::error(&format!("Download failed: Failed to parse: {}", e))
+                Err(e) => log_error!("Download failed: Failed to parse: {}", e)
             }
         }
-        Err(e) => log::error(&format!("Failed to download: {}", e)),
+        Err(e) => log_error!("Failed to download: {}", e),
     }
 }
 
@@ -152,12 +152,12 @@ pub fn set_update_file(file: PathBuf) {
 
 pub fn run_install_script(run_afterwards: bool) -> bool {
     if let Some(update_file) = {UPDATE_FILE.lock().unwrap().clone()} {
-        log::info(&format!("Installing from {}", update_file.display()));
+        log_info!("Installing from {}", update_file.display());
         if config::get_system_config_bool("prefer-installers").unwrap_or(false) {
             // Just run the installer
             match open::that(update_file) {
                 Ok(_) => (),
-                Err(e) => log::error(&format!("Installer failed to launch {} ", e))
+                Err(e) => log_error!("Installer failed to launch {} ", e)
             }
             std::process::exit(0);
 
@@ -239,7 +239,7 @@ pub fn check_for_updates(run_gui: bool, auto_download_update: bool) {
                         update_action(json, run_gui, auto_download_update);
                       }                      
                     },
-                    Err(e) => log::error(&format!("Updater failed to parse json: {}", e))
+                    Err(e) => log_error!("Updater failed to parse json: {}", e)
                 };
             } else {
                 match serde_json::from_str::<Release>(&text) {
@@ -249,13 +249,13 @@ pub fn check_for_updates(run_gui: bool, auto_download_update: bool) {
                         if (clean_tag_name != clean_version) | config::get_config_string("current_tag_name").is_some() { // Update back to stable version if user has opted out of development builds
                             update_action(json, run_gui, auto_download_update);
                         } else {
-                            log::info("No updates are available.")
+                            log_info!("No updates are available.")
                         }
                     }
-                    Err(e) => log::error(&format!("Updater Failed to parse json: {}", e))
+                    Err(e) => log_error!("Updater Failed to parse json: {}", e)
                 }
             }
         }
-        Err(e) => log::error(&format!("Failed to check for update: {}", e)),
+        Err(e) => log_error!("Failed to check for update: {}", e),
     }
 }

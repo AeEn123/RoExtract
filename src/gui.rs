@@ -87,7 +87,7 @@ fn double_click(dir: PathBuf, value: String, mode: String, swapping: &mut bool, 
         if new_destination != PathBuf::new() {
             match open::that(new_destination) {
                 Ok(()) => (),
-                Err(err) => log::error(&format!("Failed opening file: {}", err))
+                Err(err) => log_error!("Failed opening file: {}", err)
             }
         }
     }
@@ -135,10 +135,10 @@ fn extract_all_of_type(cache_directory: PathBuf, mode: &str, locale: &FluentBund
     }
 }
 fn toggle_swap(swapping: &mut bool, swapping_asset_a: &mut Option<String>, locale: &FluentBundle<Arc<FluentResource>>) {
-    let mut warning_acknoledged = config::get_config_bool("ban-warning-ack").unwrap_or(false);
+    let mut warning_acknowledged = config::get_config_bool("ban-warning-ack").unwrap_or(false);
 
-    if !warning_acknoledged {
-        warning_acknoledged = DialogBuilder::message()
+    if !warning_acknowledged {
+        warning_acknowledged = DialogBuilder::message()
         .set_level(MessageLevel::Info)
         .set_title(&locale::get_message(locale, "confirmation-ban-warning-title", None))
         .set_text(&locale::get_message(locale, "confirmation-ban-warning-description", None))
@@ -146,8 +146,8 @@ fn toggle_swap(swapping: &mut bool, swapping_asset_a: &mut Option<String>, local
         .unwrap();
     }
 
-    if warning_acknoledged {
-        config::set_config_value("ban-warning-ack", warning_acknoledged.into());
+    if warning_acknowledged {
+        config::set_config_value("ban-warning-ack", warning_acknowledged.into());
         if *swapping {
             *swapping_asset_a = None;
         }
@@ -207,7 +207,7 @@ fn load_asset_image(id: String, tab: String, cache_directory: PathBuf, ctx: egui
                     assets_loading.retain(|x| x != &id); // Remove the asset from the loading set
                 },
                 Err(_) => {
-                    log::warn(&format!("Failed to load {} as image, cooldown for 1000 ms", &id));
+                    log_warn!("Failed to load {} as image, cooldown for 1000 ms", &id);
                     thread::sleep(Duration::from_millis(1000));
                     let mut assets_loading = ASSETS_LOADING.lock().unwrap();
                     assets_loading.retain(|x| x != &id); // Remove the asset from the loading set
@@ -839,7 +839,7 @@ impl egui_dock::TabViewer for TabViewer<'_> {
                         .unwrap()
                     {
                         if let Err(e) = std::fs::write(path, logs.clone()) {
-                            log::critical_error(&format!("Failed to save logs: {}", e));
+                            log_critical!("Failed to save logs: {}", e);
                         }
                     }
                 }
@@ -966,12 +966,12 @@ fn detect_japanese_font() -> Option<std::path::PathBuf> {
         match std::fs::metadata(&resolved_font) {
             Ok(metadata) => {
                 if metadata.is_file() {
-                    log::info(&format!("{}: valid", resolved_font.display()));
+                    log_info!("{}: valid", resolved_font.display());
                     return Some(resolved_font);
                 }
             }
             Err(e) => {
-                log::warn(&format!("{}: invalid - {}", resolved_font.display(), e))
+                log_warn!("{}: invalid - {}", resolved_font.display(), e);
             }
         }
         
@@ -998,12 +998,12 @@ fn init_japanese_font(cc: &eframe::CreationContext<'_>) {
                     cc.egui_ctx.set_fonts(font);
                 }
                 Err(e) => {
-                    log::error(&format!("Error loading Japanese fonts: {e}"))
+                    log_error!("Error loading Japanese fonts: {e}");
                 }
             }
         }
         None => {
-            log::warn("No Japanese fonts detected, Japanese characters will not render.")
+            log_warn!("No Japanese fonts detected, Japanese characters will not render.")
         }
     }
 }
@@ -1052,7 +1052,7 @@ impl eframe::App for MyApp {
             .show_leaf_close_all_buttons(false)
             .show_leaf_collapse_buttons(false)
             .show(ctx, &mut TabViewer { 
-                // Pass selected as a mutable referance
+                // Pass selected as a mutable reference
                 selected: &mut self.selected,
                 renaming: &mut self.renaming,
                 searching: &mut self.searching,
@@ -1103,7 +1103,7 @@ pub fn run_gui() {
         );
 
         if result.is_err() {
-            log::critical_error(&format!("GUI failed: {}", result.unwrap_err()))
+            log_critical!("GUI failed: {}", result.unwrap_err());
         }
     }
 

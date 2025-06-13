@@ -2,7 +2,7 @@ use std::{fs, path::PathBuf, sync::Mutex};
 use serde_json::{json, Value};
 use lazy_static::lazy_static;
 
-use crate::{log, logic};
+use crate::logic;
 
 lazy_static! {
     static ref CONFIG: Mutex<Value> = Mutex::new(read_config_file());
@@ -29,7 +29,7 @@ fn read_config_file() -> Value {
             match serde_json::from_slice(&bytes) {
                 Ok(v) => return v,
                 Err(e) => {
-                    log::warn(&format!("Failed to parse config file! {}", e));
+                    log_warn!("Failed to parse config file! {}", e);
                     return json!({}); // Blank config by default
                 }
             }
@@ -55,7 +55,7 @@ fn read_system_config() -> Value {
             match serde_json::from_slice(&bytes) {
                 Ok(v) => return v,
                 Err(e) => {
-                    log::warn(&format!("Failed to parse config file! {}", e));
+                    log_warn!("Failed to parse config file! {}", e);
                     return json!({}); // Blank config by default
                 }
             }
@@ -163,11 +163,11 @@ pub fn save_config_file() {
         Ok(data) => {
             let result = fs::write(CONFIG_FILE.lock().unwrap().clone(), data);
             if result.is_err() {
-                log::critical_error(&format!("Failed to write config file: {}", result.unwrap_err()))
+                log_critical!("Failed to write config file: {}", result.as_ref().unwrap_err())
             }
         },
         Err(e) => {
-            log::critical_error(&format!("Failed to write config file: {}", e));
+            log_critical!("Failed to write config file: {}", e);
         }
     }
 }

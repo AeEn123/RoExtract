@@ -1,43 +1,62 @@
 use std::sync::Mutex;
 use lazy_static::lazy_static;
 
-use crate::locale;
-
 lazy_static! {
     static ref LOG: Mutex<String> = Mutex::new(String::new());
 }
 
-fn log(log_type: &str, message: &str) {
+pub fn log(log_type: &str, message: &str, file: &str, line: u32, column: u32) {
     let now = chrono::Utc::now().format("%Y-%m-%d %H:%M:%S").to_string();
-    let log_message = format!("{}  {}{}", now, log_type, message);
-    
+    let log_message = format!(
+        "{}  {}{} [{}:{}:{}]",
+        now, log_type, message, file, line, column
+    );
+
     println!("{}", log_message);
 
     let mut log = LOG.lock().unwrap();
-
     log.push_str(&format!("{}\n", log_message));
 }
 
-pub fn info(message: &str) {
-    log("INFO:  ", message)
+#[macro_export]
+macro_rules! log_info {
+    ($($arg:tt)*) => {
+        crate::log::log("INFO:  ", &format!($($arg)*), file!(), line!(), column!())
+    };
 }
 
-pub fn warn(message: &str) {
-    log("WARN:  ", message)
+#[macro_export]
+macro_rules! log_warn {
+    ($($arg:tt)*) => {
+        crate::log::log("WARN:  ", &format!($($arg)*), file!(), line!(), column!())
+    };
 }
 
-pub fn error(message: &str) {
-    log("ERROR: ", message)
+#[macro_export]
+macro_rules! log_error {
+    ($($arg:tt)*) => {
+        crate::log::log("ERROR: ", &format!($($arg)*), file!(), line!(), column!())
+    };
 }
 
-pub fn critical_error(message: &str) {
-    log("CRITICAL: ", message);
 
-    let _ = native_dialog::DialogBuilder::message()
-    .set_level(native_dialog::MessageLevel::Error)
-    .set_title(&locale::get_message(&locale::get_locale(None), "generic-error-critical", None))
-    .set_text(message)
-    .alert().show();
+#[macro_export]
+macro_rules! log_critical {
+    ($($arg:tt)*) => {{
+        let formatted = format!($($arg)*);
+        crate::log::log("CRITICAL: ", &formatted, file!(), line!(), column!());
+
+        let _ = native_dialog::DialogBuilder::message()
+            .set_level(native_dialog::MessageLevel::Error)
+            .set_title(&crate::locale::get_message(
+                &crate::locale::get_locale(None),
+                "generic-error-critical",
+                None,
+            ))
+            .set_text(&formatted)
+            .alert()
+            .show();
+    }};
 }
 
 pub fn get_logs() -> String {
