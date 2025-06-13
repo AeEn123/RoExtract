@@ -8,6 +8,9 @@ use crate::{config, logic};
 
 mod gui;
 
+#[cfg(target_os = "windows")]
+use std::ffi::OsString;
+
 lazy_static! {
     static ref UPDATE_FILE: Mutex<Option<PathBuf>> = Mutex::new(None);
 }
