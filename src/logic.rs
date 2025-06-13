@@ -28,7 +28,7 @@ lazy_static! {
 
     static ref TASK_RUNNING: Mutex<bool> = Mutex::new(false); // Delete/extract
 
-    // File headers for each catagory
+    // File headers for each category
     static ref HEADERS: Mutex<HashMap<String,[String;2]>> = {
         let mut m = HashMap::new();
         m.insert("sounds".to_owned(),[
@@ -50,8 +50,8 @@ lazy_static! {
         Mutex::new(m)
     };
 
-    // File extention for headers
-    static ref EXTENTION: Mutex<HashMap<String, String>> = {
+    // File extension for headers
+    static ref EXTENSION: Mutex<HashMap<String, String>> = {
         let mut m = HashMap::new();
         m.insert("OggS".to_owned(), ".ogg".to_owned());
         m.insert("ID3".to_owned(), ".mp3".to_owned());
@@ -148,7 +148,7 @@ fn find_header(mode: &str, bytes: Vec<u8>) -> String {
     let option_headers = all_headers.get(mode);
 
     if let Some(headers) = option_headers {
-        // Itearte through headers to find the correct one for this file.
+        // iterate through headers to find the correct one for this file.
         for header in headers {
             if bytes_contains(&bytes, header.as_bytes()) {
                 return header.to_owned()
@@ -345,14 +345,14 @@ pub fn delete_all_directory_contents(dir: PathBuf) {
             let entries: Vec<_> = match fs::read_dir(dir) {
                 Ok(directory_read) => directory_read.collect(),
                 Err(e) => {
-                    // Abort operation, error occoured
+                    // Abort operation, error occurred
                     update_status(locale::get_message(&locale::get_locale(None), "error-check-logs", None)); 
-                    log::error(&e.to_string());
+                    log::error(&format!("Error listing directory: {e}"));
                     return
                 }
             };
 
-            // Get amount and initlilize counter for progress
+            // Get amount and initialise counter for progress
             let total = entries.len();
             let mut count = 0;
 
@@ -453,14 +453,14 @@ pub fn refresh(dir: PathBuf, mode: String, cli_list_mode: bool, yield_for_thread
         let entries: Vec<_> = match fs::read_dir(dir) {
             Ok(directory_read) => directory_read.collect(),
             Err(e) => {
-                // Abort operation, error occoured
+                // Abort operation, error occurred
                 update_status(locale::get_message(&locale::get_locale(None), "error-check-logs", None)); 
-                log::error(&e.to_string());
+                log::error(&format!("Error listing directory: {e}"));
                 return
             }
         };
 
-        // Get amount and initlilize counter for progress
+        // Get amount and initialise counter for progress
         let total = entries.len();
         let mut count = 0;
 
@@ -546,7 +546,7 @@ pub fn refresh(dir: PathBuf, mode: String, cli_list_mode: bool, yield_for_thread
     }
 }
 
-pub fn extract_file(file: PathBuf, mode: &str, destination: PathBuf, add_extention: bool) -> PathBuf {
+pub fn extract_file(file: PathBuf, mode: &str, destination: PathBuf, add_extension: bool) -> PathBuf {
     let mut destination = destination.clone(); // Get own mutable destination
     match fs::metadata(file.clone()) {
         Ok(metadata) => {
@@ -562,11 +562,11 @@ pub fn extract_file(file: PathBuf, mode: &str, destination: PathBuf, add_extenti
                             bytes.clone()
                         };
 
-                        // Add the extention if needed
-                        if add_extention {
-                            let extentions = {EXTENTION.lock().unwrap().clone()};
-                            if let Some(extention) = extentions.get(&header) {
-                                destination.set_extension(&extention);
+                        // Add the extension if needed
+                        if add_extension {
+                            let extensions = {EXTENSION.lock().unwrap().clone()};
+                            if let Some(extension) = extensions.get(&header) {
+                                destination.set_extension(&extension);
                             } else {
                                 destination.set_extension(".ogg"); // Music tab
                             }
@@ -662,7 +662,7 @@ pub fn extract_dir(dir: PathBuf, destination: PathBuf, mode: String, yield_for_t
             // Get locale for localised status messages
             let locale = locale::get_locale(None);
 
-            // Get amount and initlilize counter for progress
+            // Get amount and initialise counter for progress
             let total = file_list.len();
             let mut count = 0;
 
@@ -749,7 +749,7 @@ pub fn extract_all(destination: PathBuf, yield_for_thread: bool, use_alias: bool
             // Stage 1: Read and extract music directory
             let entries: Vec<_> = fs::read_dir(music_directory.clone()).unwrap().collect();
 
-            // Get amount and initlilize counter for progress
+            // Get amount and initialise counter for progress
             let total = entries.len();
             let mut count = 0;
             for entry in entries {                            
@@ -786,10 +786,10 @@ pub fn extract_all(destination: PathBuf, yield_for_thread: bool, use_alias: bool
             // Stage 2: Filter the files
             let entries: Vec<_> = fs::read_dir(&http_directory).unwrap().collect();
 
-            // Initilize the Vec for the filtered files to go in
+            // Initialise the Vec for the filtered files to go in
             let mut filtered_files: Vec<(String, String)> = Vec::new();
 
-            // Get amount and initlilize counter for progress
+            // Get amount and initialise counter for progress
             let total = entries.len();
             let mut count = 0;
             for entry in entries {                            
@@ -850,7 +850,7 @@ pub fn extract_all(destination: PathBuf, yield_for_thread: bool, use_alias: bool
 
             // Stage 3: Extract the files
 
-            // Get amount and initlilize counter for progress
+            // Get amount and initialise counter for progress
             let total = filtered_files.len();
             let mut count = 0;
             for file in filtered_files {
@@ -1014,16 +1014,16 @@ pub fn get_list_task_running() -> bool {
 pub fn get_request_repaint() -> bool {
     let mut request_repaint = REQUEST_REPAINT.lock().unwrap();
     let old_request_repaint = *request_repaint;
-    *request_repaint = false; // Set to false when this function is called to acknoledge
+    *request_repaint = false; // Set to false when this function is called to acknowledge
     return old_request_repaint
 }
 
 pub fn get_categories() -> Vec<String> {
-    let mut catagories = Vec::new();
+    let mut categories = Vec::new();
     for key in HEADERS.lock().unwrap().keys() {
-        catagories.push(key.to_owned());
+        categories.push(key.to_owned());
     }
-    return catagories;
+    return categories;
 }
 
 // Delete the temp directory

@@ -1,3 +1,5 @@
+#![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
+
 mod log;
 mod gui;
 mod logic;
@@ -35,16 +37,16 @@ struct Cli {
     list: bool,
 
     /// Set mode, using this is generally recommended, if this is not provided, the program will run the same function across each mode
-    #[arg(short, long, value_name = "CATAGORY")]
+    #[arg(short, long, value_name = "CATEGORY")]
     mode: Option<Category>,
 
     /// Extract asset, extract directory if no asset provided
     #[arg(short, long)]
     extract: Option<Option<String>>,
 
-    /// Add a file extention automatically
+    /// Add a file extension automatically
     #[arg(long)]
-    extention: bool,
+    extension: bool,
 
     /// Define a destination path
     #[arg(short, long)]
@@ -77,11 +79,11 @@ fn list(tab: String) {
     logic::refresh(cache_directory, tab, true, true); // cli_list_mode is set to true, this will print assets to console
 }
 
-fn extract(tab: String, asset: Option<String>, destination: Option<PathBuf>, add_extention: bool) {
+fn extract(tab: String, asset: Option<String>, destination: Option<PathBuf>, add_extension: bool) {
     let cache_directory = logic::get_mode_cache_directory(&tab);
     if let Some(asset) = asset {
         let dest = destination.unwrap_or(asset.clone().into());
-        logic::extract_file(cache_directory.join(asset), &tab, dest, add_extention);
+        logic::extract_file(cache_directory.join(asset), &tab, dest, add_extension);
     } else {
         if let Some(dest) = destination {
             logic::refresh(cache_directory.clone(), tab.clone(), true, true);
@@ -110,7 +112,7 @@ fn main() {
 
     } else if let Some(asset) = args.extract  {
         if let Some(category) = args.mode {
-            extract(get_tab(category), asset, args.dest, args.extention);
+            extract(get_tab(category), asset, args.dest, args.extension);
         } else {
             // Not enough arguments - go through all
             if let Some(destination) = args.dest {
