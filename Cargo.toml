@@ -11,7 +11,7 @@ egui = { default-features = false, version = "0.31" }
 egui_commonmark = { default-features = false, version = "0.20.0" }
 egui_dock = "0.16.0"
 filetime = "0.2.25"
-fluent-bundle = { version = "0.15.3", default-features = false }
+fluent-bundle = { version = "0.16.0", default-features = false }
 image = { version = "0.25.6", default-features = false, features = ["png","webp"] }
 lazy_static = "1.5.0"
 native-dialog = "0.9.0"
