@@ -12,7 +12,6 @@ about = About
 logs = Logs
 
 # Buttons
-button-delete-this-dir = Delete this directory <Del>
 button-extract-type = Extract all of this type <F3>
 button-refresh = Refresh <F5>
 button-clear-cache = Clear cache <Del>

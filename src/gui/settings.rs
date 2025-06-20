@@ -22,8 +22,8 @@ pub fn actions(ui: &mut egui::Ui, locale: &FluentBundle<Arc<FluentResource>>) {
         .unwrap();
 
         if yes {
-            logic::delete_all_directory_contents(logic::get_cache_directory().to_owned());
-        }                    
+            logic::clear_cache();
+        }
     }
 
     // Extract all description
@@ -64,7 +64,7 @@ pub fn cache_dir_management(ui: &mut egui::Ui, locale: &FluentBundle<Arc<FluentR
     ui.label(locale::get_message(locale, "custom-cache-dir-description", None));
 
     let mut args = FluentArgs::new();
-    args.set("directory", logic::get_cache_directory().to_string_lossy().to_string());
+    args.set("directory", logic::cache_directory::get_cache_directory().to_string_lossy().to_string());
 
     ui.label(locale::get_message(locale, "cache-directory", Some(&args)));
 
@@ -77,10 +77,10 @@ pub fn cache_dir_management(ui: &mut egui::Ui, locale: &FluentBundle<Arc<FluentR
             // If the user provides a directory, the program will change the cache directory to the new one
             if let Some(path) = option_path {
                 // Validation checks
-                match logic::validate_directory(&path.to_string_lossy().to_string()) {
+                match logic::cache_directory::validate_directory(&path.to_string_lossy().to_string()) {
                     Ok(directory) => {
                         config::set_config_value("cache_directory", directory.into());
-                        logic::set_cache_directory(logic::detect_directory()); // Set directory to new one
+                        logic::cache_directory::set_cache_directory(logic::cache_directory::detect_directory()); // Set directory to new one
                     }
                     Err(_) => {
                         DialogBuilder::message()
@@ -95,7 +95,7 @@ pub fn cache_dir_management(ui: &mut egui::Ui, locale: &FluentBundle<Arc<FluentR
         }
         if ui.button(locale::get_message(locale, "button-reset-cache-dir", None)).clicked() {
             config::set_config_value("cache_directory", "no directory set".into()); // Clear directory in config
-            logic::set_cache_directory(logic::detect_directory()); // Set it back to default
+            logic::cache_directory::set_cache_directory(logic::cache_directory::detect_directory()); // Set it back to default
         }
     });
 }

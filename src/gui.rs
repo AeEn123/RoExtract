@@ -6,34 +6,33 @@ use egui_dock::{DockArea, NodeIndex, DockState, SurfaceIndex, Style};
 use fluent_bundle::{FluentBundle, FluentResource};
 use std::num::NonZero;
 use std::path::PathBuf;
-use std::sync::Mutex;
+use std::sync::{LazyLock, Mutex};
 use std::time::Duration;
 use std::{sync::Arc, thread};
 
-use std::collections::HashMap; // Used for input
+use std::collections::HashMap; use crate::logic::AssetInfo;
+// Used for input
 use crate::{config, locale, log, logic, updater}; // Used for functionality
 use eframe::egui::TextureHandle;
-
-use lazy_static::lazy_static;
 
 mod welcome;
 mod settings;
 
-const VERSION: &str = env!("CARGO_PKG_VERSION"); // Get version for use in the filename
+const VERSION: &str = env!("CARGO_PKG_VERSION"); // Get version for use in the title bar
 const COMPILE_DATE: &str = env!("COMPILE_DATE");
 const ICON: &[u8; 11400] = include_bytes!("../assets/icon.png");
-const CONTRIBUTORS: [&str; 4] = [
+const CONTRIBUTORS: [&str; 5] = [
     "AeEn123",
     "Vonercent",
     "MarcelDev",
-    "aaditkumar2009",
+    "JustKanade",
+    "yuk1n0w",
 ];
-const DEPENDENCIES: [[&str; 2]; 13] = [
+const DEPENDENCIES: [[&str; 2]; 15] = [
     ["https://github.com/emilk/egui", ""],
     ["https://github.com/Adanos020/egui_dock", ""],
     ["https://github.com/lampsitter/egui_commonmark", ""],
     ["https://github.com/native-dialog-rs/native-dialog-rs", ""],
-    ["https://github.com/rust-lang-nursery/lazy-static.rs", ""],
     ["https://github.com/projectfluent/fluent-rs", ""],
     ["https://github.com/1Password/sys-locale", ""],
     ["https://github.com/zbraniecki/unic-locale", ""],
@@ -42,12 +41,14 @@ const DEPENDENCIES: [[&str; 2]; 13] = [
     ["https://github.com/ardaku/whoami", ""],
     ["https://github.com/seanmonstar/reqwest", ""],
     ["https://github.com/serde-rs/json", ""],
+    ["https://github.com/Peternator7/strum", ""],
+    ["https://github.com/chronotope/chrono", ""],
+    ["https://github.com/image-rs/image", ""],
 ];
 
-lazy_static! {
-    static ref IMAGES: Mutex<HashMap<String, TextureHandle>> = Mutex::new(HashMap::new());
-    static ref ASSETS_LOADING: Mutex<Vec<String>> = Mutex::new(Vec::new());
-}
+static IMAGES: LazyLock<Mutex<HashMap<String, TextureHandle>>> = LazyLock::new(||Mutex::new(HashMap::new()));
+static ASSETS_LOADING: LazyLock<Mutex<Vec<String>>> = LazyLock::new(||Mutex::new(Vec::new()));
+
 
 struct TabViewer<'a> {
     // passing selected label to TabViewer
@@ -57,58 +58,50 @@ struct TabViewer<'a> {
     searching: &'a mut bool,
     search_query: &'a mut String,
     swapping: &'a mut bool,
-    swapping_asset_a: &'a mut Option<String>,
+    swapping_asset_a: &'a mut Option<logic::AssetInfo>,
     locale: &'a mut FluentBundle<Arc<FluentResource>>,
     asset_context_menu_open: &'a mut Option<usize>,
     copying: &'a mut bool,
 }
 
-fn double_click(dir: PathBuf, value: String, mode: String, swapping: &mut bool, copying: &mut bool, swapping_asset_a: &mut Option<String>) {
+fn double_click(asset: logic::AssetInfo, swapping: &mut bool, copying: &mut bool, swapping_asset_a: &mut Option<logic::AssetInfo>) {
     if *copying {
         if swapping_asset_a.is_none() {
-            *swapping_asset_a = Some(value);
+            *swapping_asset_a = Some(asset);
         } else {
-            logic::copy_assets(dir, &swapping_asset_a.as_ref().unwrap(), &value);
+            logic::copy_assets(swapping_asset_a.clone().unwrap(), asset);
         }
     } else if *swapping {
         if swapping_asset_a.is_none() {
-            *swapping_asset_a = Some(value);
+            *swapping_asset_a = Some(asset);
         } else {
-            logic::swap_assets(dir, &swapping_asset_a.as_ref().unwrap(), &value);
+            logic::swap_assets(swapping_asset_a.clone().unwrap(), asset);
             *swapping_asset_a = None;
             *swapping = false
         }
     } else {
         let temp_dir = logic::get_temp_dir(true);
-        let alias = config::get_asset_alias(&value);
+        let alias = config::get_asset_alias(&asset.name);
         let destination = temp_dir.join(alias);
-        let origin = dir.join(value);
-        let new_destination = logic::extract_file(origin, &mode, destination.clone(), true);
-        if new_destination != PathBuf::new() {
-            match open::that(new_destination) {
-                Ok(()) => (),
-                Err(err) => log_error!("Failed opening file: {}", err)
-            }
+        match logic::extract_to_file(asset, destination.clone(), true) {
+            Ok(new_destination) => {
+                match open::that(new_destination) {
+                    Ok(()) => (),
+                    Err(err) => {
+                        logic::update_status(locale::get_message(&locale::get_locale(None), "failed-opening-file", None));
+                        log_error!("Failed opening file: {}", err)
+                    }
+                }
+            },
+            Err(e) => {
+                logic::update_status(locale::get_message(&locale::get_locale(None), "failed-opening-file", None));
+                log_error!("Failed opening file: {}", e)
+        },
         }
     }
 }
 
-
-fn delete_this_directory(cache_directory: PathBuf, locale: &FluentBundle<Arc<FluentResource>>) {
-    // Confirmation dialog
-    let yes = DialogBuilder::message()
-    .set_level(MessageLevel::Info)
-    .set_title(&locale::get_message(locale, "confirmation-delete-confirmation-title", None))
-    .set_text(&locale::get_message(locale, "confirmation-delete-confirmation-description", None))
-    .confirm().show()
-    .unwrap();
-
-    if yes {
-        logic::delete_all_directory_contents(cache_directory);
-    }
-}
-
-fn extract_all_of_type(cache_directory: PathBuf, mode: &str, locale: &FluentBundle<Arc<FluentResource>>) {
+fn extract_all_of_type(category: logic::Category, locale: &FluentBundle<Arc<FluentResource>>) {
     let mut no = logic::get_list_task_running();
 
     // Confirmation dialog, the program is still listing files
@@ -130,11 +123,11 @@ fn extract_all_of_type(cache_directory: PathBuf, mode: &str, locale: &FluentBund
 
         // If the user provides a directory, the program will extract the assets to that directory
         if let Some(path) = option_path {
-            logic::extract_dir(cache_directory, path, mode.to_string(), false,config::get_config_bool("use_alias").unwrap_or(false));
+            logic::extract_dir(path, category, false, config::get_config_bool("use_alias").unwrap_or(false));
         }
     }
 }
-fn toggle_swap(swapping: &mut bool, swapping_asset_a: &mut Option<String>, locale: &FluentBundle<Arc<FluentResource>>) {
+fn toggle_swap(swapping: &mut bool, swapping_asset_a: &mut Option<AssetInfo>, locale: &FluentBundle<Arc<FluentResource>>) {
     let mut warning_acknowledged = config::get_config_bool("ban-warning-ack").unwrap_or(false);
 
     if !warning_acknowledged {
@@ -156,11 +149,27 @@ fn toggle_swap(swapping: &mut bool, swapping_asset_a: &mut Option<String>, local
     }
 }
 
-fn extract_file_button(name: &str, cache_directory: PathBuf, tab: &str) {
-    let alias = config::get_asset_alias(name);
-    let origin = cache_directory.join(name);
+fn extract_file_button(asset: logic::AssetInfo) {
+    let alias = config::get_asset_alias(&asset.name);
     if let Some(destination) = native_dialog::DialogBuilder::file().set_filename(&alias).save_single_file().show().unwrap() {
-        logic::extract_file(origin, tab.into(), destination, false);
+        match logic::extract_to_file(asset, destination, false) {
+            Ok(_) => (),
+            Err(e) => log_critical!("{}", e)
+        }
+    }
+}
+
+fn clear_cache(locale: &FluentBundle<Arc<FluentResource>>) {
+    // Confirmation dialog
+    let yes = DialogBuilder::message()
+    .set_level(MessageLevel::Info)
+    .set_title(&locale::get_message(locale, "confirmation-clear-cache-title", None))
+    .set_text(&locale::get_message(locale, "confirmation-clear-cache-description", None))
+    .confirm().show()
+    .unwrap();
+
+    if yes {
+        logic::clear_cache();
     }
 }
 
@@ -183,34 +192,43 @@ fn load_image(id: &str, data: &[u8], ctx: egui::Context) -> Result<TextureHandle
     }
 }
 
-fn load_asset_image(id: String, tab: String, cache_directory: PathBuf, ctx: egui::Context) -> Option<TextureHandle> {
+fn load_asset_image(asset: AssetInfo, ctx: egui::Context) -> Option<TextureHandle> {
     let images = {IMAGES.lock().unwrap().clone()};
-    if let Some(texture) = images.get(&id) {
+    if let Some(texture) = images.get(&asset.name) {
         Some(texture.clone())
     } else {
         {
             let assets_loading = ASSETS_LOADING.lock().unwrap().clone();                            // Default to 2 CPU threads
-            if assets_loading.contains(&id) || assets_loading.len() >= thread::available_parallelism().unwrap_or(NonZero::new(2).unwrap()).into() {
+            if assets_loading.contains(&asset.name) || assets_loading.len() >= thread::available_parallelism().unwrap_or(NonZero::new(2).unwrap()).into() {
                 return None // Don't load multiple at a time or more than CPU threads
             }
         }
         thread::spawn(move || {
             {
                 let mut assets_loading = ASSETS_LOADING.lock().unwrap();
-                assets_loading.push(id.clone()); // Add the asset to the loading set
+                assets_loading.push(asset.name.clone()); // Add the asset to the loading set
             }
-            let path = cache_directory.join(&id);
-            let bytes = logic::extract_file_to_bytes(path, &tab);
-            match load_image(&id, &bytes.as_slice(), ctx) {
-                Ok(_) => {
-                    let mut assets_loading = ASSETS_LOADING.lock().unwrap();
-                    assets_loading.retain(|x| x != &id); // Remove the asset from the loading set
+            
+            match logic::extract_asset_to_bytes(asset.clone()) {
+                Ok(bytes) => {
+                    match load_image(&asset.name, &bytes.as_slice(), ctx) {
+                        Ok(_) => {
+                            let mut assets_loading = ASSETS_LOADING.lock().unwrap();
+                            assets_loading.retain(|x| x != &asset.name); // Remove the asset from the loading set
+                        },
+                        Err(e) => {
+                            log_warn!("Failed to load {} as image, cooldown for 1000 ms ({})", asset.name, e);
+                            thread::sleep(Duration::from_millis(1000));
+                            let mut assets_loading = ASSETS_LOADING.lock().unwrap();
+                            assets_loading.retain(|x| x != &asset.name); // Remove the asset from the loading set
+                        }
+                    }
                 },
-                Err(_) => {
-                    log_warn!("Failed to load {} as image, cooldown for 1000 ms", &id);
+                Err(e) => {
+                    log_error!("Unable read file, 1000 ms cooldown: {}", e);
                     thread::sleep(Duration::from_millis(1000));
                     let mut assets_loading = ASSETS_LOADING.lock().unwrap();
-                    assets_loading.retain(|x| x != &id); // Remove the asset from the loading set
+                    assets_loading.retain(|x| x != &asset.name); // Remove the asset from the loading set
                 }
             }
 
@@ -249,14 +267,14 @@ fn format_modified(time: std::time::SystemTime) -> String {
 }
 
 impl TabViewer<'_> {
-    fn asset_buttons(&mut self, ui: &mut egui::Ui, cache_directory: PathBuf, tab: &str, focus_search_box: &mut bool, name: Option<&str>) {
-        if let Some(name) = name {
+    fn asset_buttons(&mut self, ui: &mut egui::Ui,category: logic::Category, focus_search_box: &mut bool, asset: Option<AssetInfo>) {
+        if let Some(asset) = asset.clone() {
             if ui.button(locale::get_message(self.locale, "button-open", None)).clicked() {
-                double_click(cache_directory.clone(), name.to_string(), tab.to_string(), self.swapping, self.copying, self.swapping_asset_a);
+                double_click(asset.clone(), self.swapping, self.copying, self.swapping_asset_a);
                 *self.asset_context_menu_open = None;
             }
             if ui.button(locale::get_message(self.locale, "button-extract-file", None)).clicked() {
-                extract_file_button(name, cache_directory.clone(), tab);
+                extract_file_button(asset);
                 *self.asset_context_menu_open = None;
             }
         }
@@ -272,24 +290,25 @@ impl TabViewer<'_> {
             *self.asset_context_menu_open = None;
         }
     
-        if ui.button(locale::get_message(self.locale, "button-delete-this-dir", None)).clicked() {
-            delete_this_directory(cache_directory.clone(), self.locale);
-            *self.asset_context_menu_open = None;
+        if ui.button(locale::get_message(self.locale, "button-clear-cache", None)).clicked() || ui.input(|i| i.key_pressed(egui::Key::Delete)) {
+            clear_cache(&self.locale);
+            *self.asset_context_menu_open = None;               
         }
+
         if ui.button(locale::get_message(self.locale, "button-extract-type", None)).clicked() {
-            extract_all_of_type(cache_directory.clone(), tab, self.locale);
+            extract_all_of_type(category, self.locale);
             *self.asset_context_menu_open = None;
         }
         if ui.button(locale::get_message(self.locale, "button-refresh", None)).clicked() {
-            logic::refresh(cache_directory.clone(), tab.to_string(), false, false);
+            logic::refresh(category, false, false);
             *self.asset_context_menu_open = None;
         }
         if ui.button(locale::get_message(self.locale, "button-swap", None)).clicked() {
             toggle_swap(self.swapping, self.swapping_asset_a, self.locale);
             *self.asset_context_menu_open = None;
     
-            if let Some(n) = name {
-                *self.swapping_asset_a = Some(n.to_string());
+            if let Some(n) = asset.clone() {
+                *self.swapping_asset_a = Some(n);
             } else {
                 *self.swapping_asset_a = None;
             }
@@ -299,14 +318,14 @@ impl TabViewer<'_> {
             toggle_swap(self.copying, self.swapping_asset_a, self.locale);
             *self.asset_context_menu_open = None;
     
-            if let Some(n) = name {
-                *self.swapping_asset_a = Some(n.to_string());
+            if let Some(n) = asset.clone() {
+                *self.swapping_asset_a = Some(n);
             } else {
                 *self.swapping_asset_a = None;
             }
         }
 
-        if tab == "images" {
+        if category == logic::Category::Images {
             let message = if config::get_config_bool("display_image_preview").unwrap_or(false) {
                 locale::get_message(self.locale, "button-disable-display-image-preview", None)
             } else {
@@ -329,10 +348,8 @@ impl TabViewer<'_> {
         i: usize,
         scroll_to: Option<usize>,
         navigation_accepted: &mut bool,
-        cache_directory: PathBuf,
-        tab: &str,
         mut focus_search_box: &mut bool,
-        file_name: &str,
+        asset: AssetInfo,
     ) -> (Color32, Color32) {
         // Highlight the background when selected
         let background_colour = if is_selected {
@@ -358,17 +375,17 @@ impl TabViewer<'_> {
             *self.asset_context_menu_open = Some(i);
         }
 
-        if let Some(asset) = self.asset_context_menu_open {
-            if *asset == i {
+        if let Some(asset_context_menu_open) = self.asset_context_menu_open {
+            if *asset_context_menu_open == i {
                 response.context_menu(|ui| {
-                    self.asset_buttons(ui, cache_directory.clone(), tab, &mut focus_search_box, Some(&file_name));
+                    self.asset_buttons(ui, asset.category, &mut focus_search_box, Some(asset.clone()));
                 });
             }
 
         }
 
         if response.double_clicked() {
-            double_click(cache_directory, file_name.to_string(), tab.to_string(), self.swapping, self.copying, self.swapping_asset_a);
+            double_click(asset, self.swapping, self.copying, self.swapping_asset_a);
         }
 
         // Handle keyboard scrolling
@@ -411,23 +428,30 @@ impl egui_dock::TabViewer for TabViewer<'_> {
     }
 
     fn ui(&mut self, ui: &mut egui::Ui, tab: &mut Self::Tab) {
-        let cache_directory = logic::get_mode_cache_directory(&tab);      
-
-        let file_list = logic::get_file_list(); // Get the file list as it is used throughout the GUI
-
         if tab != "settings" && tab != "about" && tab != "logs" {
             // This is only shown on tabs other than settings (Extracting assets)
+
+            let category = match tab.as_str() {
+                "music" => logic::Category::Music,
+                "sounds" => logic::Category::Sounds,
+                "images" => logic::Category::Images,
+                "ktx-files" => logic::Category::Ktx,
+                "rbxm-files" => logic::Category::Rbxm,
+                _ => logic::Category::All
+            };
 
             // Detect if tab changed and do a refresh if so
             if let Some(current_tab) = self.current_tab {
                 if current_tab.to_owned() != tab.to_owned() {
                     *self.current_tab = Some(tab.to_owned());
-                    logic::refresh(cache_directory.to_owned(), tab.to_owned(), false, false);
+                    logic::refresh(category, false, false);
                 }
             } else {
                 *self.current_tab = Some(tab.to_owned());
-                logic::refresh(cache_directory.to_owned(), tab.to_owned(), false, false);
+                logic::refresh(category, false, false);
             }
+
+            let file_list = logic::get_file_list();
 
             let mut focus_search_box = false; // Focus the search box toggle for this frame
 
@@ -443,13 +467,14 @@ impl egui_dock::TabViewer for TabViewer<'_> {
             }
             if ui.input(|i| i.key_pressed(egui::Key::Delete)) && !*self.renaming {
                 // del key used for editing, don't allow during editing
-                delete_this_directory(cache_directory.clone(), self.locale);
+                clear_cache(&self.locale);
+
             }
             if ui.input(|i| i.key_pressed(egui::Key::F3)) {
-                extract_all_of_type(cache_directory.clone(), &tab, self.locale);
+                extract_all_of_type(category, self.locale);
             }
             if ui.input(|i| i.key_pressed(egui::Key::F5)) {
-                logic::refresh(cache_directory.clone(), tab.to_owned(), false, false);
+                logic::refresh(category, false, false);
             }
             if ui.input(|i| i.key_pressed(egui::Key::F4)) {
                 toggle_swap(self.swapping, self.swapping_asset_a, self.locale);
@@ -466,7 +491,7 @@ impl egui_dock::TabViewer for TabViewer<'_> {
                 ui.push_id("Topbar buttons", |ui| {
                     egui::ScrollArea::horizontal().show(ui, |ui| {
                         ui.horizontal(|ui| {
-                            self.asset_buttons(ui, cache_directory.clone(), tab, &mut focus_search_box, None);
+                            self.asset_buttons(ui, category, &mut focus_search_box, None);
                         });
                     })
                 });
@@ -506,7 +531,7 @@ impl egui_dock::TabViewer for TabViewer<'_> {
                     if let Some(selected) = *self.selected {
                         // Get file name after getting the selected value
                         if let Some(asset) = file_list.get(selected) {
-                            double_click(cache_directory.clone(), asset.name.to_string(), tab.to_string(), self.swapping, self.copying, self.swapping_asset_a);
+                            double_click(asset.clone(), self.swapping, self.copying, self.swapping_asset_a);
                         }                   
                     }
                 }
@@ -516,7 +541,7 @@ impl egui_dock::TabViewer for TabViewer<'_> {
                     if let Some(selected) = *self.selected {
                         // Get file name after getting the selected value
                         if let Some(asset) = file_list.get(selected) {
-                            extract_file_button(&asset.name, cache_directory.clone(), tab);
+                            extract_file_button(asset.clone());
                         }                   
                     }
                 }
@@ -530,7 +555,7 @@ impl egui_dock::TabViewer for TabViewer<'_> {
                     ui.heading(locale::get_message(self.locale, "swap-choose-file", None));
                 } else {
                     let mut args = fluent_bundle::FluentArgs::new();
-                    args.set("asset", config::get_asset_alias(self.swapping_asset_a.as_ref().unwrap()));
+                    args.set("asset", config::get_asset_alias(&self.swapping_asset_a.as_ref().unwrap().name));
                     ui.heading(locale::get_message(self.locale, "swap-with", Some(&args)));
                 }
             }
@@ -540,7 +565,7 @@ impl egui_dock::TabViewer for TabViewer<'_> {
                     ui.heading(locale::get_message(self.locale, "copy-choose-file", None));
                 } else {
                     let mut args = fluent_bundle::FluentArgs::new();
-                    args.set("asset", config::get_asset_alias(self.swapping_asset_a.as_ref().unwrap()));
+                    args.set("asset", config::get_asset_alias(&self.swapping_asset_a.as_ref().unwrap().name));
                     ui.heading(locale::get_message(self.locale, "overwrite-with", Some(&args)));
                 }
             }
@@ -673,8 +698,8 @@ impl egui_dock::TabViewer for TabViewer<'_> {
                                             let (rect, response) = ui.allocate_exact_size(desired_size, egui::Sense::click());
                                             
                                             // Only attempt to load if it's a real asset
-                                            if asset.real_asset {
-                                                if let Some(texture) = load_asset_image(file_name.to_string(), tab.to_string(), cache_directory.clone(), ui.ctx().clone()) {
+                                            if asset.from_file | asset.from_sql {
+                                                if let Some(texture) = load_asset_image(asset.clone(), ui.ctx().clone()) {
                                                     egui::Image::new(&texture).maintain_aspect_ratio(true).max_height(row_height).paint_at(ui, rect);
                                                 }
                                             }
@@ -683,7 +708,7 @@ impl egui_dock::TabViewer for TabViewer<'_> {
                                             let visuals = ui.visuals();
         
                                             // Get colours and handle response
-                                            let colours = self.handle_asset_response(response, visuals, is_selected, i, scroll_to, &mut navigation_accepted, cache_directory.clone(), &tab, &mut focus_search_box, &file_name);
+                                            let colours = self.handle_asset_response(response, visuals, is_selected, i, scroll_to, &mut navigation_accepted, &mut focus_search_box, asset.clone());
         
                                             let text_colour = colours.1;
                                             let background_colour = colours.0;
@@ -741,8 +766,8 @@ impl egui_dock::TabViewer for TabViewer<'_> {
                                     let visuals = ui.visuals();
                                     let colours = self.handle_asset_response(
                                         response, visuals, is_selected, i, scroll_to, 
-                                        &mut navigation_accepted, cache_directory.clone(), &tab, 
-                                        &mut focus_search_box, &asset.name
+                                        &mut navigation_accepted, 
+                                        &mut focus_search_box, asset.clone()
                                     );
             
                                     let text_colour = colours.1;
@@ -922,7 +947,7 @@ struct MyApp {
     searching: bool,
     search_query: String,
     swapping: bool,
-    swapping_asset_a: Option<String>,
+    swapping_asset_a: Option<logic::AssetInfo>,
     locale: FluentBundle<Arc<FluentResource>>,
     asset_context_menu_open: Option<usize>,
     copying: bool,

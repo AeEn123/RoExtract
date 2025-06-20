@@ -1,8 +1,7 @@
-use std::{fs, path::PathBuf, sync::Mutex};
+use std::{fs, path::PathBuf, sync::{LazyLock, Mutex}};
 
 use reqwest::blocking::Client;
 use serde::Deserialize;
-use lazy_static::lazy_static;
 
 use crate::{config, logic};
 
@@ -11,9 +10,8 @@ mod gui;
 #[cfg(target_os = "windows")]
 use std::ffi::OsString;
 
-lazy_static! {
-    static ref UPDATE_FILE: Mutex<Option<PathBuf>> = Mutex::new(None);
-}
+static UPDATE_FILE: LazyLock<Mutex<Option<PathBuf>>> = LazyLock::new(||Mutex::new(None));
+
 
 static URL: &str = "https://api.github.com/repos/AeEn123/RoExtract/releases/latest";
 static PRERELEASE_URL: &str = "https://api.github.com/repos/AeEn123/RoExtract/releases";

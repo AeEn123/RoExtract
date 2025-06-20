@@ -1,8 +1,6 @@
 use std::{
-    sync::{Arc, Mutex},
-    collections::HashMap
+    collections::HashMap, sync::{Arc, LazyLock, Mutex}
 };
-use lazy_static::lazy_static;
 use unic_langid::LanguageIdentifier;
 use fluent_bundle::{FluentBundle, FluentResource, FluentArgs};
 
@@ -11,10 +9,7 @@ use crate::config;
 
 include!(concat!(env!("OUT_DIR"), "/locale_data.rs")); // defines get_locale_resources and LANGUAGE_LIST
 
-
-lazy_static! {
-    static ref LANGUAGE_LIST: Mutex<Vec<(String,String)>> = Mutex::new(init_language_list());
-}
+static LANGUAGE_LIST: LazyLock<Mutex<Vec<(String,String)>>> = LazyLock::new(||Mutex::new(init_language_list()));
 
 
 fn init_language_list() -> Vec<(String,String)> {

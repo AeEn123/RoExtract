@@ -31,8 +31,9 @@
 - [x] - Implement asset copying
 - [x] - image decoder to quickly preview assets
 - [x] - Use versioning numbers better major.minor.patch
-- [ ] - Fix CLI mode
+- [x] - Fix CLI mode
 - [ ] - Test if all builds work
+- [ ] - Fix with modern Roblox versions on Windows (probably other OSes later too!)
 
 
 ### Changelog for 1.0.0
@@ -59,6 +60,7 @@ You can now test development builds within the settings
 
 ## 1.1.0
 - [ ] - Built-in media player to quickly preview sounds
+- [ ] - Audio length in list
 - [ ] - Make it into a table with specific details e.g size, type, time created
 - [ ] - Wait for translations
 

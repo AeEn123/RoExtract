@@ -1,9 +1,7 @@
-use std::sync::Mutex;
-use lazy_static::lazy_static;
+use std::sync::{LazyLock, Mutex};
 
-lazy_static! {
-    static ref LOG: Mutex<String> = Mutex::new(String::new());
-}
+static LOG: LazyLock<Mutex<String>> = LazyLock::new(||Mutex::new(String::new()));
+
 
 pub fn log(log_type: &str, message: &str, file: &str, line: u32, column: u32) {
     let now = chrono::Utc::now().format("%Y-%m-%d %H:%M:%S").to_string();

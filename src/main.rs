@@ -10,25 +10,7 @@ mod locale;
 
 use std::path::PathBuf;
 
-use clap::{Parser, ValueEnum};
-
-// CLI stuff
-#[derive(ValueEnum, Clone, Debug)]
-enum Category {
-    Music,
-    Sounds,
-    Images,
-    Ktx,
-    Rbxm,
-}
-
-// Implement `Display` for `Category`
-
-impl std::fmt::Display for Category {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{:?}", self)
-    }
-}
+use clap::Parser;
 
 #[derive(Parser)]
 #[command(version, about, long_about = None)]
@@ -39,7 +21,7 @@ struct Cli {
 
     /// Set mode, using this is generally recommended, if this is not provided, the program will run the same function across each mode
     #[arg(short, long, value_name = "CATEGORY")]
-    mode: Option<Category>,
+    mode: Option<logic::Category>,
 
     /// Extract asset, extract directory if no asset provided
     #[arg(short, long)]
@@ -71,24 +53,23 @@ struct Cli {
     
 }
 
-fn get_tab(category: Category) -> String {
-    category.to_string().to_lowercase().replace("ktx","ktx-files").replace("rbxm","rbxm-files")
+fn list(category: logic::Category) {
+    logic::refresh(category, true, true); // cli_list_mode is set to true, this will print assets to console
 }
 
-fn list(tab: String) {
-    let cache_directory = logic::get_mode_cache_directory(&tab);
-    logic::refresh(cache_directory, tab, true, true); // cli_list_mode is set to true, this will print assets to console
-}
-
-fn extract(tab: String, asset: Option<String>, destination: Option<PathBuf>, add_extension: bool) {
-    let cache_directory = logic::get_mode_cache_directory(&tab);
+fn extract(category: logic::Category, asset: Option<String>, destination: Option<PathBuf>, add_extension: bool) {
     if let Some(asset) = asset {
         let dest = destination.unwrap_or(asset.clone().into());
-        logic::extract_file(cache_directory.join(asset), &tab, dest, add_extension);
+        let info = logic::create_asset_info(&asset, category);
+        match logic::extract_to_file(info, dest, add_extension) {
+            Ok(destination) => println!("{}", destination.display()),
+            Err(e) => eprintln!("{}", e)
+        }
+
     } else {
         if let Some(dest) = destination {
-            logic::refresh(cache_directory.clone(), tab.clone(), true, true);
-            logic::extract_dir(cache_directory, dest, tab, true, false);
+            logic::refresh(category, true, true);
+            logic::extract_dir(dest, category, true, false);
         } else {
             eprintln!("Please provide either a destination path or an asset to extract! --help for more details.")
         }
@@ -102,18 +83,14 @@ fn main() {
 
     if args.list {
         if let Some(category) = args.mode {
-            list(get_tab(category));
+            list(category);
         } else {
-            // Not enough arguments - go through all
-            for category in logic::get_categories() {
-                list(category);
-            }
+            list(logic::Category::All);
+            list(logic::Category::Music)
         }
-
-
     } else if let Some(asset) = args.extract  {
         if let Some(category) = args.mode {
-            extract(get_tab(category), asset, args.dest, args.extension);
+            extract(category, asset, args.dest, args.extension);
         } else {
             // Not enough arguments - go through all
             if let Some(destination) = args.dest {
@@ -125,14 +102,15 @@ fn main() {
         }
     } else if let Some(asset) = args.swap {
         if let Some(dest) = args.dest {
-            let dir = logic::get_mode_cache_directory(&get_tab(args.mode.unwrap_or(Category::Images)));
+            let asset_a = logic::create_asset_info(&asset, args.mode.unwrap_or(logic::Category::All));
+            let asset_b = logic::create_asset_info(&dest.to_string_lossy().to_string(), args.mode.unwrap_or(logic::Category::All));
 
-            logic::swap_assets(dir, &asset, &dest.to_string_lossy().to_string());
+            logic::swap_assets(asset_a, asset_b);
         } else {
             eprintln!("--dest is required for swapping assets, --help for more details")
         }
     } else if args.cache_dir {
-        println!("{}", logic::get_cache_directory().display());
+        println!("{}", logic::cache_directory::get_cache_directory().display());
     } else if args.check_for_updates {
         updater::check_for_updates(false, false);
     } else if args.download_new_update {

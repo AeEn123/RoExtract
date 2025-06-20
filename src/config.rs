@@ -1,14 +1,13 @@
 use std::{fs, path::PathBuf, sync::Mutex};
 use serde_json::{json, Value};
-use lazy_static::lazy_static;
+use std::sync::LazyLock;
+
 
 use crate::logic;
 
-lazy_static! {
-    static ref CONFIG: Mutex<Value> = Mutex::new(read_config_file());
-    static ref SYSTEM_CONFIG: Mutex<Value> = Mutex::new(read_system_config());
-    static ref CONFIG_FILE: Mutex<PathBuf> = Mutex::new(detect_config_file());
-}
+static CONFIG: LazyLock<Mutex<Value>> = LazyLock::new(|| Mutex::new(read_config_file()));
+static SYSTEM_CONFIG: LazyLock<Mutex<Value>> = LazyLock::new(|| Mutex::new(read_system_config()));
+static CONFIG_FILE: LazyLock<Mutex<PathBuf>> = LazyLock::new(|| Mutex::new(detect_config_file()));
 
 const SYSTEM_CONFIG_FILE: &str = "RoExtract-system.json";
 const DEFAULT_CONFIG_FILE: &str = "RoExtract-config.json";
