@@ -111,16 +111,16 @@ pub fn detect_directory() -> PathBuf {
             config::set_config_value("cache_directory", validate_directory(&path.to_string_lossy().to_string()).unwrap().into());
             return detect_directory();
         } else {
-            panic!("Directory detection failed!{}", errors);
+            log_critical!("Directory detection failed! {}", errors);
         }
     } else {
-        panic!("Directory detection failed!{}", errors);
+        log_critical!("Directory detection failed! {}", errors);
     }
+    return PathBuf::new();
 }
 
 pub fn validate_directory(directory: &str) -> Result<String, String> {
     let resolved_directory = logic::resolve_path(directory);
-    // There's probably a better way of doing this... It works though :D
 
     match fs::metadata(&resolved_directory) { // Directory detection
         Ok(metadata) => {
