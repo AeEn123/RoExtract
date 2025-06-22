@@ -196,9 +196,9 @@ pub fn clear_cache() {
             // Get locale for localised status messages
             let locale = locale::get_locale(None);
             
+            sql_database::clear_cache(&locale);
             cache_directory::clear_cache(&locale);
-            // TODO: SQL
-            
+
             // Clear the file list for visual feedback to the user that the files are actually deleted
             clear_file_list();
             
@@ -240,8 +240,8 @@ pub fn refresh(category: Category, cli_list_mode: bool, yield_for_thread: bool) 
 
         clear_file_list(); // Only list the files on the current tab
         
+        sql_database::refresh(category, cli_list_mode, &locale);
         cache_directory::refresh(category, cli_list_mode, &locale);
-        // TODO: SQL
 
         { 
             let mut task = LIST_TASK_RUNNING.lock().unwrap();

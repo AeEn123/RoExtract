@@ -1,4 +1,4 @@
-use fluent_bundle::{FluentBundle, FluentResource};
+use fluent_bundle::{FluentArgs, FluentBundle, FluentResource};
 use rusqlite::Connection;
 use std::{fs, sync::{Arc, LazyLock, Mutex}};
 
@@ -6,6 +6,7 @@ use crate::{config, locale, logic};
 
 const DEFAULT_PATHS: [&str; 2] = ["%localappdata%\\Roblox\\rbx-storage.db", "~/.var/app/org.vinegarhq.Sober/data/sober/appData/rbx-storage.db"]; // For windows and linux (sober)
 const CONNECTION: LazyLock<Mutex<Option<Connection>>> = LazyLock::new(||Mutex::new(open_database()));
+const TABLE_NAME: &str = "files";
 
 pub fn open_database() -> Option<Connection> {
     let mut errors = "".to_owned();
@@ -89,9 +90,61 @@ pub fn validate_file(path: &str) -> Result<String, String> {
 pub fn clear_cache(locale: &FluentBundle<Arc<FluentResource>>) {
     let binding = CONNECTION;
     let connection = binding.lock().unwrap();
+
+    logic::update_progress(0.0);
+
+    // Args for formatting
+    let mut args = FluentArgs::new();
+    args.set("item", "0");
+    args.set("total", "1");
+
+    logic::update_status(locale::get_message(&locale, "deleting-files", Some(&args)));
+
+
     if let Some(conn) = &*connection {
-        conn.execute("DROP TABLE Files", ());
-        // TODO finsih
+        match conn.execute("DROP TABLE ?1", [TABLE_NAME]) {
+            Ok(_) => {
+                logic::update_progress(1.0);
+                args.set("item", "1");
+                args.set("total", "1");
+
+                logic::update_status(locale::get_message(&locale, "deleting-files", Some(&args)));
+            }
+            Err(e) => {
+                log_error!("Failed to DROP TABLE: {}", e);
+
+                args.set("error", e.to_string());
+                logic::update_progress(1.0);
+                args.set("item", "1");
+                args.set("total", "1");
+
+                logic::update_status(locale::get_message(&locale, "failed-deleting-file", Some(&args)));
+
+            }
+        }
+    } else {
+        log_error!("No SQL Connection!");
+        logic::update_status(locale::get_message(&locale, "failed-deleting-file", Some(&args)));
+
     }
     
+}
+
+
+pub fn refresh(category: logic::Category, cli_list_mode: bool, locale: &FluentBundle<Arc<FluentResource>>) {
+    let headers = logic::get_headers(&category);
+    let mut args = FluentArgs::new();
+
+    let binding = CONNECTION;
+    let connection = binding.lock().unwrap();
+
+    if let Some(conn) = &*connection {
+        
+        // let entries: Vec<_> = conn.query_row(
+        //     "SELECT id, size, ttl FROM ?1",
+        //     [TABLE_NAME],
+        //     |row| row.get(0)).unwrap(); // TODO: Error handling
+
+        // println!("{:#?}", entries);
+    }
 }
