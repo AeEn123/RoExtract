@@ -139,48 +139,70 @@ pub fn refresh(category: logic::Category, cli_list_mode: bool, locale: &FluentBu
     let connection = binding.lock().unwrap();
 
     if let Some(conn) = &*connection {
+        let amount: Result<i64,_> = conn.query_row("SELECT COUNT(*) FROM files",
+            [],
+            |row|row.get(0));
 
-        let mut stmt = conn.prepare("SELECT id, size, ttl, substr(content, 1, 2048) as content_prefix FROM files").unwrap(); // TODO: Error handling
+        match conn.prepare("SELECT id, size, ttl, substr(content, 1, 2048) as content_prefix FROM files") {
+            Ok(mut stmt) => {
+                let mut count: i64 = 0;
+                let result =  stmt.query_map((), |row| {
+                    if let Ok(total) = amount {
+                        args.set("item", count);
+                        args.set("total", total);
+                        logic::update_progress(count as f32 / total as f32);
+                        logic::update_status(locale::get_message(&locale, "filtering-files", Some(&args)));
+                        count += 1;
+                    }
 
-        let entries = stmt.query_map((), |row| {
-            // TODO: Progress
-            let last_modified_timestamp: u64 = row.get(2)?;
-            let last_modified = SystemTime::UNIX_EPOCH
-                .checked_add(std::time::Duration::from_secs(last_modified_timestamp));
+                    let last_modified_timestamp: u64 = row.get(2)?;
+                    let last_modified = SystemTime::UNIX_EPOCH
+                        .checked_add(std::time::Duration::from_secs(last_modified_timestamp));
 
-            let bytes = row.get::<_, Vec<u8>>(3)?;
+                    let bytes = row.get::<_, Vec<u8>>(3)?;
 
-            let header_found = headers.iter().any(|header| { // Go through each header - if any returns true, we found it.
-                logic::bytes_contains(&bytes, header.as_bytes())
-            });
+                    let header_found = headers.iter().any(|header| { // Go through each header - if any returns true, we found it.
+                        logic::bytes_contains(&bytes, header.as_bytes())
+                    });
 
-            // let header_found = true;
+                    if header_found {
+                        Ok(logic::AssetInfo {
+                            name: hex::encode(row.get::<_, Vec<u8>>(0)?),
+                            size: row.get(1)?,
+                            last_modified,
+                            from_file: false,
+                            from_sql: true,
+                            category: if category == logic::Category::All { logic::determine_category(&bytes) } else { category } // Determine category if all
+                        })
+                    } else {
+                        Err(rusqlite::Error::InvalidQuery) // Return error for this asset as it doesn't match
+                    }
+                });
 
-            if header_found {
-                Ok(logic::AssetInfo {
-                    name: hex::encode(row.get::<_, Vec<u8>>(0)?),
-                    size: row.get(1)?,
-                    last_modified,
-                    from_file: false,
-                    from_sql: true,
-                    category: if category == logic::Category::All { logic::determine_category(&bytes) } else { category } // Determine category if all
-                })
-            } else {
-                Err(rusqlite::Error::InvalidQuery) // Return error for this asset as it doesn't match
+                match result {
+                    Ok(entries) => {
+                        for entry in entries {
+                            if let Ok(entry) = entry {
+                                logic::update_file_list(entry, cli_list_mode);
+                            }
+                        }
+                    }
+                    Err(e) => log_error!("{}", e)
+                }
             }
+            Err(e) => {
+                log_error!("Error happened when querying DB for listing files: {}", e);
+                logic::update_status(locale::get_message(&locale, "failed-opening-file", Some(&args)));
 
-
-        }).unwrap(); // TODO: Error handling
-
-        for entry in entries {
-            if entry.is_ok() {
-                logic::update_file_list(entry.unwrap(), cli_list_mode);
             }
         }
-        
+
+
+    } else {
+        log_error!("No SQL Connection!");
+        logic::update_status(locale::get_message(&locale, "failed-opening-file", Some(&args)));
     }
 
-    // TODO: This silently fails, add an error when the condition is false.
 }
 
 pub fn read_asset(asset: &logic::AssetInfo) -> Result<Vec<u8>, std::io::Error> {
