@@ -141,6 +141,10 @@ pub fn clear_cache(locale: &FluentBundle<Arc<FluentResource>>) {
     let dir = get_cache_directory();
 
     // Sanity check
+    if dir == PathBuf::from("/") || dir == PathBuf::from("") || dir == PathBuf::new() {
+        log_error!("Unable to clear cache - cache directory is not acceptable.");
+        return
+    }
     assert_ne!(dir, PathBuf::from("/"));
     assert_ne!(dir, PathBuf::from(""));
 

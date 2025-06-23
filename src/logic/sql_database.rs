@@ -139,23 +139,43 @@ pub fn refresh(category: logic::Category, cli_list_mode: bool, locale: &FluentBu
 
     if let Some(conn) = &*connection {
 
-        let mut stmt = conn.prepare("SELECT id, size, ttl FROM files").unwrap(); // TODO: Error handling
+        let mut stmt = conn.prepare("SELECT id, size, ttl, substr(content, 1, 2048) as content_prefix FROM files").unwrap(); // TODO: Error handling
 
         let entries = stmt.query_map((), |row| {
             let last_modified_timestamp: u64 = row.get(2)?;
             let last_modified = SystemTime::UNIX_EPOCH
                 .checked_add(std::time::Duration::from_secs(last_modified_timestamp));
 
-            Ok(logic::AssetInfo {
-                name: hex::encode(row.get::<_, Vec<u8>>(0)?),
-                size: row.get(1)?,
-                last_modified,
-                from_file: false,
-                from_sql: true,
-                category: category
-            })
-        }).unwrap();
+            let bytes = row.get::<_, Vec<u8>>(3)?;
 
+            let header_found = headers.iter().any(|header| { // Go through each header - if any returns true, we found it.
+                logic::bytes_contains(&bytes, header.as_bytes())
+            });
+
+            // let header_found = true;
+
+            if header_found {
+                Ok(logic::AssetInfo {
+                    name: hex::encode(row.get::<_, Vec<u8>>(0)?),
+                    size: row.get(1)?,
+                    last_modified,
+                    from_file: false,
+                    from_sql: true,
+                    // category
+                    category: if category == logic::Category::All { logic::determine_category(&bytes) } else { category } // Determine category if all
+                })
+            } else {
+                Err(rusqlite::Error::InvalidQuery) // Return error for this asset as it doesn't match
+            }
+
+
+        }).unwrap(); // TODO: Error handling
+
+        for entry in entries {
+            if entry.is_ok() {
+                logic::update_file_list(entry.unwrap(), cli_list_mode);
+            }
+        }
         
     }
 }
