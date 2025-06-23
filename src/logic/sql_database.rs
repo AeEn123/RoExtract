@@ -163,7 +163,6 @@ pub fn refresh(category: logic::Category, cli_list_mode: bool, locale: &FluentBu
                     last_modified,
                     from_file: false,
                     from_sql: true,
-                    // category
                     category: if category == logic::Category::All { logic::determine_category(&bytes) } else { category } // Determine category if all
                 })
             } else {
@@ -201,5 +200,36 @@ pub fn read_asset(asset: &logic::AssetInfo) -> Result<Vec<u8>, std::io::Error> {
         ).map_err(|e| std::io::Error::new(std::io::ErrorKind::Other, e))
     } else {
         Err(std::io::Error::new(std::io::ErrorKind::Other, "No SQL connection!"))
+    }
+}
+
+pub fn create_asset_info(asset: &str, category: logic::Category) -> Option<logic::AssetInfo> {
+    let binding = CONNECTION;
+    let connection = binding.lock().unwrap();
+
+    if let Some(conn) = &*connection {
+        let id_bytes = match hex::decode(asset) {
+            Ok(bytes) => bytes,
+            Err(_) => return None,
+        };
+        conn.query_row(
+            "SELECT id, size, ttl FROM files WHERE id = ?1",
+            params![id_bytes],
+            |row| {
+                let last_modified_timestamp: u64 = row.get(2)?;
+                let last_modified = SystemTime::UNIX_EPOCH
+                .checked_add(std::time::Duration::from_secs(last_modified_timestamp)); // Convert u64 to SystemTime
+
+                Ok(logic::AssetInfo {
+                    name: asset.to_string(),
+                    size: row.get(1)?,
+                    last_modified,
+                    from_file: false,
+                    from_sql: true,
+                    category: category
+                })
+        }).ok()
+    } else {
+        None
     }
 }

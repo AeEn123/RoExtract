@@ -144,9 +144,8 @@ fn read_asset(asset: &AssetInfo) -> Result<Vec<u8>, std::io::Error> {
     else if asset.from_sql {
         sql_database::read_asset(asset)
     }
-    // TODO: SQL
     else {
-        Err(std::io::Error::new(std::io::ErrorKind::InvalidInput, "Not from_file"))
+        Err(std::io::Error::new(std::io::ErrorKind::InvalidInput, "Not from_file or from_sql"))
     }    
 }
 
@@ -485,11 +484,13 @@ pub fn filter_file_list(query: String) {
 }
 
 pub fn create_asset_info(asset: &str, category: Category) -> AssetInfo {
-    if let Some(info) = cache_directory::create_asset_info(asset, category) {
+    if let Some(info) = sql_database::create_asset_info(asset, category) {
         return info
     }
 
-    // TODO: SQL
+    if let Some(info) = cache_directory::create_asset_info(asset, category) {
+        return info
+    }
 
     // Asset doesn't exist, but info is needed anyways
     return AssetInfo {

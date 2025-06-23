@@ -12,6 +12,8 @@ use std::path::PathBuf;
 
 use clap::Parser;
 
+use crate::logic::extract_to_file;
+
 #[derive(Parser)]
 #[command(version, about, long_about = None)]
 struct Cli {
@@ -91,6 +93,19 @@ fn main() {
     } else if let Some(asset) = args.extract  {
         if let Some(category) = args.mode {
             extract(category, asset, args.dest, args.extension);
+        } else if let Some(asset) = asset {
+            // User passed a single asset without mode, determine category.
+            let info = logic::create_asset_info(&asset, logic::Category::All);
+            let category = logic::determine_category(
+                &logic::extract_asset_to_bytes(info).unwrap_or(Vec::new())
+            );
+
+            let info = logic::create_asset_info(&asset, category);
+            
+            match extract_to_file(info, if let Some(destination) = args.dest { destination } else { asset.into() }, args.extension) {
+                Ok(destination) => println!("{}", destination.display()),
+                Err(e) => eprintln!("{}", e)
+            }
         } else {
             // Not enough arguments - go through all
             if let Some(destination) = args.dest {
