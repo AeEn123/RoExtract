@@ -1,12 +1,11 @@
 use fluent_bundle::{FluentArgs, FluentBundle, FluentResource};
 use rusqlite::Connection;
-use std::{fs, sync::{Arc, LazyLock, Mutex}};
+use std::{fs, sync::{Arc, LazyLock, Mutex}, time::SystemTime};
 
 use crate::{config, locale, logic};
 
 const DEFAULT_PATHS: [&str; 2] = ["%localappdata%\\Roblox\\rbx-storage.db", "~/.var/app/org.vinegarhq.Sober/data/sober/appData/rbx-storage.db"]; // For windows and linux (sober)
 const CONNECTION: LazyLock<Mutex<Option<Connection>>> = LazyLock::new(||Mutex::new(open_database()));
-const TABLE_NAME: &str = "files";
 
 pub fn open_database() -> Option<Connection> {
     let mut errors = "".to_owned();
@@ -102,7 +101,7 @@ pub fn clear_cache(locale: &FluentBundle<Arc<FluentResource>>) {
 
 
     if let Some(conn) = &*connection {
-        match conn.execute("DROP TABLE ?1", [TABLE_NAME]) {
+        match conn.execute("DROP TABLE files", ()) {
             Ok(_) => {
                 logic::update_progress(1.0);
                 args.set("item", "1");
@@ -139,12 +138,24 @@ pub fn refresh(category: logic::Category, cli_list_mode: bool, locale: &FluentBu
     let connection = binding.lock().unwrap();
 
     if let Some(conn) = &*connection {
-        
-        // let entries: Vec<_> = conn.query_row(
-        //     "SELECT id, size, ttl FROM ?1",
-        //     [TABLE_NAME],
-        //     |row| row.get(0)).unwrap(); // TODO: Error handling
 
-        // println!("{:#?}", entries);
+        let mut stmt = conn.prepare("SELECT id, size, ttl FROM files").unwrap(); // TODO: Error handling
+
+        let entries = stmt.query_map((), |row| {
+            let last_modified_timestamp: u64 = row.get(2)?;
+            let last_modified = SystemTime::UNIX_EPOCH
+                .checked_add(std::time::Duration::from_secs(last_modified_timestamp));
+
+            Ok(logic::AssetInfo {
+                name: hex::encode(row.get::<_, Vec<u8>>(0)?),
+                size: row.get(1)?,
+                last_modified,
+                from_file: false,
+                from_sql: true,
+                category: category
+            })
+        }).unwrap();
+
+        
     }
 }
