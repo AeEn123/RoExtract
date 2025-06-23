@@ -1,6 +1,7 @@
 use fluent_bundle::{FluentArgs, FluentBundle, FluentResource};
 use rusqlite::Connection;
 use std::{fs, sync::{Arc, LazyLock, Mutex}, time::SystemTime};
+use rusqlite::params;
 
 use crate::{config, locale, logic};
 
@@ -16,7 +17,7 @@ pub fn open_database() -> Option<Connection> {
             Ok(resolved_path) => {
                 match Connection::open(resolved_path) {
                     Ok(connection) => return Some(connection),
-                    Err(e) => errors.push_str(&e.to_string()),
+                    Err(e) => errors.push_str(&e.to_string()), // TODO: Don't silently fail on user-specified database
                 }
             },
             Err(e) => errors.push_str(&e),
@@ -142,6 +143,7 @@ pub fn refresh(category: logic::Category, cli_list_mode: bool, locale: &FluentBu
         let mut stmt = conn.prepare("SELECT id, size, ttl, substr(content, 1, 2048) as content_prefix FROM files").unwrap(); // TODO: Error handling
 
         let entries = stmt.query_map((), |row| {
+            // TODO: Progress
             let last_modified_timestamp: u64 = row.get(2)?;
             let last_modified = SystemTime::UNIX_EPOCH
                 .checked_add(std::time::Duration::from_secs(last_modified_timestamp));
@@ -177,5 +179,27 @@ pub fn refresh(category: logic::Category, cli_list_mode: bool, locale: &FluentBu
             }
         }
         
+    }
+
+    // TODO: This silently fails, add an error when the condition is false.
+}
+
+pub fn read_asset(asset: &logic::AssetInfo) -> Result<Vec<u8>, std::io::Error> {
+    let binding = CONNECTION;
+    let connection = binding.lock().unwrap();
+
+    if let Some(conn) = &*connection {
+        let id_bytes = match hex::decode(&asset.name) {
+            Ok(bytes) => bytes,
+            Err(e) => return Err(std::io::Error::new(std::io::ErrorKind::InvalidInput, e)),
+        };
+
+        conn.query_row(
+            "SELECT content FROM files WHERE id = ?1",
+            params![id_bytes],
+            |row| row.get(0),
+        ).map_err(|e| std::io::Error::new(std::io::ErrorKind::Other, e))
+    } else {
+        Err(std::io::Error::new(std::io::ErrorKind::Other, "No SQL connection!"))
     }
 }

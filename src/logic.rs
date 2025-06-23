@@ -141,6 +141,9 @@ fn read_asset(asset: &AssetInfo) -> Result<Vec<u8>, std::io::Error> {
     if asset.from_file {
         cache_directory::read_asset(asset)
     }
+    else if asset.from_sql {
+        sql_database::read_asset(asset)
+    }
     // TODO: SQL
     else {
         Err(std::io::Error::new(std::io::ErrorKind::InvalidInput, "Not from_file"))

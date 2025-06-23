@@ -76,7 +76,7 @@ pub fn detect_directory() -> PathBuf {
         match validate_directory(&directory.to_string().replace('"',"")) { // It kept returning "value" instead of value
             Ok(resolved_directory) => return PathBuf::from(resolved_directory),
             Err(e) => {
-                errors.push_str(&e.to_string());
+                errors.push_str(&e.to_string()); // TODO: Don't silently fail on user-specified directory.
             },
         }
     }
