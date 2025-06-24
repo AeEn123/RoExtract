@@ -1,0 +1,62 @@
+name: "Cleanup Old Pre-Releases"
+on:
+#   schedule:
+#     # Runs daily at midnight UTC
+#     - cron: "0 0 * * *"
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: 'Set to "true" to perform a dry run (no deletions)'
+        required: false
+        default: 'false'
+
+jobs:
+  cleanup:
+    name: Delete older pre-releases
+    runs-on: ubuntu-latest
+    steps:
+      - name: Setup parameters
+        run: |
+          echo "DRY_RUN=${{ github.event.inputs.dry_run }}" >> $GITHUB_ENV
+      - name: List and (optionally) delete pre-releases
+        uses: actions/github-script@v6
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const owner = context.repo.owner;
+            const repo = context.repo.repo;
+            const dryRun = process.env.DRY_RUN === 'true';
+
+            // Fetch all releases
+            let releases = [];
+            let page = 1;
+            do {
+              const response = await github.rest.repos.listReleases({ owner, repo, per_page: 100, page });
+              releases = releases.concat(response.data);
+              page++;
+            } while (releases.length % 100 === 0 && page <= 5);
+
+            const preReleases = releases
+              .filter(r => r.prerelease)
+              .sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+
+            console.log(`Found ${preReleases.length} pre-releases.`);
+
+            const toDelete = preReleases.slice(10);
+            console.log(`${dryRun ? '[Dry Run] Would delete:' : 'Deleting:'} ${toDelete.map(r => r.tag_name).join(', ')}`);
+
+            for (const rel of toDelete) {
+              if (!dryRun) {
+                await github.rest.repos.deleteRelease({ owner, repo, release_id: rel.id });
+                try {
+                  await github.rest.git.deleteRef({ owner, repo, ref: `tags/${rel.tag_name}` });
+                } catch (err) {
+                  console.warn(`Could not delete tag ${rel.tag_name}: ${err.message}`);
+                }
+              }
+            }
+            if (dryRun) {
+              console.log('Dry run complete: no releases were deleted.');
+            } else {
+              console.log('Deletion complete.');
+            }
