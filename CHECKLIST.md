@@ -33,7 +33,9 @@
 - [x] - Use versioning numbers better major.minor.patch
 - [x] - Fix CLI mode
 - [ ] - Test if all builds work
-- [ ] - Fix with modern Roblox versions on Windows (probably other OSes later too!)
+- [x] - Fix with modern Roblox versions on Windows (probably other OSes later too!)
+- [ ] - Wait for translations
+- [ ] - GUI for setting SQL databse location
 
 
 ### Changelog for 1.0.0
@@ -42,11 +44,13 @@ Name: The actually major update
 Major improvements are made to the images tab, allowing you to preview the images within the application
 The images will appear in a grid-like interface just like any file manager.
 # Translations
-Thanks to @MarcelDev and @Vonercecnt for keeping translations up to date
+Thanks to @MarcelDev, @Vonercent and @JustKanade for keeping translations up-to-date.
 # Minor changes
-You can now right-click on assets to see the properties, because of this, a setting has been added to remove the toolbar
+The program can now read from the SQL database that the roblox client stores assets in instead of the http folder, both are still supported.
 
-You can now copy to other assets from one asset instead of swapping them
+You can now right-click on assets to see the properties, because of this, a setting has been added to remove the toolbar. The toolbar will not be removed, it is up to user-preference.
+
+You can now copy to other assets from one asset instead of swapping them.
 
 Version numbers now follow major.minor.patch
 
