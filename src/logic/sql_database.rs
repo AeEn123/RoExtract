@@ -255,3 +255,42 @@ pub fn create_asset_info(asset: &str, category: logic::Category) -> Option<logic
         None
     }
 }
+
+pub fn swap_assets(asset_a: &logic::AssetInfo, asset_b: &logic::AssetInfo) -> Result<(), rusqlite::Error> {
+    let binding = CONNECTION;
+    let mut connection = binding.lock().unwrap();
+
+    if let Some(conn) = connection.as_mut() {
+        let id_a = hex::decode(&asset_a.name).map_err(|e| rusqlite::Error::FromSqlConversionFailure(0, rusqlite::types::Type::Blob, Box::new(e)))?;
+        let id_b = hex::decode(&asset_b.name).map_err(|e| rusqlite::Error::FromSqlConversionFailure(0, rusqlite::types::Type::Blob, Box::new(e)))?;
+
+        let tx = conn.transaction()?;
+
+        let content_a: Vec<u8> = tx.query_row("SELECT content FROM files WHERE id = ?1", params![&id_a], |row| row.get(0))?;
+        let content_b: Vec<u8> = tx.query_row("SELECT content FROM files WHERE id = ?1", params![&id_b], |row| row.get(0))?;
+
+        tx.execute("UPDATE files SET content = ?1 WHERE id = ?2", params![&content_b, &id_a])?;
+        tx.execute("UPDATE files SET content = ?1 WHERE id = ?2", params![&content_a, &id_b])?;
+
+        tx.commit()?;
+        Ok(())
+    } else {
+        Err(rusqlite::Error::InvalidQuery)
+    }
+}
+
+pub fn copy_assets(asset_a: &logic::AssetInfo, asset_b: &logic::AssetInfo) -> Result<(), rusqlite::Error> {
+    let binding = CONNECTION;
+    let connection = binding.lock().unwrap();
+
+    if let Some(conn) = &*connection {
+        let id_a = hex::decode(&asset_a.name).map_err(|e| rusqlite::Error::FromSqlConversionFailure(0, rusqlite::types::Type::Blob, Box::new(e)))?;
+        let id_b = hex::decode(&asset_b.name).map_err(|e| rusqlite::Error::FromSqlConversionFailure(0, rusqlite::types::Type::Blob, Box::new(e)))?;
+
+        let content_a: Vec<u8> = conn.query_row("SELECT content FROM files WHERE id = ?1", params![&id_a], |row| row.get(0))?;
+        conn.execute("UPDATE files SET content = ?1 WHERE id = ?2", params![&content_a, &id_b])?;
+        Ok(())
+    } else {
+        Err(rusqlite::Error::InvalidQuery)
+    }
+}

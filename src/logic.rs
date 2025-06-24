@@ -411,8 +411,6 @@ pub fn extract_all(destination: PathBuf, yield_for_thread: bool, use_alias: bool
             // Extract http directory
             extract_dir(destination.clone(), Category::All, true, use_alias);
 
-            // TODO: Finsih
-
             { 
                 let mut task = TASK_RUNNING.lock().unwrap();
                 *task = false; // Allow other threads to run again
@@ -429,16 +427,23 @@ pub fn extract_all(destination: PathBuf, yield_for_thread: bool, use_alias: bool
 
 pub fn swap_assets(asset_a: AssetInfo, asset_b: AssetInfo) {
     let cache_directory_result = cache_directory::swap_assets(&asset_a, &asset_b);
-    // TODO: SQL
+    let sql_database_result = sql_database::swap_assets(&asset_a, &asset_b);
 
     // Confirmation and error messages
     let locale = locale::get_locale(None);
     let mut args= FluentArgs::new();
 
-    if cache_directory_result.as_ref().is_err() {
+    if cache_directory_result.as_ref().is_err() && sql_database_result.as_ref().is_err() {
+        // cache_directory error
         args.set("error", cache_directory_result.as_ref().unwrap_err().to_string());
         update_status(locale::get_message(&locale, "failed-opening-file", Some(&args)));
         log_error!("Error opening file '{}'", cache_directory_result.unwrap_err());
+
+        // sql_database error
+        args.set("error", sql_database_result.as_ref().unwrap_err().to_string());
+        update_status(locale::get_message(&locale, "failed-opening-file", Some(&args)));
+        log_error!("Error opening file '{}'", sql_database_result.unwrap_err());
+
     } else {
         args.set("item_a", asset_a.name);
         args.set("item_b", asset_b.name);
@@ -448,20 +453,27 @@ pub fn swap_assets(asset_a: AssetInfo, asset_b: AssetInfo) {
 
 pub fn copy_assets(asset_a: AssetInfo, asset_b: AssetInfo) {
     let cache_directory_result = cache_directory::copy_assets(&asset_a, &asset_b);
-    // TODO: SQL
+    let sql_database_result = sql_database::copy_assets(&asset_a, &asset_b);
 
     // Confirmation and error messages
     let locale = locale::get_locale(None);
     let mut args= FluentArgs::new();
 
-    if cache_directory_result.as_ref().is_err() {
+    if cache_directory_result.as_ref().is_err() && sql_database_result.as_ref().is_err() {
+        // cache_directory error
         args.set("error", cache_directory_result.as_ref().unwrap_err().to_string());
         update_status(locale::get_message(&locale, "failed-opening-file", Some(&args)));
         log_error!("Error opening file '{}'", cache_directory_result.unwrap_err());
+
+        // sql_database error
+        args.set("error", sql_database_result.as_ref().unwrap_err().to_string());
+        update_status(locale::get_message(&locale, "failed-opening-file", Some(&args)));
+        log_error!("Error opening file '{}'", sql_database_result.unwrap_err());
+
     } else {
         args.set("item_a", asset_a.name);
         args.set("item_b", asset_b.name);
-        update_status(locale::get_message(&locale, "swapped", Some(&args)));
+        update_status(locale::get_message(&locale, "copied", Some(&args)));
     }
 }
 
