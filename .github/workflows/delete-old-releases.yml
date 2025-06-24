@@ -1,8 +1,11 @@
+permissions:
+    contents: write
+    
 name: "Cleanup Old Pre-Releases"
 on:
-#   schedule:
-#     # Runs daily at midnight UTC
-#     - cron: "0 0 * * *"
+  schedule:
+    # Runs daily at midnight UTC
+    - cron: "0 0 * * *"
   workflow_dispatch:
     inputs:
       dry_run:
