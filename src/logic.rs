@@ -613,4 +613,9 @@ pub fn clean_up() {
             Err(e) => log_error!("Failed to clean up directory: {}", e),
         }
     }
+
+    match sql_database::clean_up() {
+        Ok(_) => (),
+        Err(e) => log_error!("Failed to clean up SQL database: {:?}", e)
+    }
 }

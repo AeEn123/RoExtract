@@ -6,7 +6,7 @@ use rusqlite::params;
 use crate::{config, locale, logic};
 
 const DEFAULT_PATHS: [&str; 2] = ["%localappdata%\\Roblox\\rbx-storage.db", "~/.var/app/org.vinegarhq.Sober/data/sober/appData/rbx-storage.db"]; // For windows and linux (sober)
-const CONNECTION: LazyLock<Mutex<Option<Connection>>> = LazyLock::new(||Mutex::new(open_database()));
+static CONNECTION: LazyLock<Mutex<Option<Connection>>> = LazyLock::new(||Mutex::new(open_database()));
 
 pub fn open_database() -> Option<Connection> {
     let mut errors = "".to_owned();
@@ -17,10 +17,16 @@ pub fn open_database() -> Option<Connection> {
             Ok(resolved_path) => {
                 match Connection::open(resolved_path) {
                     Ok(connection) => return Some(connection),
-                    Err(e) => errors.push_str(&e.to_string()), // TODO: Don't silently fail on user-specified database
+                    Err(e) => {
+                        log_critical!("Detecting user-specified database failed: {}", e);
+                        errors.push_str(&e.to_string())
+                    },
                 }
             },
-            Err(e) => errors.push_str(&e),
+            Err(e) => {
+                log_critical!("Detecting user-specified database failed: {}", e);
+                errors.push_str(&e)
+            },
         }
 
     }
@@ -88,8 +94,7 @@ pub fn validate_file(path: &str) -> Result<String, String> {
 
 
 pub fn clear_cache(locale: &FluentBundle<Arc<FluentResource>>) {
-    let binding = CONNECTION;
-    let connection = binding.lock().unwrap();
+    let connection = CONNECTION.lock().unwrap();
 
     logic::update_progress(0.0);
 
@@ -135,8 +140,7 @@ pub fn refresh(category: logic::Category, cli_list_mode: bool, locale: &FluentBu
     let headers = logic::get_headers(&category);
     let mut args = FluentArgs::new();
 
-    let binding = CONNECTION;
-    let connection = binding.lock().unwrap();
+    let connection = CONNECTION.lock().unwrap();
 
     if let Some(conn) = &*connection {
         let amount: Result<i64,_> = conn.query_row("SELECT COUNT(*) FROM files",
@@ -206,8 +210,7 @@ pub fn refresh(category: logic::Category, cli_list_mode: bool, locale: &FluentBu
 }
 
 pub fn read_asset(asset: &logic::AssetInfo) -> Result<Vec<u8>, std::io::Error> {
-    let binding = CONNECTION;
-    let connection = binding.lock().unwrap();
+    let connection = CONNECTION.lock().unwrap();
 
     if let Some(conn) = &*connection {
         let id_bytes = match hex::decode(&asset.name) {
@@ -226,8 +229,7 @@ pub fn read_asset(asset: &logic::AssetInfo) -> Result<Vec<u8>, std::io::Error> {
 }
 
 pub fn create_asset_info(asset: &str, category: logic::Category) -> Option<logic::AssetInfo> {
-    let binding = CONNECTION;
-    let connection = binding.lock().unwrap();
+    let connection = CONNECTION.lock().unwrap();
 
     if let Some(conn) = &*connection {
         let id_bytes = match hex::decode(asset) {
@@ -257,8 +259,7 @@ pub fn create_asset_info(asset: &str, category: logic::Category) -> Option<logic
 }
 
 pub fn swap_assets(asset_a: &logic::AssetInfo, asset_b: &logic::AssetInfo) -> Result<(), rusqlite::Error> {
-    let binding = CONNECTION;
-    let mut connection = binding.lock().unwrap();
+    let mut connection = CONNECTION.lock().unwrap();
 
     if let Some(conn) = connection.as_mut() {
         let id_a = hex::decode(&asset_a.name).map_err(|e| rusqlite::Error::FromSqlConversionFailure(0, rusqlite::types::Type::Blob, Box::new(e)))?;
@@ -280,8 +281,7 @@ pub fn swap_assets(asset_a: &logic::AssetInfo, asset_b: &logic::AssetInfo) -> Re
 }
 
 pub fn copy_assets(asset_a: &logic::AssetInfo, asset_b: &logic::AssetInfo) -> Result<(), rusqlite::Error> {
-    let binding = CONNECTION;
-    let connection = binding.lock().unwrap();
+    let connection = CONNECTION.lock().unwrap();
 
     if let Some(conn) = &*connection {
         let id_a = hex::decode(&asset_a.name).map_err(|e| rusqlite::Error::FromSqlConversionFailure(0, rusqlite::types::Type::Blob, Box::new(e)))?;
@@ -292,5 +292,15 @@ pub fn copy_assets(asset_a: &logic::AssetInfo, asset_b: &logic::AssetInfo) -> Re
         Ok(())
     } else {
         Err(rusqlite::Error::InvalidQuery)
+    }
+}
+
+pub fn clean_up() -> Result<(), (Connection, rusqlite::Error)> {
+    let mut connection = CONNECTION.lock().unwrap();
+
+    if let Some(conn) = connection.take() {
+        conn.close()
+    } else {
+        Ok(())
     }
 }
