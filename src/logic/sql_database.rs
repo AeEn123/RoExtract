@@ -295,6 +295,16 @@ pub fn copy_assets(asset_a: &logic::AssetInfo, asset_b: &logic::AssetInfo) -> Re
     }
 }
 
+pub fn get_db_path() -> Option<String> {
+    let connection = CONNECTION.lock().unwrap();
+
+    if let Some(conn) = &*connection {
+        return conn.path().map(|path| path.to_string());
+    } else {
+        return None
+    }
+}
+
 pub fn clean_up() -> Result<(), (Connection, rusqlite::Error)> {
     let mut connection = CONNECTION.lock().unwrap();
 

@@ -125,3 +125,12 @@ download-development-build = Benutze Entwicklungsversionen um die neusten Funkti
 setting-below-restart-required = Info: Ändern der unteren Einstellung benötigt ein Neustart des Programmes, damit es angewendet wird
 
 checkbox-hide-user-logs = Verstecke Nutzernamen von Logs
+
+error-sql-detection-description = Database detection failed! Is the client installed and you ran it at least once? # TODO: Translate
+error-sql-detection-title = Database detection failed! # TODO: Translate
+sql-database = SQL Database: { $path } # TODO: Translate
+button-change-sql-db = Change SQL Database # TODO: Translate
+button-reset-sql-db = Reset SQL Database # TODO: Translate
+custom-sql-db-description = If you want to access a different cache, change your SQL Database below, you can set it back to default with the other button. This is different from your installation folder. # TODO: Translate
+error-invalid-database-title = Invalid database! # TODO: Translate
+error-invalid-database-description = Please make sure the path you provided is an SQLite Database # TODO: Translate

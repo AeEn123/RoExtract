@@ -12,7 +12,9 @@ settings = Captain’s Orders
 about = 'Bout This Vessel  
 logs = Ship’s Log  
 
-# Buttons  
+# Buttons
+button-reset-sql-db = Reset SQL Database # TODO: Translate
+button-change-sql-db = Change SQL Database # TODO: Translate  
 button-delete-this-dir = Scuttle This Hold <Del>  
 button-extract-type = Plunder All o’ This Kind <F3>  
 button-refresh = Hoist the Colors <F5>  
@@ -48,7 +50,11 @@ confirmation-custom-directory-description = Ye wish to set a new cache course, a
 confirmation-ban-warning-title = Beware! A Curse May Be Upon Ye!  
 confirmation-ban-warning-description = Tamperin’ with booty in games could get ye marooned! Sail at yer own risk! Do ye understand, matey?  
 
-# Errors  
+# Errors
+error-invalid-database-description = Please make sure the path you provided is an SQLite Database # TODO: Translate
+error-invalid-database-title = Invalid database! # TODO: Translate
+error-sql-detection-title = Database detection failed! # TODO: Translate
+error-sql-detection-description = Database detection failed! Is the client installed and you ran it at least once? # TODO: Translate  
 no-files = No plunder to list, ye scallywag!  
 error-directory-detection-title = Arrr! We lost the map!  
 error-directory-detection-description = Blimey! Can’t find the directory! Be aboard and set sail at least once?  
@@ -76,7 +82,8 @@ refresh-before-extract = Refresh the Cargo Manifest Before Plundering
 download-development-build = Test New Gadgets (May Be Unstable Waters)  
 checkbox-hide-user-logs = Hide Ye True Name from the Ship’s Log  
 
-# Descriptions  
+# Descriptions
+custom-sql-db-description = If you want to access a different cache, change your SQL Database below, you can set it back to default with the other button. This is different from your installation folder. # TODO: Translate  
 clear-cache-description = If it be takin’ too long to find treasure, ye can toss all cargo overboard. The ship will fetch new supplies next time ye sail.  
 extract-all-description = This button will haul all loot aboard and sort it into proper holds, like /cannon-blasts and /treasure-maps. Pick yer stash spot when ye begin.  
 custom-cache-dir-description = If ye be needin’ to find a different stash, set yer course below. Ye can return to the usual waters with the other button. This ain't yer main install.  
@@ -105,7 +112,8 @@ failed-not-file = ERROR: '{ $file }' Ain’t Proper Booty!
 error-extracting-file = ERROR: Couldn’t Haul It Aboard: { $error }  
 error-check-logs = ERROR: Check the Captain’s Log for More Clues.  
 
-# Misc  
+# Misc
+sql-database = SQL Database: { $path } # TODO: Translate  
 no-function = (Not Workin’ Yet, Matey)  
 version = Ship’s Version: v{ $version } (Forged on { $date })  
 cache-directory = Treasure Hold: { $directory }  

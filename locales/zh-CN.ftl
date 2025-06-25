@@ -13,6 +13,8 @@ about = 关于
 logs = 日志
 
 # Buttons
+button-reset-sql-db = Reset SQL Database # TODO: Translate
+button-change-sql-db = Change SQL Database # TODO: Translate
 button-delete-this-dir = 删除此目录 <Del>
 button-extract-type = 提取此类型的所有文件 <F3>
 button-refresh = 刷新 <F5>
@@ -49,6 +51,10 @@ confirmation-ban-warning-title = 潜在风险警告
 confirmation-ban-warning-description = 在游戏中编辑资源可能导致客户端表现异常
 
 # Errors
+error-invalid-database-description = Please make sure the path you provided is an SQLite Database # TODO: Translate
+error-invalid-database-title = Invalid database! # TODO: Translate
+error-sql-detection-title = Database detection failed! # TODO: Translate
+error-sql-detection-description = Database detection failed! Is the client installed and you ran it at least once? # TODO: Translate
 no-files = 没有要列出的文件
 error-directory-detection-title = 目录检测失败
 error-directory-detection-description = Roblox是否已安装且 您至少运行过一次？
@@ -77,6 +83,7 @@ download-development-build = 使用开发版本以提前获得功能
 checkbox-hide-user-logs = 从日志中隐藏用户名
 
 # Descriptions
+custom-sql-db-description = If you want to access a different cache, change your SQL Database below, you can set it back to default with the other button. This is different from your installation folder. # TODO: Translate
 clear-cache-description = 如果从目录列出文件耗时太长，您可以清理Roblox缓存来帮助解决，客户端将在需要时重新生成这些文件
 extract-all-description = 此按钮将把所有资源提取到文件夹
 custom-cache-dir-description = 如果您想访问不同的缓存，可以在下方更改
@@ -99,6 +106,7 @@ swapped = 已将 { $item_a } 与 { $item_b } 替换
 copied = 已用 { $item_a } 覆盖 { $item_b }
 
 # Misc
+sql-database = SQL Database: { $path } # TODO: Translate
 no-function = （尚未功能化）
 version = 版本: v{ $version } (编译于 { $date })
 cache-directory = 缓存目录: { $directory }

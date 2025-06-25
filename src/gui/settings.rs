@@ -94,8 +94,56 @@ pub fn cache_dir_management(ui: &mut egui::Ui, locale: &FluentBundle<Arc<FluentR
             }
         }
         if ui.button(locale::get_message(locale, "button-reset-cache-dir", None)).clicked() {
-            config::set_config_value("cache_directory", "no directory set".into()); // Clear directory in config
+            config::set_config_value("cache_directory", Option::<String>::None.into()); // Clear directory in config
             logic::cache_directory::set_cache_directory(logic::cache_directory::detect_directory()); // Set it back to default
+        }
+    });
+}
+
+pub fn sql_db_management(ui: &mut egui::Ui, locale: &FluentBundle<Arc<FluentResource>>) {
+    // TODO: Make these settings apply without program restart
+    ui.separator();
+    ui.label(locale::get_message(locale, "custom-sql-db-description", None));
+
+    let mut args = FluentArgs::new();
+    args.set("path", logic::sql_database::get_db_path().unwrap_or("No database".to_string()));
+
+    ui.label(locale::get_message(locale, "sql-database", Some(&args)));
+
+    ui.horizontal(|ui| {
+        if ui.button(locale::get_message(locale, "button-change-sql-db", None)).clicked() {
+            let option_path = DialogBuilder::file()
+            .open_single_file().show()
+            .unwrap();
+    
+            // If the user provides a path, the program will change the SQL database to the new one
+            if let Some(path) = option_path {
+                // Validation checks
+                match logic::sql_database::validate_file(&path.to_string_lossy().to_string()) {
+                    Ok(directory) => {
+                        config::set_config_value("sql_database", directory.into());
+
+                        // Close current db and open new one
+                        let _ = logic::sql_database::clean_up();
+                        logic::sql_database::open_database();
+                    }
+                    Err(_) => {
+                        DialogBuilder::message()
+                        .set_level(MessageLevel::Info)
+                        .set_title(&locale::get_message(locale, "error-invalid-database-title", None))
+                        .set_text(&locale::get_message(locale, "error-invalid-database-description", None))
+                        .alert().show()
+                        .unwrap();
+                    }
+                }
+            }
+        }
+        if ui.button(locale::get_message(locale, "button-reset-sql-db", None)).clicked() {
+            config::set_config_value("sql_database", Option::<String>::None.into()); // Clear db in config
+            
+            // Close current db and open new one
+            let _ = logic::sql_database::clean_up();
+            logic::sql_database::open_database();
         }
     });
 }

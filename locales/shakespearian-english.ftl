@@ -12,7 +12,9 @@ settings = Edicts & Adjustments
 about = Of This Matter  
 logs = Chronicles  
 
-# Buttons  
+# Buttons
+button-reset-sql-db = Reset SQL Database # TODO: Translate
+button-change-sql-db = Change SQL Database # TODO: Translate  
 button-delete-this-dir = Cast This Folder into Oblivion <Del>  
 button-extract-type = Take Forth All of This Kind <F3>  
 button-refresh = Renew <F5>  
@@ -48,7 +50,11 @@ confirmation-custom-directory-description = Wouldst thou select a different vaul
 confirmation-ban-warning-title = A Forewarning of Banishment  
 confirmation-ban-warning-description = Meddling with the relics of games may cause thy client to act errantly, leading to a perilous fate—banishment! Proceed only if thy courage be steadfast. Dost thou comprehend?  
 
-# Errors  
+# Errors
+error-invalid-database-description = Please make sure the path you provided is an SQLite Database # TODO: Translate
+error-invalid-database-title = Invalid database! # TODO: Translate
+error-sql-detection-title = Database detection failed! # TODO: Translate
+error-sql-detection-description = Database detection failed! Is the client installed and you ran it at least once? # TODO: Translate  
 no-files = No scrolls to reveal.  
 error-directory-detection-title = The Chamber Was Not Found!  
 error-directory-detection-description = The chamber was not discerned! Hast thou installed thy client and summoned it at least once?  
@@ -76,7 +82,8 @@ refresh-before-extract = Renew the List Ere Thou Takest Forth Scrolls
 download-development-build = Partake of Unfinished Labors to Glimpse the Future (These may be unstable)  
 checkbox-hide-user-logs = Conceal the Name of the User from the Chronicles  
 
-# Descriptions  
+# Descriptions
+custom-sql-db-description = If you want to access a different cache, change your SQL Database below, you can set it back to default with the other button. This is different from your installation folder. # TODO: Translate  
 clear-cache-description = If thy listing of scrolls taketh too long, and the retrieval is sluggish, thou mayest cleanse thy cache with the button below. The scrolls shall be reborn when next thou summoneth Roblox.  
 extract-all-description = The button below shall copy all relics and sort them into proper chambers, such as /harmonious_tones, /painted_likenesses. Thou mayest select the root chamber ere beginning.  
 custom-cache-dir-description = Shouldst thou wish to peer into another cache, alter its vault below. It may yet be restored to its former state anon. This is not the same as thy installation vault.  
@@ -105,7 +112,8 @@ failed-not-file = WOE! '{ $file }' Is No True Scroll
 error-extracting-file = WOE! Could Not Retrieve: { $error }  
 error-check-logs = WOE! Look to the Chronicles for Further Ills.  
 
-# Misc  
+# Misc
+sql-database = SQL Database: { $path } # TODO: Translate  
 no-function = (Yet It Doth Not Work)  
 version = Edition: v{ $version } (compiled upon { $date })  
 cache-directory = Cache Chamber: { $directory }  
