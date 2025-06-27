@@ -37,6 +37,15 @@ macro_rules! log_error {
     };
 }
 
+#[macro_export]
+macro_rules! log_debug {
+    ($($arg:tt)*) => {
+        if cfg!(debug_assertions) {
+            crate::log::log("DEBUG: ", &format!($($arg)*), file!(), line!(), column!())
+        }
+    };
+}
+
 
 #[macro_export]
 macro_rules! log_critical {

@@ -9,10 +9,12 @@ const DEFAULT_PATHS: [&str; 2] = ["%localappdata%\\Roblox\\rbx-storage.db", "~/.
 static CONNECTION: LazyLock<Mutex<Option<Connection>>> = LazyLock::new(||Mutex::new(open_database()));
 
 pub fn open_database() -> Option<Connection> {
+    log_debug!("logic::sql_database::open_database()");
     let mut errors = "".to_owned();
 
     // User-specified path from config
     if let Some(path) = config::get_config_string("sql_database") {
+        log_debug!("Trying user-specified path: {}", path);
         match validate_file(&path) {
             Ok(resolved_path) => {
                 match Connection::open(resolved_path) {
@@ -75,6 +77,7 @@ pub fn open_database() -> Option<Connection> {
 }
 
 pub fn validate_file(path: &str) -> Result<String, String> {
+    log_debug!("logic::sql_database::validate_file({path})");
     let resolved_path = logic::resolve_path(path);
 
     match fs::metadata(&resolved_path) { // Directory detection
@@ -94,6 +97,8 @@ pub fn validate_file(path: &str) -> Result<String, String> {
 
 
 pub fn clear_cache(locale: &FluentBundle<Arc<FluentResource>>) {
+    log_debug!("logic::sql_database::clear_cache(locale)");
+
     let connection = CONNECTION.lock().unwrap();
 
     logic::update_progress(0.0);
@@ -137,6 +142,7 @@ pub fn clear_cache(locale: &FluentBundle<Arc<FluentResource>>) {
 
 
 pub fn refresh(category: logic::Category, cli_list_mode: bool, locale: &FluentBundle<Arc<FluentResource>>) {
+    log_debug!("logic::sql_database::refresh({category}, {cli_list_mode}, locale)");
     let headers = logic::get_headers(&category);
     let mut args = FluentArgs::new();
 
@@ -210,6 +216,7 @@ pub fn refresh(category: logic::Category, cli_list_mode: bool, locale: &FluentBu
 }
 
 pub fn read_asset(asset: &logic::AssetInfo) -> Result<Vec<u8>, std::io::Error> {
+    log_debug!("logic::sql_database::read_asset({asset:?})");
     let connection = CONNECTION.lock().unwrap();
 
     if let Some(conn) = &*connection {
@@ -229,6 +236,7 @@ pub fn read_asset(asset: &logic::AssetInfo) -> Result<Vec<u8>, std::io::Error> {
 }
 
 pub fn create_asset_info(asset: &str, category: logic::Category) -> Option<logic::AssetInfo> {
+    log_debug!("logic::sql_database::create_asset_info({asset}, {category})");
     let connection = CONNECTION.lock().unwrap();
 
     if let Some(conn) = &*connection {
@@ -259,6 +267,8 @@ pub fn create_asset_info(asset: &str, category: logic::Category) -> Option<logic
 }
 
 pub fn swap_assets(asset_a: &logic::AssetInfo, asset_b: &logic::AssetInfo) -> Result<(), rusqlite::Error> {
+    log_debug!("logic::sql_database::swap_assets({asset_a:?}, {asset_b:?})");
+
     let mut connection = CONNECTION.lock().unwrap();
 
     if let Some(conn) = connection.as_mut() {
@@ -281,6 +291,8 @@ pub fn swap_assets(asset_a: &logic::AssetInfo, asset_b: &logic::AssetInfo) -> Re
 }
 
 pub fn copy_assets(asset_a: &logic::AssetInfo, asset_b: &logic::AssetInfo) -> Result<(), rusqlite::Error> {
+    log_debug!("logic::sql_database::copy_assets({asset_a:?}, {asset_b:?})");
+    
     let connection = CONNECTION.lock().unwrap();
 
     if let Some(conn) = &*connection {
@@ -296,6 +308,8 @@ pub fn copy_assets(asset_a: &logic::AssetInfo, asset_b: &logic::AssetInfo) -> Re
 }
 
 pub fn get_db_path() -> Option<String> {
+    log_debug!("logic::sql_database::get_db_path()");
+
     let connection = CONNECTION.lock().unwrap();
 
     if let Some(conn) = &*connection {
@@ -305,12 +319,32 @@ pub fn get_db_path() -> Option<String> {
     }
 }
 
+pub fn reset_database() -> Result<(), (Connection, rusqlite::Error)> {
+    log_debug!("logic::sql_database::reset_database()");
+
+    let result = clean_up();
+
+    let mut connection = CONNECTION.lock().unwrap();
+    *connection = open_database();
+
+    return result
+    
+}
+
 pub fn clean_up() -> Result<(), (Connection, rusqlite::Error)> {
+    log_debug!("logic::sql_database::clean_up()");
+
     let mut connection = CONNECTION.lock().unwrap();
 
-    if let Some(conn) = connection.take() {
+    // Store result for later
+    let result = if let Some(conn) = connection.take() {
         conn.close()
     } else {
         Ok(())
-    }
+    };
+
+    // Set connection to None, no need for it anymore
+    *connection = None;
+
+    return result
 }
