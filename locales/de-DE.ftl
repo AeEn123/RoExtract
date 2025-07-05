@@ -126,11 +126,11 @@ setting-below-restart-required = Info: Ändern der unteren Einstellung benötigt
 
 checkbox-hide-user-logs = Verstecke Nutzernamen von Logs
 
-error-sql-detection-description = Database detection failed! Is the client installed and you ran it at least once? # TODO: Translate
-error-sql-detection-title = Database detection failed! # TODO: Translate
-sql-database = SQL Database: { $path } # TODO: Translate
-button-change-sql-db = Change SQL Database # TODO: Translate
-button-reset-sql-db = Reset SQL Database # TODO: Translate
-custom-sql-db-description = If you want to access a different cache, change your SQL Database below, you can set it back to default with the other button. This is different from your installation folder. # TODO: Translate
-error-invalid-database-title = Invalid database! # TODO: Translate
-error-invalid-database-description = Please make sure the path you provided is an SQLite Database # TODO: Translate
+error-sql-detection-description = Datenbankerkennung fehlgeschlagen! Ist der Klient installiert und wurde schon einmal ausgeführt?
+error-sql-detection-title = Datenbankerkennung fehlgeschlagen!
+sql-database = SQL Datenbank: { $path }
+button-change-sql-db = SQL Datenbank wechseln
+button-reset-sql-db = SQL Datenbank zurücksetzen
+custom-sql-db-description = Wenn du auf einen anderen Cache zugreifen möchtest, ändere deine SQL Datenbank darunter, mit dem anderen Knopf kannst du zum Standart zurücksetzen. Das ist verschieden von deinem Installationsordner.
+error-invalid-database-title = Ungültige Datenbank!
+error-invalid-database-description = Bitte stelle sich, das der Pfad den du angegeben hast eine SQL Datenbank ist
