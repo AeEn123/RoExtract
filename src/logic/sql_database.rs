@@ -107,26 +107,42 @@ pub fn clear_cache(locale: &FluentBundle<Arc<FluentResource>>) {
 
 
     if let Some(conn) = &*connection {
-        match conn.execute("DROP TABLE files", ()) {
-            Ok(_) => {
-                logic::update_progress(1.0);
-                args.set("item", "1");
-                args.set("total", "1");
+        match conn.path() {
+            Some(path) => {
+                match std::fs::remove_file(path) {
+                    Ok(_) => {
+                        logic::update_progress(1.0);
+                        args.set("item", "1");
+                        args.set("total", "1");
 
-                logic::update_status(locale::get_message(&locale, "deleting-files", Some(&args)));
+                        logic::update_status(locale::get_message(&locale, "deleting-files", Some(&args)));
+                    }
+                    Err(e) => {
+                        log_error!("Failed to delete file: {}", e);
+
+                        args.set("error", e.to_string());
+                        logic::update_progress(1.0);
+                        args.set("item", "1");
+                        args.set("total", "1");
+
+                        logic::update_status(locale::get_message(&locale, "failed-deleting-file", Some(&args)));
+
+                    }
+                }
             }
-            Err(e) => {
-                log_error!("Failed to DROP TABLE: {}", e);
+            None => {
+                log_error!("Failed to delete file: No path specified");
 
-                args.set("error", e.to_string());
+                args.set("error", "No path specified");
                 logic::update_progress(1.0);
                 args.set("item", "1");
                 args.set("total", "1");
 
-                logic::update_status(locale::get_message(&locale, "failed-deleting-file", Some(&args)));
+                 logic::update_status(locale::get_message(&locale, "failed-deleting-file", Some(&args)));
 
             }
         }
+
     } else {
         log_error!("No SQL Connection!");
         logic::update_status(locale::get_message(&locale, "failed-deleting-file", Some(&args)));

@@ -94,7 +94,7 @@ pub fn cache_dir_management(ui: &mut egui::Ui, locale: &FluentBundle<Arc<FluentR
             }
         }
         if ui.button(locale::get_message(locale, "button-reset-cache-dir", None)).clicked() {
-            config::set_config_value("cache_directory", Option::<String>::None.into()); // Clear directory in config
+            config::remove_config_value("cache_directory"); // Clear directory in config
             logic::cache_directory::set_cache_directory(logic::cache_directory::detect_directory()); // Set it back to default
         }
     });
@@ -139,7 +139,7 @@ pub fn sql_db_management(ui: &mut egui::Ui, locale: &FluentBundle<Arc<FluentReso
             }
         }
         if ui.button(locale::get_message(locale, "button-reset-sql-db", None)).clicked() {
-            config::set_config_value("sql_database", Option::<String>::None.into()); // Clear db in config
+            config::remove_config_value("sql_database");  // Clear db in config
             
             // Close current db and open new one
             let _ = logic::sql_database::clean_up();

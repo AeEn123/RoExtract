@@ -123,6 +123,12 @@ pub fn set_config_value(key: &str, value: Value) {
     set_config(config);
 }
 
+pub fn remove_config_value(key: &str) {
+    let mut config = get_config();
+    config.as_object_mut().map(|obj| obj.remove(key));
+    set_config(config);
+}
+
 pub fn set_asset_alias(asset: &str, value: &str) {
     let mut config = get_config();
     if config.get("aliases").is_none() {

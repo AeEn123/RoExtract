@@ -32,10 +32,10 @@
 - [x] - image decoder to quickly preview assets
 - [x] - Use versioning numbers better major.minor.patch
 - [x] - Fix CLI mode
-- [ ] - Test if all builds work
+- [x] - Test if all builds work
 - [x] - Fix with modern Roblox versions on Windows (probably other OSes later too!)
 - [ ] - Wait for translations
-- [ ] - GUI for setting SQL databse location
+- [x] - GUI for setting SQL database location
 
 
 ### Changelog for 1.0.0
