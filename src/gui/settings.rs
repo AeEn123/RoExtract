@@ -101,7 +101,6 @@ pub fn cache_dir_management(ui: &mut egui::Ui, locale: &FluentBundle<Arc<FluentR
 }
 
 pub fn sql_db_management(ui: &mut egui::Ui, locale: &FluentBundle<Arc<FluentResource>>) {
-    // TODO: Make these settings apply without program restart
     ui.separator();
     ui.label(locale::get_message(locale, "custom-sql-db-description", None));
 
@@ -124,8 +123,7 @@ pub fn sql_db_management(ui: &mut egui::Ui, locale: &FluentBundle<Arc<FluentReso
                         config::set_config_value("sql_database", directory.into());
 
                         // Close current db and open new one
-                        let _ = logic::sql_database::clean_up();
-                        logic::sql_database::open_database();
+                        let _ = logic::sql_database::reset_database();
                     }
                     Err(_) => {
                         DialogBuilder::message()
@@ -142,8 +140,7 @@ pub fn sql_db_management(ui: &mut egui::Ui, locale: &FluentBundle<Arc<FluentReso
             config::remove_config_value("sql_database");  // Clear db in config
             
             // Close current db and open new one
-            let _ = logic::sql_database::clean_up();
-            logic::sql_database::open_database();
+            let _ = logic::sql_database::reset_database();
         }
     });
 }
