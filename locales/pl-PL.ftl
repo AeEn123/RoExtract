@@ -12,8 +12,8 @@ settings = Ustawienia
 about = Informacje
 
 # Buttons
-button-reset-sql-db = Reset SQL Database # TODO: Translate
-button-change-sql-db = Change SQL Database # TODO: Translate
+button-reset-sql-db = Zresetuj bazę danych SQL
+button-change-sql-db = Zmień bazę danych SQL
 button-disable-display-image-preview = Przestań wyświetlać podgląd obrazu
 button-display-image-preview = Wyświetl podgląd obrazu
 input-preview-size = Rozmiar podglądu
@@ -50,10 +50,10 @@ confirmation-custom-directory-title = Wybierz inny katalog
 confirmation-custom-directory-description = Czy chcesz wybrać inny katalog pamięci podręcznej?
 
 # Errors
-error-invalid-database-description = Please make sure the path you provided is an SQLite Database # TODO: Translate
-error-invalid-database-title = Invalid database! # TODO: Translate
-error-sql-detection-title = Database detection failed! # TODO: Translate
-error-sql-detection-description = Database detection failed! Is the client installed and you ran it at least once? # TODO: Translate
+error-invalid-database-description = Proszę upewnij się że podana scieżka jest bazą danych SQLite
+error-invalid-database-title = Nieprawidłowa baza danych
+error-sql-detection-title = Wykrycie bazy danych nieudane!
+error-sql-detection-description = Wykrycie bazy danych nieudane! Czy gra jest zainstalowana i czy uruchomiłeś(aś) ją raz? 
 generic-error-critical = Błąd krytyczny
 no-files = Brak plików do wyświetlenia.
 error-directory-detection-title = Nie udało się wykryć katalogu
@@ -73,8 +73,8 @@ dependencies = Zależności
 behavior = Zachowanie
 
 # Checkboxes
-checkbox-hide-user-logs = Hide username from logs # TODO: Translate
-download-development-build = Use development builds to get the latest features early (These builds may be unstable) # TODO: Translate
+checkbox-hide-user-logs = Ukryj nazwę użytkownika z dziennika
+download-development-build = Używaj wersji deweloperskich, aby wcześniej otrzymywać nowe funkcje (Te wersje mogą być niestabilne)
 refresh-before-extract = Odśwież listę plików przed wyodrębnieniem
 use-topbar-buttons = Włącz pasek narzędzi
 check-for-updates = Poszukaj aktualizacji
@@ -83,7 +83,7 @@ use-alias = Eksportuj alternatywne nazwy plików
 
 
 # Descriptions
-custom-sql-db-description = If you want to access a different cache, change your SQL Database below, you can set it back to default with the other button. This is different from your installation folder. # TODO: Translate
+custom-sql-db-description = Jeśli chcesz uzyskać dostęp do innej pamięci podręcznej, zmień swoją bazę danych SQL poniżej. Możesz przywrócić domyślną za pomocą drugiego przycisku. To nie jest to samo co folder instalacyjny.
 overwrite-with = Podwójnie kliknij plik aby nadpisać z "{ $asset }"
 copy-choose-file = Podwójnie kliknij plik do skopiowania.
 logs-description = Dziennik pokazuję wydajność programu. Jeżeli występują jakieś błędy, tutaj one się pojawią.
@@ -113,8 +113,8 @@ error-extracting-file = BŁĄD: Nie udało się wyodrębnić plików: { $error }
 error-check-logs = BŁĄD: Sprawdź dziennik po więcej informacji.
 
 # Misc
-sql-database = SQL Database: { $path } # TODO: Translate
-setting-below-restart-required = Note: Changing the setting below requires restarting the program for it to apply. # TODO: Translate
+sql-database = Baza danych SQL: { $path }
+setting-below-restart-required = Uwaga: Zmienianie ustawienia poniżej wymaga restartu programu aby się zastosowało
 support-project-donate = ♥ Wesprzyj projekt darowizną
 support-sponsor = ♥ Sponsoruj
 no-function = (Nie działa)
