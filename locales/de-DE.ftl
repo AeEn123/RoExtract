@@ -113,7 +113,7 @@ button-export-logs = Exportiere Protokoll zur Datei
 button-copy-logs = Kopiere Protokoll zur Zwischenablage
 button-copy = Kopieren <Ctrl+D>
 overwrite-with = Doppelklicke eine Datei um sie mit "{ $asset }" zu überschreiben
-refresh-before-extract = Refresh file list before extracting
+refresh-before-extract = Dateiliste neuladen bevor Extrahierung
 button-extract-file = Extrahieren <Ctrl+E>
 button-open = Öffnen <Return>
 
@@ -133,4 +133,4 @@ button-change-sql-db = SQL Datenbank wechseln
 button-reset-sql-db = SQL Datenbank zurücksetzen
 custom-sql-db-description = Wenn du auf einen anderen Cache zugreifen möchtest, ändere deine SQL Datenbank darunter, mit dem anderen Knopf kannst du zum Standart zurücksetzen. Das ist verschieden von deinem Installationsordner.
 error-invalid-database-title = Ungültige Datenbank!
-error-invalid-database-description = Bitte stelle sich, das der Pfad den du angegeben hast eine SQL Datenbank ist
+error-invalid-database-description = Bitte stelle sicher, das der Pfad den du angegeben hast eine SQL Datenbank ist
