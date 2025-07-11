@@ -43,8 +43,10 @@ Name: The actually major update
 # Images tab
 Major improvements are made to the images tab, allowing you to preview the images within the application
 The images will appear in a grid-like interface just like any file manager.
+# Rebrand
+The project was renamed to RoExtract to avoid any trademark concerns. RoExtract is **NOT** affiliated with the Roblox Corporation in any way.
 # Translations
-Thanks to @MarcelDev, @Vonercent and @JustKanade for keeping translations up-to-date.
+Thanks to @MarcelDev and @Vonercent for keeping translations up-to-date.
 # Minor changes
 The program can now read from the SQL database that the roblox client stores assets in instead of the http folder, both are still supported.
 
@@ -61,6 +63,8 @@ The search is now case-insensitive.
 Leaving the box blank for asset name edit blank will fill in with the original name as the placeholder text. This is to make it more obvious on how to remove custom names from assets.
 
 You can now test development builds within the settings
+
+**Full Changelog**: https://github.com/AeEn123/RoExtract/compare/v0.1.4...v1.0.0
 
 ## 1.1.0
 - [ ] - Built-in media player to quickly preview sounds
