@@ -13,8 +13,8 @@ about = aobut
 logs = loges
 
 # Buttons
-button-reset-sql-db = Reset SQL Database # TODO: Translate
-button-change-sql-db = Change SQL Database # TODO: Translate
+button-reset-sql-db = reset slq databsae
+button-change-sql-db = hcange slq databse
 button-delete-this-dir = deltlets thsi disrectory <Del>
 button-extract-type = extreact all wityh tshbis type <F3>
 button-refresh = recrtfesh <F5>
@@ -51,10 +51,10 @@ confirmation-ban-warning-title = poitiuernal ban elert
 confirmation-ban-warning-description = editing assets in game can casu eouyhuy mrlcient to ebacheve asifdcnfgrfernetly,d oy yu dunersatnd
 
 # Errors
-error-invalid-database-description = Please make sure the path you provided is an SQLite Database # TODO: Translate
-error-invalid-database-title = Invalid database! # TODO: Translate
-error-sql-detection-title = Database detection failed! # TODO: Translate
-error-sql-detection-description = Database detection failed! Is the client installed and you ran it at least once? # TODO: Translate
+error-invalid-database-description = mkas sure teht epath you rpovide isa vald sql datbase
+error-invalid-database-title = invald datbase
+error-sql-detection-title = databsbe detection faleld!!11!!1
+error-sql-detection-description =databsbe detection faleld!!11!!1 is tehr pcleitn sindealled and your ran it at lears once
 no-files = no fiels to lsit
 error-directory-detection-title = directyory ded4rection failewd
 error-directory-detection-description = isr oblox isntalledf dadn  yotu eran it tat least once
@@ -84,7 +84,7 @@ checkbox-hide-user-logs = hidies uder5tname from lgo
 
 
 # Descriptions
-custom-sql-db-description = If you want to access a different cache, change your SQL Database below, you can set it back to default with the other button. This is different from your installation folder. # TODO: Translate
+custom-sql-db-description = if yotuw ant ttaccess ot a different caceh, change eiyoru slq databse bloew
 clear-cache-description = ife itl is tlanging too lgin to lsit file sm foirmm at edirectory, youc anc lear tyouyr bolxoc ache sto help,t ehc ;leitn  will regerneate this files whern  needed
 extract-all-description = tehbeutotn wiull extadct all assets to folder
 custom-cache-dir-description = if youw atyn taccves tto a difnerfent cache wcahnv e this bleow
@@ -108,7 +108,7 @@ swapped = swaopped { $item_a } with { $item_b }
 copied = overwriten { $item_b } with { $item_a }
 
 # Misc
-sql-database = SQL Database: { $path } # TODO: Translate
+sql-database = slq datbase: { $path }
 no-function = (Not functional yet)
 version = vwrisoon: v{ $version } (omcpleid at { $date })
 cache-directory = cache idrectory: { $directory }

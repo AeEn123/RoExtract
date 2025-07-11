@@ -12,9 +12,9 @@ settings = Edicts & Adjustments
 about = Of This Matter  
 logs = Chronicles  
 
-# Buttons
-button-reset-sql-db = Reset SQL Database # TODO: Translate
-button-change-sql-db = Change SQL Database # TODO: Translate  
+# Buttons  
+button-reset-sql-db = Restore the Scroll of Tables to Its Pristine State  
+button-change-sql-db = Choose Another Scroll of Tables  
 button-delete-this-dir = Cast This Folder into Oblivion <Del>  
 button-extract-type = Take Forth All of This Kind <F3>  
 button-refresh = Renew <F5>  
@@ -50,11 +50,11 @@ confirmation-custom-directory-description = Wouldst thou select a different vaul
 confirmation-ban-warning-title = A Forewarning of Banishment  
 confirmation-ban-warning-description = Meddling with the relics of games may cause thy client to act errantly, leading to a perilous fate—banishment! Proceed only if thy courage be steadfast. Dost thou comprehend?  
 
-# Errors
-error-invalid-database-description = Please make sure the path you provided is an SQLite Database # TODO: Translate
-error-invalid-database-title = Invalid database! # TODO: Translate
-error-sql-detection-title = Database detection failed! # TODO: Translate
-error-sql-detection-description = Database detection failed! Is the client installed and you ran it at least once? # TODO: Translate  
+# Errors  
+error-invalid-database-title = A Scroll of Tables Most Unfit!  
+error-invalid-database-description = Pray, ensure the path thou gavest leadeth to a true SQLite Scroll of Tables.  
+error-sql-detection-title = The Scroll of Tables Was Not Revealed!  
+error-sql-detection-description = The Scroll of Tables could not be discerned! Hast thou installed thy client and invoked it at least once?  
 no-files = No scrolls to reveal.  
 error-directory-detection-title = The Chamber Was Not Found!  
 error-directory-detection-description = The chamber was not discerned! Hast thou installed thy client and summoned it at least once?  
@@ -82,8 +82,8 @@ refresh-before-extract = Renew the List Ere Thou Takest Forth Scrolls
 download-development-build = Partake of Unfinished Labors to Glimpse the Future (These may be unstable)  
 checkbox-hide-user-logs = Conceal the Name of the User from the Chronicles  
 
-# Descriptions
-custom-sql-db-description = If you want to access a different cache, change your SQL Database below, you can set it back to default with the other button. This is different from your installation folder. # TODO: Translate  
+# Descriptions  
+custom-sql-db-description = Shouldst thou desire to consult another scroll of tables, alter the path below. It may yet be restored to its default with a simple click. Mark thee well, this is not thy installation vault.  
 clear-cache-description = If thy listing of scrolls taketh too long, and the retrieval is sluggish, thou mayest cleanse thy cache with the button below. The scrolls shall be reborn when next thou summoneth Roblox.  
 extract-all-description = The button below shall copy all relics and sort them into proper chambers, such as /harmonious_tones, /painted_likenesses. Thou mayest select the root chamber ere beginning.  
 custom-cache-dir-description = Shouldst thou wish to peer into another cache, alter its vault below. It may yet be restored to its former state anon. This is not the same as thy installation vault.  
@@ -112,8 +112,8 @@ failed-not-file = WOE! '{ $file }' Is No True Scroll
 error-extracting-file = WOE! Could Not Retrieve: { $error }  
 error-check-logs = WOE! Look to the Chronicles for Further Ills.  
 
-# Misc
-sql-database = SQL Database: { $path } # TODO: Translate  
+# Misc  
+sql-database = Scroll of Tables: { $path }  
 no-function = (Yet It Doth Not Work)  
 version = Edition: v{ $version } (compiled upon { $date })  
 cache-directory = Cache Chamber: { $directory }  
@@ -122,4 +122,4 @@ download-update-question = Wouldst thou acquire the latest tidings?
 update-changelog = The Scroll of Changes Lies Below  
 support-sponsor = ♥ A Patron Most Kind  
 support-project-donate = ♥ Bestow Thy Gift Upon This Labor  
-setting-below-restart-required = Take Heed! A Change in This Setting Shall Require a Restart for It to Take Hold.  
+setting-below-restart-required = Take Heed! A Change in This Setting Shall Require a Restart for It to Take Hold.
