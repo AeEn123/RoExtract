@@ -34,7 +34,7 @@ pub fn get_message(locale: &FluentBundle<Arc<FluentResource>>, id: &str, args: O
     if let Some(message) = locale.get_message(id) {
         if let Some(value) = message.value() {
             let mut err = vec![];
-            return locale.format_pattern(value, args, &mut err).to_string();
+            return locale.format_pattern(value, args, &mut err).to_string().replace(" # TODO: Translate", ""); // Remove the TODO from strings
         } else {
             return id.to_owned() // Return id if it is not available
         }
