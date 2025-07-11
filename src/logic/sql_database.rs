@@ -159,6 +159,11 @@ pub fn clear_cache(locale: &FluentBundle<Arc<FluentResource>>) {
 
 pub fn refresh(category: logic::Category, cli_list_mode: bool, locale: &FluentBundle<Arc<FluentResource>>) {
     log_debug!("logic::sql_database::refresh({category}, {cli_list_mode}, locale)");
+
+    if category == logic::Category::Music {
+        return // Music category is specific to /sounds folder.
+    }
+
     let headers = logic::get_headers(&category);
     let mut args = FluentArgs::new();
 
