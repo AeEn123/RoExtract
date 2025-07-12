@@ -6,7 +6,7 @@
     },
     {
     "type": "file",
-    "url": "https://raw.githubusercontent.com/AeEn123/RoExtract/refs/heads/main/packages/flatpak/RoExtract.desktop",
+    "url": "https://raw.githubusercontent.com/AeEn123/RoExtract/refs/heads/main/packages/flatpak/RoExtract-desktop.desktop",
     "sha256": "e614895242b5125cb1cea47191c3a10b1fd3e3ee53a68489610d59affa38e699"
     },
     {
