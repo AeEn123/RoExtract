@@ -1,0 +1,36 @@
+id: com.github.AeEn123.RoExtract
+runtime: org.freedesktop.Platform
+runtime-version: '24.08'
+sdk: org.freedesktop.Sdk
+sdk-extensions:
+    - org.freedesktop.Sdk.Extension.rust-stable
+command: roextract
+
+finish-args:
+  - --socket=wayland
+  - --socket=x11
+  - --device=dri
+  - --filesystem=~/.var/app/org.vinegarhq.Sober/cache:create # Allow acces to the Sober cache directory
+  - --filesystem=~/.var/app/org.vinegarhq.Sober/data/sober/appData/rbx-storage.db:create # Allow acces to the Sober cache database
+  - --filesystem=~/.var/app/org.vinegarhq.Sober/data/sober/appData/rbx-storage:create # Allow acces to the Sober cache database
+  - --filesystem=/tmp:create # Temporary fix for opening files inside RoExtract
+  - --filesystem=host  # Allows access to the host file system
+  - --talk-name=org.freedesktop.portal.Desktop  # Enables access to the desktop
+
+modules:
+  - name: roextract
+    buildsystem: simple
+    sources:
+      - roextract-sources.json
+      - cargo-sources.json
+    build-options:
+      append-path: /usr/lib/sdk/rust-stable/bin
+      env:
+        CARGO_HOME: /run/build/roextract/cargo
+    build-commands:
+      - cargo --offline fetch --verbose
+      - cargo --offline build --release --verbose
+      - install -Dm755 target/release/RoExtract ${FLATPAK_DEST}/bin/roextract
+      - install -Dm644 RoExtract.desktop ${FLATPAK_DEST}/share/applications/${FLATPAK_ID}.desktop
+      - install -Dm644 RoExtract-icon.svg ${FLATPAK_DEST}/share/icons/hicolor/scalable/apps/${FLATPAK_ID}.svg
+      - install -Dm644 RoExtract-system.json ${FLATPAK_DEST}/bin/RoExtract-system.json

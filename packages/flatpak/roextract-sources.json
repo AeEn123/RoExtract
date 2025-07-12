@@ -1,0 +1,22 @@
+[
+    {
+    "type": "archive",
+    "url": "https://github.com/AeEn123/RoExtract/archive/refs/tags/v1.0.0.tar.gz",
+    "sha256": "43b1871be0ccec4d51154d6cd342bc706119f61d672ef90d18e234518710dd20"
+    },
+    {
+    "type": "file",
+    "url": "https://raw.githubusercontent.com/AeEn123/RoExtract/refs/heads/main/packages/flatpak/RoExtract.desktop",
+    "sha256": "e614895242b5125cb1cea47191c3a10b1fd3e3ee53a68489610d59affa38e699"
+    },
+    {
+    "type": "file",
+    "url": "https://raw.githubusercontent.com/AeEn123/RoExtract/refs/heads/main/packages/flatpak/RoExtract-icon.svg",
+    "sha256": "9b8a12ff8653fcbe854bd9116c3276ed47923befb08e1d166a0023d6d8b32e91"
+    },
+    {
+    "type": "file",
+    "url": "https://raw.githubusercontent.com/AeEn123/RoExtract/refs/heads/main/packages/flatpak/RoExtract-system.json",
+    "sha256": "6439edafb0daab5f22ff88bad0256852e96a0aac8455a75cb278a843468f9ecb"
+    }
+]
