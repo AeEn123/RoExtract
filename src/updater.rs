@@ -135,6 +135,7 @@ pub fn download_update(url: &str, tag_name: Option<&str>) {
                         Ok(_) => {
                             set_update_file(path);
                             config::set_config_value("current_tag_name", tag_name.clone().into());
+                            config::save_config_file();
                         },
                         Err(e) => log_error!("Failed to write file: {}", e)
                     }
@@ -160,6 +161,7 @@ pub fn run_install_script(run_afterwards: bool) -> bool {
                 Ok(_) => (),
                 Err(e) => log_error!("Installer failed to launch {} ", e)
             }
+
             std::process::exit(0);
 
         } else {
