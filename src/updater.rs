@@ -80,7 +80,7 @@ fn update_action(json: Release, run_gui: bool, auto_download_update: bool) {
 
 #[cfg(target_family = "unix")]
 fn save_install_script() -> PathBuf {
-    let temp_dir = logic::get_temp_dir(false);
+    let temp_dir = logic::get_temp_dir();
     let path = temp_dir.join("installer.sh");
 
     if temp_dir != PathBuf::new() {
@@ -97,7 +97,7 @@ fn save_install_script() -> PathBuf {
 
 #[cfg(target_os = "windows")]
 fn save_install_script() -> PathBuf {
-    let temp_dir = logic::get_temp_dir(false);
+    let temp_dir = logic::get_temp_dir();
     let path = temp_dir.join("installer.bat");
 
     if temp_dir != PathBuf::new() {
@@ -119,7 +119,7 @@ pub fn download_update(url: &str, tag_name: Option<&str>) {
     }
     let client = Client::new();
     let filename = std::env::current_exe().unwrap().file_name().unwrap().to_string_lossy().to_string();
-    let temp_dir = logic::get_temp_dir(true);
+    let temp_dir = logic::get_temp_dir();
 
     let response = client
         .get(url)

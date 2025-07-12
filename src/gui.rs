@@ -28,7 +28,7 @@ const CONTRIBUTORS: [&str; 5] = [
     "JustKanade",
     "yuk1n0w",
 ];
-const DEPENDENCIES: [[&str; 2]; 15] = [
+const DEPENDENCIES: [[&str; 2]; 14] = [
     ["https://github.com/emilk/egui", ""],
     ["https://github.com/Adanos020/egui_dock", ""],
     ["https://github.com/lampsitter/egui_commonmark", ""],
@@ -36,7 +36,6 @@ const DEPENDENCIES: [[&str; 2]; 15] = [
     ["https://github.com/projectfluent/fluent-rs", ""],
     ["https://github.com/1Password/sys-locale", ""],
     ["https://github.com/zbraniecki/unic-locale", ""],
-    ["https://github.com/Stebalien/tempfile", ""],
     ["https://github.com/clap-rs/clap", ""],
     ["https://github.com/ardaku/whoami", ""],
     ["https://github.com/seanmonstar/reqwest", ""],
@@ -80,7 +79,7 @@ fn double_click(asset: logic::AssetInfo, swapping: &mut bool, copying: &mut bool
             *swapping = false
         }
     } else {
-        let temp_dir = logic::get_temp_dir(true);
+        let temp_dir = logic::get_temp_dir();
         let alias = config::get_asset_alias(&asset.name);
         let destination = temp_dir.join(alias);
         match logic::extract_to_file(asset, destination.clone(), true) {

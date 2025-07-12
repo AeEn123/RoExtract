@@ -25,7 +25,6 @@ dependencies = [
  "strum 0.27.1",
  "strum_macros 0.27.1",
  "sys-locale",
- "tempfile",
  "unic-langid",
  "whoami",
  "winresource",

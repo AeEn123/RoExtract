@@ -1,9 +1,5 @@
 use std::{
-    fs,
-    path::PathBuf,
-    sync::{Arc, LazyLock, Mutex},
-    thread,
-    time::SystemTime
+    env, fs, path::PathBuf, sync::{Arc, LazyLock, Mutex}, thread, time::SystemTime
 };
 
 use clap::ValueEnum;
@@ -17,7 +13,7 @@ use crate::{config, locale};
 pub mod cache_directory;
 pub mod sql_database;
 
-static TEMP_DIRECTORY: LazyLock<Mutex<Option<tempfile::TempDir>>> = LazyLock::new(|| Mutex::new(None));
+static TEMP_DIRECTORY: LazyLock<Mutex<PathBuf>> = LazyLock::new(|| Mutex::new(create_temp_dir()));
 
 // Define global values
 static STATUS: LazyLock<Mutex<String>> = LazyLock::new(|| Mutex::new(locale::get_message(&locale::get_locale(None), "idling", None)));
@@ -149,6 +145,25 @@ fn read_asset(asset: &AssetInfo) -> Result<Vec<u8>, std::io::Error> {
     }    
 }
 
+// Create temporary directory
+pub fn create_temp_dir() -> PathBuf {
+    let path = match config::get_system_config_string("temp-directory") {
+        Some(dir) => PathBuf::from(dir),
+        None => env::temp_dir().join("RoExtract")
+    };
+
+    match fs::create_dir(&path) {
+        Ok(_) => (),
+        Err(e) => {
+            if e.kind() != std::io::ErrorKind::AlreadyExists {
+                log_critical!("Failed to create temporary directory: {}", e);
+            }
+        }
+    }
+
+    return path
+}
+
 // Define public functions
 pub fn resolve_path(directory: &str) -> String {
     // There's probably a better way of doing this... It works though :D
@@ -161,25 +176,8 @@ pub fn resolve_path(directory: &str) -> String {
 }
 
 // Function to get temp directory, create it if it doesn't exist
-pub fn get_temp_dir(create_directory: bool) -> PathBuf {
-    let mut option_temp_dir = TEMP_DIRECTORY.lock().unwrap();
-    if let Some(temp_dir) = option_temp_dir.as_ref() {
-        return temp_dir.path().to_path_buf();
-    } else if create_directory  {
-        match tempfile::tempdir() {
-            Ok(temp_dir) => {
-                let path = temp_dir.path().to_path_buf();
-                *option_temp_dir = Some(temp_dir);
-                return path;
-            }
-            Err(e) => {
-                log_critical!("Failed to create temporary directory: {}", e);
-                return PathBuf::new();
-            }
-        }
-    } else {
-        return PathBuf::new();
-    }
+pub fn get_temp_dir() -> PathBuf {
+    return TEMP_DIRECTORY.lock().unwrap().clone();
 }
 
 
@@ -604,7 +602,7 @@ pub fn get_request_repaint() -> bool {
 
 // Delete the temp directory
 pub fn clean_up() {
-    let temp_dir = get_temp_dir(false);
+    let temp_dir = get_temp_dir();
     // Just in case if it somehow resolves to "/"
     if temp_dir != PathBuf::new() && temp_dir != PathBuf::from("/") {
         log_info!("Cleaning up {}", temp_dir.display());

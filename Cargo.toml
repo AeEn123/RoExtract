@@ -23,7 +23,6 @@ serde_json = { version = "1.0.140", features=["std"], default-features = false }
 strum = "0.27.1"
 strum_macros = "0.27.1"
 sys-locale = "0.3.2"
-tempfile = { default-features = false, version = "3" }
 unic-langid = "0.9.6"
 whoami = { version = "1.6.0", default-features = false }
 
