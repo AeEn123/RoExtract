@@ -31,6 +31,6 @@ modules:
       - cargo --offline fetch --verbose
       - cargo --offline build --release --verbose
       - install -Dm755 target/release/RoExtract ${FLATPAK_DEST}/bin/roextract
-      - install -Dm644 RoExtract.desktop ${FLATPAK_DEST}/share/applications/${FLATPAK_ID}.desktop
+      - install -Dm644 RoExtract-desktop.desktop ${FLATPAK_DEST}/share/applications/${FLATPAK_ID}.desktop
       - install -Dm644 RoExtract-icon.svg ${FLATPAK_DEST}/share/icons/hicolor/scalable/apps/${FLATPAK_ID}.svg
       - install -Dm644 RoExtract-system.json ${FLATPAK_DEST}/bin/RoExtract-system.json
