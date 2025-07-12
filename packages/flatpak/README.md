@@ -12,7 +12,7 @@ cd RoExtract/packages/folder
 ```
 flatpak-builder --force-clean --user --install-deps-from=flathub --repo=repo --install builddir com.github.AeEn123.RoExtract.yml
 ```
-# Building a .flatpak file
+# Creating a .flatpak file
 1. Do "Building and installing" and inside the same folder continue
 2. Run the command below to build the .flatpak file
 ```
