@@ -1,10 +1,10 @@
-### Building Flatpak package
+### Creating a Flatpak package of RoExtract
 # Building and installing
 1. Download the repository
 ```
 git clone https://github.com/AeEn123/RoExtract
 ```
-2. Change directory the packages/flatpak folder inside the repository
+2. Change directory to the packages/flatpak folder inside the cloned repository
 ```
 cd RoExtract/packages/folder
 ```
@@ -12,9 +12,8 @@ cd RoExtract/packages/folder
 ```
 flatpak-builder --force-clean --user --install-deps-from=flathub --repo=repo --install builddir com.github.AeEn123.RoExtract.yml
 ```
-
 # Building a .flatpak file
-1. Do "Building and installing" and inside the same folder do step 2.
+1. Do "Building and installing" and inside the same folder continue
 2. Run the command below to build the .flatpak file
 ```
 flatpak build-bundle repo RoExtract-linux.flatpak com.github.AeEn123.RoExtract --runtime-repo=https://flathub.org/repo/flathub.flatpakrepo
