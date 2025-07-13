@@ -25,6 +25,6 @@ build() {
 package() {
   install -Dm0755 -t "$pkgdir/usr/bin/" "target/release/$pkgname"
   install -Dm644 "assets/icon.svg" "${pkgdir}/usr/share/icons/hicolor/symbolic/apps/$pkgname.svg"
-  install -Dm644 "packages/arch/$pkgname.desktop" "${pkgdir}/usr/share/applications/$pkgname.desktop"
+  install -Dm644 "packages/arch/$pkgname-desktop.desktop" "${pkgdir}/usr/share/applications/$pkgname.desktop"
   install -Dm644 "packages/arch/$pkgname-system.json" "${pkgdir}/usr/bin/$pkgname-system.json"
 }
