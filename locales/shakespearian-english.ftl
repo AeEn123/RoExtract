@@ -37,7 +37,9 @@ button-display-image-preview = Reveal Painted Likenesses in Advance
 button-disable-display-image-preview = Cease the Foretelling of Painted Likenesses  
 input-preview-size = Measure of Foretelling  
 
-# Confirmations  
+# Confirmations
+confirmation-custom-sql-title = Choose a SQL Database # TODO: Translate
+confirmation-custom-sql-description = Do you want to choose a different SQL Database? # TODO: Translate  
 confirmation-generic-confirmation-title = A Moment of Certainty  
 confirmation-delete-confirmation-title = The Banishment of Scrolls  
 confirmation-delete-confirmation-description = Art thou certain thou dost wish to cast all scrolls in this chamber into oblivion?  

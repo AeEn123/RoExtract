@@ -38,6 +38,8 @@ button-disable-display-image-preview = 停止显示图片预览
 input-preview-size = 预览大小
 
 # Confirmations
+confirmation-custom-sql-title = Choose a SQL Database # TODO: Translate
+confirmation-custom-sql-description = Do you want to choose a different SQL Database? # TODO: Translate
 confirmation-generic-confirmation-title = 确认
 confirmation-delete-confirmation-title = 删除文件
 confirmation-delete-confirmation-description = 您确定要删除此目录中的文件吗？

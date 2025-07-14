@@ -134,3 +134,6 @@ button-reset-sql-db = SQL Datenbank zurücksetzen
 custom-sql-db-description = Wenn du auf einen anderen Cache zugreifen möchtest, ändere deine SQL Datenbank darunter, mit dem anderen Knopf kannst du zum Standart zurücksetzen. Das ist verschieden von deinem Installationsordner.
 error-invalid-database-title = Ungültige Datenbank!
 error-invalid-database-description = Bitte stelle sicher, das der Pfad den du angegeben hast eine SQL Datenbank ist
+
+confirmation-custom-sql-description = Do you want to choose a different SQL Database? # TODO: Translate
+confirmation-custom-sql-title = Choose a SQL Database # TODO: Translate
