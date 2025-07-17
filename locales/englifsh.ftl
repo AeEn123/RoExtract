@@ -38,6 +38,8 @@ button-disable-display-image-preview = stop dispalyignt image preivwews
 input-preview-size = previeas size
 
 # Confirmations
+confirmation-custom-sql-title = Choose a SQL Database # TODO: Translate
+confirmation-custom-sql-description = Do you want to choose a different SQL Database? # TODO: Translate
 confirmation-generic-confirmation-title = ocnfimration
 confirmation-delete-confirmation-title = deletiong fiels
 confirmation-delete-confirmation-description = aer yours ture youw anyt tot delte fielxsz int this direct6ory
@@ -54,7 +56,7 @@ confirmation-ban-warning-description = editing assets in game can casu eouyhuy m
 error-invalid-database-description = mkas sure teht epath you rpovide isa vald sql datbase
 error-invalid-database-title = invald datbase
 error-sql-detection-title = databsbe detection faleld!!11!!1
-error-sql-detection-description =databsbe detection faleld!!11!!1 is tehr pcleitn sindealled and your ran it at lears once
+error-sql-detection-description = databsbe detection faleld!!11!!1 is tehr pcleitn sindealled and your ran it at lears once
 no-files = no fiels to lsit
 error-directory-detection-title = directyory ded4rection failewd
 error-directory-detection-description = isr oblox isntalledf dadn  yotu eran it tat least once

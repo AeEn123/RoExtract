@@ -36,6 +36,8 @@ button-disable-display-image-preview = Прекратить осмотр изо�
 input-preview-size = Предварительный осмотр изображения
 
 # Confirmations
+confirmation-custom-sql-title = Choose a SQL Database # TODO: Translate
+confirmation-custom-sql-description = Do you want to choose a different SQL Database? # TODO: Translate
 confirmation-generic-confirmation-title = Подтверждение
 confirmation-delete-confirmation-title = Удаление файлов
 confirmation-delete-confirmation-description = Вы уверены, что хотите удалить все файлы в этом каталоге?

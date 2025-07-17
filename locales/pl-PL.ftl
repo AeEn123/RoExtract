@@ -37,6 +37,8 @@ button-no = Nie
 button-rename = Zmień nazwę <F2>
 
 # Confirmations
+confirmation-custom-sql-title = Choose a SQL Database # TODO: Translate
+confirmation-custom-sql-description = Do you want to choose a different SQL Database? # TODO: Translate
 confirmation-ban-warning-description = Edytowanie zasobów w grach może spowodować inne zachowanie gry i możliwy jest ban twojego konta! Używaj pod własnym ryzykiem
 confirmation-ban-warning-title = Możliwość bana
 confirmation-generic-confirmation-title = Potwierdzenie

@@ -123,3 +123,5 @@ button-reset-sql-db = Reset SQL Database # TODO: Translate
 custom-sql-db-description = If you want to access a different cache, change your SQL Database below, you can set it back to default with the other button. This is different from your installation folder. # TODO: Translate
 error-invalid-database-title = Invalid database! # TODO: Translate
 error-invalid-database-description = Please make sure the path you provided is an SQLite Database # TODO: Translate
+confirmation-custom-sql-description = Do you want to choose a different SQL Database? # TODO: Translate
+confirmation-custom-sql-title = Choose a SQL Database # TODO: Translate

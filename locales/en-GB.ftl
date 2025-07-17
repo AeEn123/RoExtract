@@ -45,6 +45,8 @@ confirmation-clear-cache-title = Clearing cache
 confirmation-clear-cache-description = Are you sure you want to clear your cache? The files will be regenerated when the client is loaded.
 confirmation-custom-directory-title = Choose a different directory
 confirmation-custom-directory-description = Do you want to choose a different cache directory?
+confirmation-custom-sql-title = Choose a SQL Database
+confirmation-custom-sql-description = Do you want to choose a different SQL Database?
 confirmation-ban-warning-title = Potential ban alert
 confirmation-ban-warning-description = Editing assets in games can cause your client to behave differently leading to potential game bans! Use at your own risk. Do you understand?
 

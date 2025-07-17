@@ -37,7 +37,9 @@ button-display-image-preview = Show the Treasure Maps
 button-disable-display-image-preview = Hide the Treasure Maps  
 input-preview-size = Size o’ the Lookout  
 
-# Confirmations  
+# Confirmations
+confirmation-custom-sql-title = Choose a SQL Database # TODO: Translate
+confirmation-custom-sql-description = Do you want to choose a different SQL Database? # TODO: Translate  
 confirmation-generic-confirmation-title = Aye, Be Ye Sure?  
 confirmation-delete-confirmation-title = Sinkin’ the Files  
 confirmation-delete-confirmation-description = Be ye sure ye want to send all these files to Davy Jones’ locker?  
