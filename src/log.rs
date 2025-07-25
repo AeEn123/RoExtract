@@ -51,7 +51,7 @@ macro_rules! log_critical {
         let _ = native_dialog::DialogBuilder::message()
             .set_level(native_dialog::MessageLevel::Error)
             .set_title(&$crate::locale::get_message(
-                &crate::locale::get_locale(None),
+                &$crate::locale::get_locale(None),
                 "generic-error-critical",
                 None,
             ))

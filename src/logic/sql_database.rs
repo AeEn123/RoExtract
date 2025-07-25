@@ -135,42 +135,62 @@ pub fn clear_cache(locale: &FluentBundle<Arc<FluentResource>>) {
 
     logic::update_status(locale::get_message(locale, "deleting-files", Some(&args)));
 
+    args.set("item", "1");
+    args.set("total", "1");
+
+    let path = if let Some(conn) = &*connection {
+        conn.path()
+    } else {
+        None
+    };
+    
+    // Disconnect from database before deleting
+    match clean_up() {
+        Ok(_) => log_info!("Disconnected from database"),
+        Err(e) => log_error!("Failed disconnecting from database: {e:?}")
+    }
+
+    let storage_folder = if let Some(path) = path {
+        if let Some(parent) = std::path::Path::new(path).parent() {
+            Some(parent.join("rbx-storage"))
+        } else {
+            None
+        }
+    } else {
+        None
+    };
+
     if let Some(conn) = &*connection {
         match conn.path() {
-            Some(path) => match std::fs::remove_file(path) {
-                Ok(_) => {
-                    logic::update_progress(1.0);
-                    args.set("item", "1");
-                    args.set("total", "1");
+            Some(path) => {
+                
+                match std::fs::remove_file(path) {
+                    Ok(_) => {
+                        logic::update_progress(1.0);
+                        logic::update_status(locale::get_message(
+                            locale,
+                            "deleting-files",
+                            Some(&args),
+                        ));
+                    }
+                    Err(e) => {
+                        log_error!("Failed to delete file: {}", e);
 
-                    logic::update_status(locale::get_message(
-                        locale,
-                        "deleting-files",
-                        Some(&args),
-                    ));
-                }
-                Err(e) => {
-                    log_error!("Failed to delete file: {}", e);
+                        args.set("error", e.to_string());
 
-                    args.set("error", e.to_string());
-                    logic::update_progress(1.0);
-                    args.set("item", "1");
-                    args.set("total", "1");
-
-                    logic::update_status(locale::get_message(
-                        locale,
-                        "failed-deleting-file",
-                        Some(&args),
-                    ));
-                }
+                        logic::update_progress(1.0);
+                        logic::update_status(locale::get_message(
+                            locale,
+                            "failed-deleting-file",
+                            Some(&args),
+                        ));
+                    }
+            }
             },
             None => {
                 log_error!("Failed to delete file: No path specified");
 
                 args.set("error", "No path specified");
-                logic::update_progress(1.0);
-                args.set("item", "1");
-                args.set("total", "1");
 
                 logic::update_status(locale::get_message(
                     locale,
