@@ -131,12 +131,12 @@ pub fn clear_cache(locale: &FluentBundle<Arc<FluentResource>>) {
     // Args for formatting
     let mut args = FluentArgs::new();
     args.set("item", "0");
-    args.set("total", "1");
+    args.set("total", "2");
 
     logic::update_status(locale::get_message(locale, "deleting-files", Some(&args)));
 
     args.set("item", "1");
-    args.set("total", "1");
+    args.set("total", "2");
 
     let path = if let Some(conn) = &*connection {
         conn.path()
@@ -150,48 +150,59 @@ pub fn clear_cache(locale: &FluentBundle<Arc<FluentResource>>) {
         Err(e) => log_error!("Failed disconnecting from database: {e:?}")
     }
 
-    let storage_folder = if let Some(path) = path {
-        if let Some(parent) = std::path::Path::new(path).parent() {
-            Some(parent.join("rbx-storage"))
-        } else {
-            None
-        }
-    } else {
-        None
-    };
+    let storage_folder = path
+        .and_then(|p| std::path::Path::new(p).parent())
+        .map(|parent| parent.join("rbx-storage"));
 
-    if let Some(conn) = &*connection {
-        match conn.path() {
-            Some(path) => {
-                
-                match std::fs::remove_file(path) {
-                    Ok(_) => {
-                        logic::update_progress(1.0);
-                        logic::update_status(locale::get_message(
-                            locale,
-                            "deleting-files",
-                            Some(&args),
-                        ));
-                    }
-                    Err(e) => {
-                        log_error!("Failed to delete file: {}", e);
-
-                        args.set("error", e.to_string());
-
-                        logic::update_progress(1.0);
-                        logic::update_status(locale::get_message(
-                            locale,
-                            "failed-deleting-file",
-                            Some(&args),
-                        ));
-                    }
+    if let Some(path) = path {
+        match std::fs::remove_file(path) {
+            Ok(_) => {
+                logic::update_progress(0.5);
+                logic::update_status(locale::get_message(
+                    locale,
+                    "deleting-files",
+                    Some(&args),
+                ));
             }
-            },
-            None => {
-                log_error!("Failed to delete file: No path specified");
+            Err(e) => {
+                log_error!("Failed to delete file: {}", e);
 
-                args.set("error", "No path specified");
+                args.set("error", e.to_string());
 
+                logic::update_progress(0.5);
+                logic::update_status(locale::get_message(
+                    locale,
+                    "failed-deleting-file",
+                    Some(&args),
+                ));
+            }
+        }
+    }
+
+    args.set("item", "2");
+    args.set("total", "2");
+
+    if let Some(storage_folder) = storage_folder {
+        // I'm scared
+        assert_ne!(storage_folder, std::path::Path::new("."));
+        assert_ne!(storage_folder, std::path::Path::new("/"));
+        assert_ne!(storage_folder, std::path::Path::new("C:\\"));
+
+        match fs::remove_dir_all(&storage_folder) {
+            Ok(_) => {
+                logic::update_progress(1.0);
+                logic::update_status(locale::get_message(
+                    locale,
+                    "deleted-files",
+                    Some(&args),
+                ));
+            }
+            Err(e) => {
+                log_error!("Failed to delete storage folder: {}", e);
+
+                args.set("error", e.to_string());
+
+                logic::update_progress(1.0);
                 logic::update_status(locale::get_message(
                     locale,
                     "failed-deleting-file",
@@ -200,12 +211,7 @@ pub fn clear_cache(locale: &FluentBundle<Arc<FluentResource>>) {
             }
         }
     } else {
-        log_error!("No SQL Connection!");
-        logic::update_status(locale::get_message(
-            locale,
-            "failed-deleting-file",
-            Some(&args),
-        ));
+        log_error!("No SQL connection path found!");
     }
 }
 
