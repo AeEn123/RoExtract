@@ -124,7 +124,7 @@ pub fn validate_file(path: &str) -> Result<String, String> {
 pub fn clear_cache(locale: &FluentBundle<Arc<FluentResource>>) {
     log_debug!("logic::sql_database::clear_cache(locale)");
 
-    let connection = CONNECTION.lock().unwrap();
+    
 
     logic::update_progress(0.0);
 
@@ -138,31 +138,30 @@ pub fn clear_cache(locale: &FluentBundle<Arc<FluentResource>>) {
     args.set("item", "1");
     args.set("total", "2");
 
-    let path = if let Some(conn) = &*connection {
-        conn.path()
-    } else {
-        None
+    let path: Option<String> = {
+        let connection = CONNECTION.lock().unwrap();
+        if let Some(conn) = &*connection {
+            conn.path().map(|p| p.to_string())
+        } else {
+            None
+        }
     };
-    
+
     // Disconnect from database before deleting
     match clean_up() {
         Ok(_) => log_info!("Disconnected from database"),
-        Err(e) => log_error!("Failed disconnecting from database: {e:?}")
+        Err(e) => log_error!("Failed disconnecting from database: {e:?}"),
     }
 
-    let storage_folder = path
-        .and_then(|p| std::path::Path::new(p).parent())
+    let storage_folder = path.clone()
+        .and_then(|p| std::path::Path::new(&p).parent().map(|parent| parent.to_path_buf()))
         .map(|parent| parent.join("rbx-storage"));
 
-    if let Some(path) = path {
+    if let Some(path) = path.clone() {
         match std::fs::remove_file(path) {
             Ok(_) => {
                 logic::update_progress(0.5);
-                logic::update_status(locale::get_message(
-                    locale,
-                    "deleting-files",
-                    Some(&args),
-                ));
+                logic::update_status(locale::get_message(locale, "deleting-files", Some(&args)));
             }
             Err(e) => {
                 log_error!("Failed to delete file: {}", e);
@@ -191,11 +190,7 @@ pub fn clear_cache(locale: &FluentBundle<Arc<FluentResource>>) {
         match fs::remove_dir_all(&storage_folder) {
             Ok(_) => {
                 logic::update_progress(1.0);
-                logic::update_status(locale::get_message(
-                    locale,
-                    "deleted-files",
-                    Some(&args),
-                ));
+                logic::update_status(locale::get_message(locale, "deleted-files", Some(&args)));
             }
             Err(e) => {
                 log_error!("Failed to delete storage folder: {}", e);
