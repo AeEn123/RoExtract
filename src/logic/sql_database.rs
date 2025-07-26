@@ -124,8 +124,6 @@ pub fn validate_file(path: &str) -> Result<String, String> {
 pub fn clear_cache(locale: &FluentBundle<Arc<FluentResource>>) {
     log_debug!("logic::sql_database::clear_cache(locale)");
 
-    
-
     logic::update_progress(0.0);
 
     // Args for formatting
@@ -153,12 +151,17 @@ pub fn clear_cache(locale: &FluentBundle<Arc<FluentResource>>) {
         Err(e) => log_error!("Failed disconnecting from database: {e:?}"),
     }
 
-    let storage_folder = path.clone()
-        .and_then(|p| std::path::Path::new(&p).parent().map(|parent| parent.to_path_buf()))
+    let storage_folder = path
+        .clone()
+        .and_then(|p| {
+            std::path::Path::new(&p)
+                .parent()
+                .map(|parent| parent.to_path_buf())
+        })
         .map(|parent| parent.join("rbx-storage"));
 
     if let Some(path) = path.clone() {
-        match std::fs::remove_file(path) {
+        match std::fs::remove_file(&path) {
             Ok(_) => {
                 logic::update_progress(0.5);
                 logic::update_status(locale::get_message(locale, "deleting-files", Some(&args)));
@@ -174,6 +177,17 @@ pub fn clear_cache(locale: &FluentBundle<Arc<FluentResource>>) {
                     "failed-deleting-file",
                     Some(&args),
                 ));
+            }
+        }
+
+        match Connection::open(&path) {
+            Ok(connection) => {
+                log_info!("Reconnected to database at {}", &path);
+                let mut connection_lock = CONNECTION.lock().unwrap();
+                connection_lock.replace(connection);
+            }
+            Err(e) => {
+                log_error!("Failed to reconnect to database: {}", e);
             }
         }
     }
