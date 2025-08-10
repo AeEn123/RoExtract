@@ -1,22 +1,23 @@
 // Used for gui
 use eframe::egui;
 use egui::Color32;
-use native_dialog::{DialogBuilder, MessageLevel};
-use egui_dock::{DockArea, NodeIndex, DockState, SurfaceIndex, Style};
+use egui_dock::{DockArea, DockState, NodeIndex, Style, SurfaceIndex};
 use fluent_bundle::{FluentBundle, FluentResource};
+use native_dialog::{DialogBuilder, MessageLevel};
 use std::num::NonZero;
 use std::path::PathBuf;
 use std::sync::{LazyLock, Mutex};
 use std::time::Duration;
 use std::{sync::Arc, thread};
 
-use std::collections::HashMap; use crate::logic::AssetInfo;
+use crate::logic::AssetInfo;
+use std::collections::HashMap;
 // Used for input
 use crate::{config, locale, log, logic, updater}; // Used for functionality
 use eframe::egui::TextureHandle;
 
-mod welcome;
 mod settings;
+mod welcome;
 
 const VERSION: &str = env!("CARGO_PKG_VERSION"); // Get version for use in the title bar
 const COMPILE_DATE: &str = env!("COMPILE_DATE");
@@ -46,9 +47,9 @@ const DEPENDENCIES: [[&str; 2]; 14] = [
     ["https://github.com/image-rs/image", ""],
 ];
 
-static IMAGES: LazyLock<Mutex<HashMap<String, TextureHandle>>> = LazyLock::new(||Mutex::new(HashMap::new()));
-static ASSETS_LOADING: LazyLock<Mutex<Vec<String>>> = LazyLock::new(||Mutex::new(Vec::new()));
-
+static IMAGES: LazyLock<Mutex<HashMap<String, TextureHandle>>> =
+    LazyLock::new(|| Mutex::new(HashMap::new()));
+static ASSETS_LOADING: LazyLock<Mutex<Vec<String>>> = LazyLock::new(|| Mutex::new(Vec::new()));
 
 struct TabViewer<'a> {
     // passing selected label to TabViewer
@@ -64,7 +65,12 @@ struct TabViewer<'a> {
     copying: &'a mut bool,
 }
 
-fn double_click(asset: logic::AssetInfo, swapping: &mut bool, copying: &mut bool, swapping_asset_a: &mut Option<logic::AssetInfo>) {
+fn double_click(
+    asset: logic::AssetInfo,
+    swapping: &mut bool,
+    copying: &mut bool,
+    swapping_asset_a: &mut Option<logic::AssetInfo>,
+) {
     if *copying {
         if swapping_asset_a.is_none() {
             *swapping_asset_a = Some(asset);
@@ -84,19 +90,25 @@ fn double_click(asset: logic::AssetInfo, swapping: &mut bool, copying: &mut bool
         let alias = config::get_asset_alias(&asset.name);
         let destination = temp_dir.join(alias);
         match logic::extract_to_file(asset, destination.clone(), true) {
-            Ok(new_destination) => {
-                match open::that(new_destination) {
-                    Ok(()) => (),
-                    Err(err) => {
-                        logic::update_status(locale::get_message(&locale::get_locale(None), "failed-opening-file", None));
-                        log_error!("Failed opening file: {}", err)
-                    }
+            Ok(new_destination) => match open::that(new_destination) {
+                Ok(()) => (),
+                Err(err) => {
+                    logic::update_status(locale::get_message(
+                        &locale::get_locale(None),
+                        "failed-opening-file",
+                        None,
+                    ));
+                    log_error!("Failed opening file: {}", err)
                 }
             },
             Err(e) => {
-                logic::update_status(locale::get_message(&locale::get_locale(None), "failed-opening-file", None));
+                logic::update_status(locale::get_message(
+                    &locale::get_locale(None),
+                    "failed-opening-file",
+                    None,
+                ));
                 log_error!("Failed opening file: {}", e)
-        },
+            }
         }
     }
 }
@@ -108,35 +120,60 @@ fn extract_all_of_type(category: logic::Category, locale: &FluentBundle<Arc<Flue
     if no {
         // NOT result, will become false if user clicks yes
         no = !DialogBuilder::message()
-        .set_level(MessageLevel::Info)
-        .set_title(&locale::get_message(locale, "confirmation-filter-confirmation-title", None))
-        .set_text(&locale::get_message(locale, "confirmation-filter-confirmation-description", None))
-        .confirm().show()
-        .unwrap();
+            .set_level(MessageLevel::Info)
+            .set_title(locale::get_message(
+                locale,
+                "confirmation-filter-confirmation-title",
+                None,
+            ))
+            .set_text(locale::get_message(
+                locale,
+                "confirmation-filter-confirmation-description",
+                None,
+            ))
+            .confirm()
+            .show()
+            .unwrap();
     }
 
     // The user either agreed or the program is not listing files
     if !no {
-        let option_path = DialogBuilder::file()
-        .open_single_dir().show()
-        .unwrap();
+        let option_path = DialogBuilder::file().open_single_dir().show().unwrap();
 
         // If the user provides a directory, the program will extract the assets to that directory
         if let Some(path) = option_path {
-            logic::extract_dir(path, category, false, config::get_config_bool("use_alias").unwrap_or(false));
+            logic::extract_dir(
+                path,
+                category,
+                false,
+                config::get_config_bool("use_alias").unwrap_or(false),
+            );
         }
     }
 }
-fn toggle_swap(swapping: &mut bool, swapping_asset_a: &mut Option<AssetInfo>, locale: &FluentBundle<Arc<FluentResource>>) {
+fn toggle_swap(
+    swapping: &mut bool,
+    swapping_asset_a: &mut Option<AssetInfo>,
+    locale: &FluentBundle<Arc<FluentResource>>,
+) {
     let mut warning_acknowledged = config::get_config_bool("ban-warning-ack").unwrap_or(false);
 
     if !warning_acknowledged {
         warning_acknowledged = DialogBuilder::message()
-        .set_level(MessageLevel::Info)
-        .set_title(&locale::get_message(locale, "confirmation-ban-warning-title", None))
-        .set_text(&locale::get_message(locale, "confirmation-ban-warning-description", None))
-        .confirm().show()
-        .unwrap();
+            .set_level(MessageLevel::Info)
+            .set_title(locale::get_message(
+                locale,
+                "confirmation-ban-warning-title",
+                None,
+            ))
+            .set_text(locale::get_message(
+                locale,
+                "confirmation-ban-warning-description",
+                None,
+            ))
+            .confirm()
+            .show()
+            .unwrap();
     }
 
     if warning_acknowledged {
@@ -145,16 +182,20 @@ fn toggle_swap(swapping: &mut bool, swapping_asset_a: &mut Option<AssetInfo>, lo
             *swapping_asset_a = None;
         }
         *swapping = !*swapping;
-
     }
 }
 
 fn extract_file_button(asset: logic::AssetInfo) {
     let alias = config::get_asset_alias(&asset.name);
-    if let Some(destination) = native_dialog::DialogBuilder::file().set_filename(&alias).save_single_file().show().unwrap() {
+    if let Some(destination) = native_dialog::DialogBuilder::file()
+        .set_filename(&alias)
+        .save_single_file()
+        .show()
+        .unwrap()
+    {
         match logic::extract_to_file(asset, destination, false) {
             Ok(_) => (),
-            Err(e) => log_critical!("{}", e)
+            Err(e) => log_critical!("{}", e),
         }
     }
 }
@@ -162,19 +203,32 @@ fn extract_file_button(asset: logic::AssetInfo) {
 fn clear_cache(locale: &FluentBundle<Arc<FluentResource>>) {
     // Confirmation dialog
     let yes = DialogBuilder::message()
-    .set_level(MessageLevel::Info)
-    .set_title(&locale::get_message(locale, "confirmation-clear-cache-title", None))
-    .set_text(&locale::get_message(locale, "confirmation-clear-cache-description", None))
-    .confirm().show()
-    .unwrap();
+        .set_level(MessageLevel::Info)
+        .set_title(locale::get_message(
+            locale,
+            "confirmation-clear-cache-title",
+            None,
+        ))
+        .set_text(locale::get_message(
+            locale,
+            "confirmation-clear-cache-description",
+            None,
+        ))
+        .confirm()
+        .show()
+        .unwrap();
 
     if yes {
         logic::clear_cache();
     }
 }
 
-fn load_image(id: &str, data: &[u8], ctx: egui::Context) -> Result<TextureHandle, image::ImageError> {
-    let images = {IMAGES.lock().unwrap().clone()};
+fn load_image(
+    id: &str,
+    data: &[u8],
+    ctx: egui::Context,
+) -> Result<TextureHandle, image::ImageError> {
+    let images = { IMAGES.lock().unwrap().clone() };
     if let Some(texture) = images.get(id) {
         Ok(texture.clone())
     } else {
@@ -183,24 +237,32 @@ fn load_image(id: &str, data: &[u8], ctx: egui::Context) -> Result<TextureHandle
         let icon_size = [icon_rgba.width() as usize, icon_rgba.height() as usize];
         let texture = ctx.load_texture(
             id,
-            egui::ColorImage::from_rgba_unmultiplied(icon_size, icon_rgba.as_flat_samples().as_slice()),
+            egui::ColorImage::from_rgba_unmultiplied(
+                icon_size,
+                icon_rgba.as_flat_samples().as_slice(),
+            ),
             Default::default(),
         );
         let mut images = IMAGES.lock().unwrap();
         images.insert(id.to_string(), texture.clone());
-        return Ok(texture);
+        Ok(texture)
     }
 }
 
 fn load_asset_image(asset: AssetInfo, ctx: egui::Context) -> Option<TextureHandle> {
-    let images = {IMAGES.lock().unwrap().clone()};
+    let images = { IMAGES.lock().unwrap().clone() };
     if let Some(texture) = images.get(&asset.name) {
         Some(texture.clone())
     } else {
         {
-            let assets_loading = ASSETS_LOADING.lock().unwrap().clone();                            // Default to 2 CPU threads
-            if assets_loading.contains(&asset.name) || assets_loading.len() >= thread::available_parallelism().unwrap_or(NonZero::new(2).unwrap()).into() {
-                return None // Don't load multiple at a time or more than CPU threads
+            let assets_loading = ASSETS_LOADING.lock().unwrap().clone(); // Default to 2 CPU threads
+            if assets_loading.contains(&asset.name)
+                || assets_loading.len()
+                    >= thread::available_parallelism()
+                        .unwrap_or(NonZero::new(2).unwrap())
+                        .into()
+            {
+                return None; // Don't load multiple at a time or more than CPU threads
             }
         }
         thread::spawn(move || {
@@ -208,22 +270,26 @@ fn load_asset_image(asset: AssetInfo, ctx: egui::Context) -> Option<TextureHandl
                 let mut assets_loading = ASSETS_LOADING.lock().unwrap();
                 assets_loading.push(asset.name.clone()); // Add the asset to the loading set
             }
-            
+
             match logic::extract_asset_to_bytes(asset.clone()) {
                 Ok(bytes) => {
-                    match load_image(&asset.name, &bytes.as_slice(), ctx) {
+                    match load_image(&asset.name, bytes.as_slice(), ctx) {
                         Ok(_) => {
                             let mut assets_loading = ASSETS_LOADING.lock().unwrap();
                             assets_loading.retain(|x| x != &asset.name); // Remove the asset from the loading set
-                        },
+                        }
                         Err(e) => {
-                            log_warn!("Failed to load {} as image, cooldown for 1000 ms ({})", asset.name, e);
+                            log_warn!(
+                                "Failed to load {} as image, cooldown for 1000 ms ({})",
+                                asset.name,
+                                e
+                            );
                             thread::sleep(Duration::from_millis(1000));
                             let mut assets_loading = ASSETS_LOADING.lock().unwrap();
                             assets_loading.retain(|x| x != &asset.name); // Remove the asset from the loading set
                         }
                     }
-                },
+                }
                 Err(e) => {
                     log_error!("Unable read file, 1000 ms cooldown: {}", e);
                     thread::sleep(Duration::from_millis(1000));
@@ -231,93 +297,144 @@ fn load_asset_image(asset: AssetInfo, ctx: egui::Context) -> Option<TextureHandl
                     assets_loading.retain(|x| x != &asset.name); // Remove the asset from the loading set
                 }
             }
-
         });
         None
     }
 }
 
-fn add_dependency_credit(dependency: [&str;2], ui: &mut egui::Ui, sponsor_message: &str) {
-    if dependency[1] != "" {
+fn add_dependency_credit(dependency: [&str; 2], ui: &mut egui::Ui, sponsor_message: &str) {
+    if !dependency[1].is_empty() {
         ui.horizontal(|ui| {
-            ui.hyperlink_to(dependency[0].replace("https://github.com/", ""), dependency[0]);
+            ui.hyperlink_to(
+                dependency[0].replace("https://github.com/", ""),
+                dependency[0],
+            );
             ui.label("|");
             ui.hyperlink_to(sponsor_message, dependency[1]);
         });
     } else {
-        ui.hyperlink_to(dependency[0].replace("https://github.com/", ""), dependency[0]);
+        ui.hyperlink_to(
+            dependency[0].replace("https://github.com/", ""),
+            dependency[0],
+        );
     }
 }
 
-fn format_size(bytes: u64) -> String {
-    const UNITS: [&str; 4] = ["KB", "MB", "GB", "TB"];
-    let mut size = bytes as f64 / 1024.0;
-    let mut unit_idx = 0;
+// fn format_size(bytes: u64) -> String {
+//     const UNITS: [&str; 4] = ["KB", "MB", "GB", "TB"];
+//     let mut size = bytes as f64 / 1024.0;
+//     let mut unit_idx = 0;
 
-    while size >= 1024.0 && unit_idx < UNITS.len() - 1 {
-        size /= 1024.0;
-        unit_idx += 1;
-    }
-    format!("{:.1} {}", size, UNITS[unit_idx])
-}
+//     while size >= 1024.0 && unit_idx < UNITS.len() - 1 {
+//         size /= 1024.0;
+//         unit_idx += 1;
+//     }
+//     format!("{:.1} {}", size, UNITS[unit_idx])
+// }
 
-fn format_modified(time: std::time::SystemTime) -> String {
-    let datetime: chrono::DateTime<chrono::Local> = time.into();
-    datetime.format("%Y-%m-%d %H:%M").to_string()
-}
+// fn format_modified(time: std::time::SystemTime) -> String {
+//     let datetime: chrono::DateTime<chrono::Local> = time.into();
+//     datetime.format("%Y-%m-%d %H:%M").to_string()
+// }
 
 impl TabViewer<'_> {
-    fn asset_buttons(&mut self, ui: &mut egui::Ui,category: logic::Category, focus_search_box: &mut bool, asset: Option<AssetInfo>) {
+    fn asset_buttons(
+        &mut self,
+        ui: &mut egui::Ui,
+        category: logic::Category,
+        focus_search_box: &mut bool,
+        asset: Option<AssetInfo>,
+    ) {
         if let Some(asset) = asset.clone() {
-            if ui.button(locale::get_message(self.locale, "button-open", None)).clicked() {
-                double_click(asset.clone(), self.swapping, self.copying, self.swapping_asset_a);
+            if ui
+                .button(locale::get_message(self.locale, "button-open", None))
+                .clicked()
+            {
+                double_click(
+                    asset.clone(),
+                    self.swapping,
+                    self.copying,
+                    self.swapping_asset_a,
+                );
                 *self.asset_context_menu_open = None;
             }
-            if ui.button(locale::get_message(self.locale, "button-extract-file", None)).clicked() {
+            if ui
+                .button(locale::get_message(
+                    self.locale,
+                    "button-extract-file",
+                    None,
+                ))
+                .clicked()
+            {
                 extract_file_button(asset);
                 *self.asset_context_menu_open = None;
             }
         }
-        if ui.button(locale::get_message(self.locale, "button-search", None)).clicked() {
+        if ui
+            .button(locale::get_message(self.locale, "button-search", None))
+            .clicked()
+        {
             *self.searching = !*self.searching;
             *focus_search_box = true;
             *self.asset_context_menu_open = None;
         }
-        
-        if ui.button(locale::get_message(self.locale, "button-rename", None)).clicked() {
+
+        if ui
+            .button(locale::get_message(self.locale, "button-rename", None))
+            .clicked()
+        {
             // Rename button
             *self.renaming = !*self.renaming;
             *self.asset_context_menu_open = None;
         }
-    
-        if ui.button(locale::get_message(self.locale, "button-clear-cache", None)).clicked() || ui.input(|i| i.key_pressed(egui::Key::Delete)) {
-            clear_cache(&self.locale);
-            *self.asset_context_menu_open = None;               
+
+        if ui
+            .button(locale::get_message(self.locale, "button-clear-cache", None))
+            .clicked()
+            || ui.input(|i| i.key_pressed(egui::Key::Delete))
+        {
+            clear_cache(self.locale);
+            *self.asset_context_menu_open = None;
         }
 
-        if ui.button(locale::get_message(self.locale, "button-extract-type", None)).clicked() {
+        if ui
+            .button(locale::get_message(
+                self.locale,
+                "button-extract-type",
+                None,
+            ))
+            .clicked()
+        {
             extract_all_of_type(category, self.locale);
             *self.asset_context_menu_open = None;
         }
-        if ui.button(locale::get_message(self.locale, "button-refresh", None)).clicked() {
+        if ui
+            .button(locale::get_message(self.locale, "button-refresh", None))
+            .clicked()
+        {
             logic::refresh(category, false, false);
             *self.asset_context_menu_open = None;
         }
-        if ui.button(locale::get_message(self.locale, "button-swap", None)).clicked() {
+        if ui
+            .button(locale::get_message(self.locale, "button-swap", None))
+            .clicked()
+        {
             toggle_swap(self.swapping, self.swapping_asset_a, self.locale);
             *self.asset_context_menu_open = None;
-    
+
             if let Some(n) = asset.clone() {
                 *self.swapping_asset_a = Some(n);
             } else {
                 *self.swapping_asset_a = None;
             }
-            
         }
-        if ui.button(locale::get_message(self.locale, "button-copy", None)).clicked() {
+        if ui
+            .button(locale::get_message(self.locale, "button-copy", None))
+            .clicked()
+        {
             toggle_swap(self.copying, self.swapping_asset_a, self.locale);
             *self.asset_context_menu_open = None;
-    
+
             if let Some(n) = asset.clone() {
                 *self.swapping_asset_a = Some(n);
             } else {
@@ -331,14 +448,17 @@ impl TabViewer<'_> {
             } else {
                 locale::get_message(self.locale, "button-display-image-preview", None)
             };
-    
+
             if ui.button(message).clicked() {
-                config::set_config_value("display_image_preview", (!config::get_config_bool("display_image_preview").unwrap_or(false)).into());
+                config::set_config_value(
+                    "display_image_preview",
+                    (!config::get_config_bool("display_image_preview").unwrap_or(false)).into(),
+                );
                 *self.asset_context_menu_open = None;
             }
         }
     }
-    
+
     // Function to handle asset response within asset list
     fn handle_asset_response(
         &mut self,
@@ -348,7 +468,7 @@ impl TabViewer<'_> {
         i: usize,
         scroll_to: Option<usize>,
         navigation_accepted: &mut bool,
-        mut focus_search_box: &mut bool,
+        focus_search_box: &mut bool,
         asset: AssetInfo,
     ) -> (Color32, Color32) {
         // Highlight the background when selected
@@ -378,10 +498,9 @@ impl TabViewer<'_> {
         if let Some(asset_context_menu_open) = self.asset_context_menu_open {
             if *asset_context_menu_open == i {
                 response.context_menu(|ui| {
-                    self.asset_buttons(ui, asset.category, &mut focus_search_box, Some(asset.clone()));
+                    self.asset_buttons(ui, asset.category, focus_search_box, Some(asset.clone()));
                 });
             }
-
         }
 
         if response.double_clicked() {
@@ -394,7 +513,7 @@ impl TabViewer<'_> {
             response.scroll_to_me(Some(egui::Align::Center)) // Align to center to prevent scrolling off the edge
         }
 
-        return (background_colour, text_colour)
+        (background_colour, text_colour)
     }
 
     fn handle_text_edit(&mut self, ui: &mut egui::Ui, alias: &str, file_name: &str) {
@@ -410,7 +529,7 @@ impl TabViewer<'_> {
 
         if response.lost_focus() {
             *self.renaming = false;
-            if mutable_name == "" {
+            if mutable_name.is_empty() {
                 config::set_asset_alias(file_name, file_name); // Set it to file name if blank
             }
         } else {
@@ -424,7 +543,6 @@ impl egui_dock::TabViewer for TabViewer<'_> {
 
     fn title(&mut self, tab: &mut Self::Tab) -> egui::WidgetText {
         locale::get_message(self.locale, &*tab, None).into()
-        
     }
 
     fn ui(&mut self, ui: &mut egui::Ui, tab: &mut Self::Tab) {
@@ -437,12 +555,12 @@ impl egui_dock::TabViewer for TabViewer<'_> {
                 "images" => logic::Category::Images,
                 "ktx-files" => logic::Category::Ktx,
                 "rbxm-files" => logic::Category::Rbxm,
-                _ => logic::Category::All
+                _ => logic::Category::All,
             };
 
             // Detect if tab changed and do a refresh if so
             if let Some(current_tab) = self.current_tab {
-                if current_tab.to_owned() != tab.to_owned() {
+                if *current_tab != *tab {
                     *self.current_tab = Some(tab.to_owned());
                     logic::refresh(category, false, false);
                 }
@@ -467,8 +585,7 @@ impl egui_dock::TabViewer for TabViewer<'_> {
             }
             if ui.input(|i| i.key_pressed(egui::Key::Delete)) && !*self.renaming {
                 // del key used for editing, don't allow during editing
-                clear_cache(&self.locale);
-
+                clear_cache(self.locale);
             }
             if ui.input(|i| i.key_pressed(egui::Key::F3)) {
                 extract_all_of_type(category, self.locale);
@@ -496,16 +613,17 @@ impl egui_dock::TabViewer for TabViewer<'_> {
                     })
                 });
             }
-            
+
             let mut scroll_to: Option<usize> = None; // This is reset every frame, so it doesn't constantly scroll to the same label
             let mut none_selected: bool = false; // Used to scroll to the first value shown when none is selected
-            
+
             // Only allow navigation of the user is not renaming
             if !*self.renaming {
                 // If the user presses up, decrement the selected value
                 if ui.input(|i| i.key_pressed(egui::Key::ArrowUp)) {
                     if let Some(selected) = *self.selected {
-                        if selected > 0 { // Check if it is larger than 0 otherwise it'll attempt to select non-existant labels
+                        if selected > 0 {
+                            // Check if it is larger than 0 otherwise it'll attempt to select non-existant labels
                             *self.selected = Some(selected - 1);
                             scroll_to = Some(selected - 1); // This is also set to the same number, allowing for auto scrolling
                         }
@@ -517,7 +635,8 @@ impl egui_dock::TabViewer for TabViewer<'_> {
                 // If the user presses down, increment the selected value
                 if ui.input(|i| i.key_pressed(egui::Key::ArrowDown)) {
                     if let Some(selected) = *self.selected {
-                        if selected < file_list.len()-1 { // Stop it from overflowing otherwise it'll attempt to select non-existant labels
+                        if selected < file_list.len() - 1 {
+                            // Stop it from overflowing otherwise it'll attempt to select non-existant labels
                             *self.selected = Some(selected + 1);
                             scroll_to = Some(selected + 1); // This is also set to the same number, allowing for auto scrolling
                         }
@@ -531,8 +650,13 @@ impl egui_dock::TabViewer for TabViewer<'_> {
                     if let Some(selected) = *self.selected {
                         // Get file name after getting the selected value
                         if let Some(asset) = file_list.get(selected) {
-                            double_click(asset.clone(), self.swapping, self.copying, self.swapping_asset_a);
-                        }                   
+                            double_click(
+                                asset.clone(),
+                                self.swapping,
+                                self.copying,
+                                self.swapping_asset_a,
+                            );
+                        }
                     }
                 }
 
@@ -542,11 +666,10 @@ impl egui_dock::TabViewer for TabViewer<'_> {
                         // Get file name after getting the selected value
                         if let Some(asset) = file_list.get(selected) {
                             extract_file_button(asset.clone());
-                        }                   
+                        }
                     }
                 }
             }
-
 
             let mut navigation_accepted: bool = false; // Used to check if the selected label is available to accept the keyboard navigation
 
@@ -555,7 +678,10 @@ impl egui_dock::TabViewer for TabViewer<'_> {
                     ui.heading(locale::get_message(self.locale, "swap-choose-file", None));
                 } else {
                     let mut args = fluent_bundle::FluentArgs::new();
-                    args.set("asset", config::get_asset_alias(&self.swapping_asset_a.as_ref().unwrap().name));
+                    args.set(
+                        "asset",
+                        config::get_asset_alias(&self.swapping_asset_a.as_ref().unwrap().name),
+                    );
                     ui.heading(locale::get_message(self.locale, "swap-with", Some(&args)));
                 }
             }
@@ -565,8 +691,15 @@ impl egui_dock::TabViewer for TabViewer<'_> {
                     ui.heading(locale::get_message(self.locale, "copy-choose-file", None));
                 } else {
                     let mut args = fluent_bundle::FluentArgs::new();
-                    args.set("asset", config::get_asset_alias(&self.swapping_asset_a.as_ref().unwrap().name));
-                    ui.heading(locale::get_message(self.locale, "overwrite-with", Some(&args)));
+                    args.set(
+                        "asset",
+                        config::get_asset_alias(&self.swapping_asset_a.as_ref().unwrap().name),
+                    );
+                    ui.heading(locale::get_message(
+                        self.locale,
+                        "overwrite-with",
+                        Some(&args),
+                    ));
                 }
             }
 
@@ -591,7 +724,9 @@ impl egui_dock::TabViewer for TabViewer<'_> {
                 file_list
             };
 
-            let display_image_preview = config::get_config_bool("display_image_preview").unwrap_or(false) && tab == "images";
+            let display_image_preview = config::get_config_bool("display_image_preview")
+                .unwrap_or(false)
+                && tab == "images";
 
             let row_height = if display_image_preview {
                 config::get_config_u64("image_preview_size").unwrap_or(128) as f32
@@ -606,7 +741,8 @@ impl egui_dock::TabViewer for TabViewer<'_> {
             };
 
             let total_rows = if display_image_preview {
-                f32::ceil(file_list.len() as f32 / amount_per_row as f32) as usize // Show even unfilled rows
+                f32::ceil(file_list.len() as f32 / amount_per_row as f32) as usize
+            // Show even unfilled rows
             } else {
                 file_list.len()
             };
@@ -615,8 +751,6 @@ impl egui_dock::TabViewer for TabViewer<'_> {
             // table_properties.push(("name", 0.0));
             // table_properties.push(("size", 0.5));
             // table_properties.push(("modified", 0.75));
-
-
 
             // if !display_image_preview {
             //     // Display table headers
@@ -677,74 +811,116 @@ impl egui_dock::TabViewer for TabViewer<'_> {
                         for row_idx in row_range {
                             ui.horizontal(|ui| {
                                 for amount in 0..amount_per_row {
-                                    let i = (row_idx*amount_per_row)+amount;
+                                    let i = (row_idx * amount_per_row) + amount;
                                     if let Some(asset) = file_list.get(i) {
                                         let file_name = &asset.name;
-                                        let alias = config::get_asset_alias(&file_name);
-                
-                                        let is_selected  = if none_selected && i != 0 { // Selecting the very first causes some issues
+                                        let alias = config::get_asset_alias(file_name);
+
+                                        let is_selected = if none_selected && i != 0 {
+                                            // Selecting the very first causes some issues
                                             *self.selected = Some(i); // If there is none selected, Set selected and return true
                                             none_selected = false; // Will select everything if this is not set to false immediately
                                             true
                                         } else {
                                             *self.selected == Some(i) // Check if this current one is selected
                                         };
-            
+
                                         // Draw the text
                                         if is_selected && *self.renaming {
-                                            self.handle_text_edit(ui, &alias, &file_name); // Allow user to edit
+                                            self.handle_text_edit(ui, &alias, file_name);
+                                        // Allow user to edit
                                         } else {
                                             let desired_size = egui::vec2(row_height, row_height); // Set height to the text style height
-                                            let (rect, response) = ui.allocate_exact_size(desired_size, egui::Sense::click());
-                                            
+                                            let (rect, response) = ui.allocate_exact_size(
+                                                desired_size,
+                                                egui::Sense::click(),
+                                            );
+
                                             // Only attempt to load if it's a real asset
                                             if asset.from_file | asset.from_sql {
-                                                if let Some(texture) = load_asset_image(asset.clone(), ui.ctx().clone()) {
-                                                    egui::Image::new(&texture).maintain_aspect_ratio(true).max_height(row_height).paint_at(ui, rect);
+                                                if let Some(texture) = load_asset_image(
+                                                    asset.clone(),
+                                                    ui.ctx().clone(),
+                                                ) {
+                                                    egui::Image::new(&texture)
+                                                        .maintain_aspect_ratio(true)
+                                                        .max_height(row_height)
+                                                        .paint_at(ui, rect);
                                                 }
                                             }
 
-        
                                             let visuals = ui.visuals();
-        
+
                                             // Get colours and handle response
-                                            let colours = self.handle_asset_response(response, visuals, is_selected, i, scroll_to, &mut navigation_accepted, &mut focus_search_box, asset.clone());
-        
+                                            let colours = self.handle_asset_response(
+                                                response,
+                                                visuals,
+                                                is_selected,
+                                                i,
+                                                scroll_to,
+                                                &mut navigation_accepted,
+                                                &mut focus_search_box,
+                                                asset.clone(),
+                                            );
+
                                             let text_colour = colours.1;
                                             let background_colour = colours.0;
-        
+
                                             // Draw the background colour
-                                            ui.painter().rect_stroke(rect, 0.0, egui::Stroke::new(row_height/8.0, background_colour), egui::StrokeKind::Inside);
-            
+                                            ui.painter().rect_stroke(
+                                                rect,
+                                                0.0,
+                                                egui::Stroke::new(
+                                                    row_height / 8.0,
+                                                    background_colour,
+                                                ),
+                                                egui::StrokeKind::Inside,
+                                            );
+
                                             // Draw text ontop of image
                                             let text = egui::Label::new(
                                                 egui::RichText::new(alias)
                                                     .text_style(egui::TextStyle::Body)
-                                                    .color(text_colour)
-                                            ).truncate().selectable(false);
-        
-                                            let text_size = ui.text_style_height(&egui::TextStyle::Body);
-        
+                                                    .color(text_colour),
+                                            )
+                                            .truncate()
+                                            .selectable(false);
+
+                                            let text_size =
+                                                ui.text_style_height(&egui::TextStyle::Body);
+
                                             let text_rect = egui::Rect::from_min_size(
-                                                rect.min + egui::vec2(0.0, (rect.height() - text_size) / 2.0),
-                                                egui::vec2(row_height, text_size)
+                                                rect.min
+                                                    + egui::vec2(
+                                                        0.0,
+                                                        (rect.height() - text_size) / 2.0,
+                                                    ),
+                                                egui::vec2(row_height, text_size),
                                             );
-        
+
                                             // Background to make text easier to read
                                             let background_colour = if visuals.dark_mode {
-                                                egui::Color32::from_rgba_unmultiplied(27, 27, 27, 160) // Dark mode
+                                                egui::Color32::from_rgba_unmultiplied(
+                                                    27, 27, 27, 160,
+                                                ) // Dark mode
                                             } else {
-                                                egui::Color32::from_rgba_unmultiplied(248, 248, 248, 160) // Light mode
+                                                egui::Color32::from_rgba_unmultiplied(
+                                                    248, 248, 248, 160,
+                                                ) // Light mode
                                             };
-                                            ui.painter().rect_filled(text_rect, 0.0, background_colour);
-        
+                                            ui.painter().rect_filled(
+                                                text_rect,
+                                                0.0,
+                                                background_colour,
+                                            );
+
                                             ui.put(text_rect, text);
                                         }
                                     }
-                                }    
+                                }
                             });
                         }
-                        } else {
+                    } else {
                         for i in row_range {
                             if let Some(asset) = file_list.get(i) {
                                 let alias = config::get_asset_alias(&asset.name);
@@ -755,26 +931,32 @@ impl egui_dock::TabViewer for TabViewer<'_> {
                                 } else {
                                     *self.selected == Some(i)
                                 };
-            
+
                                 if is_selected && *self.renaming {
                                     self.handle_text_edit(ui, &alias, &asset.name);
                                 } else {
                                     let full_width = ui.available_width();
                                     let desired_size = egui::vec2(full_width, row_height);
-                                    let (rect, response) = ui.allocate_exact_size(desired_size, egui::Sense::click());
-            
+                                    let (rect, response) =
+                                        ui.allocate_exact_size(desired_size, egui::Sense::click());
+
                                     let visuals = ui.visuals();
                                     let colours = self.handle_asset_response(
-                                        response, visuals, is_selected, i, scroll_to, 
-                                        &mut navigation_accepted, 
-                                        &mut focus_search_box, asset.clone()
+                                        response,
+                                        visuals,
+                                        is_selected,
+                                        i,
+                                        scroll_to,
+                                        &mut navigation_accepted,
+                                        &mut focus_search_box,
+                                        asset.clone(),
                                     );
-            
+
                                     let text_colour = colours.1;
                                     let background_colour = colours.0;
-            
+
                                     ui.painter().rect_filled(rect, 0.0, background_colour);
-            
+
                                     // // Format metadata
                                     // let size = format_size(asset.size);
                                     // let modified = if asset.last_modified.is_some() {
@@ -787,7 +969,7 @@ impl egui_dock::TabViewer for TabViewer<'_> {
                                     let alias_x = rect.min.x + 5.0;
                                     // let size_x = rect.min.x + rect.width() * 0.7;
                                     // let modified_x = rect.min.x + rect.width() * 1.0 - 5.0; // adjust for padding
-            
+
                                     // Draw all columns
                                     ui.painter().text(
                                         egui::pos2(alias_x, rect.min.y),
@@ -796,54 +978,53 @@ impl egui_dock::TabViewer for TabViewer<'_> {
                                         egui::TextStyle::Body.resolve(ui.style()),
                                         text_colour,
                                     );
-                                
-                                // These are for later, broken rn
-                                //     ui.painter().text(
-                                //         egui::pos2(size_x, rect.min.y),
-                                //         egui::Align2::RIGHT_TOP,
-                                //         size,
-                                //         egui::TextStyle::Body.resolve(ui.style()),
-                                //         text_colour,
-                                //     );
-            
-                                //     ui.painter().text(
-                                //         egui::pos2(modified_x, rect.min.y),
-                                //         egui::Align2::RIGHT_TOP,
-                                //         modified,
-                                //         egui::TextStyle::Body.resolve(ui.style()),
-                                //         text_colour,
-                                //     );
+
+                                    // These are for later, broken rn
+                                    //     ui.painter().text(
+                                    //         egui::pos2(size_x, rect.min.y),
+                                    //         egui::Align2::RIGHT_TOP,
+                                    //         size,
+                                    //         egui::TextStyle::Body.resolve(ui.style()),
+                                    //         text_colour,
+                                    //     );
+
+                                    //     ui.painter().text(
+                                    //         egui::pos2(modified_x, rect.min.y),
+                                    //         egui::Align2::RIGHT_TOP,
+                                    //         modified,
+                                    //         egui::TextStyle::Body.resolve(ui.style()),
+                                    //         text_colour,
+                                    //     );
                                 }
                             }
                         }
                     }
-                }
+                },
             );
 
             if !navigation_accepted && scroll_to.is_some() {
                 // If the keyboard navigation wasn't accepted and there is keyboard navigation then...
                 *self.selected = None; // Set the selected to none, so it selects something on-screen
             }
-
         } else if tab == "settings" {
             // This is only shown in the settings tab
 
             settings::actions(ui, self.locale);
             settings::cache_dir_management(ui, self.locale);
             settings::sql_db_management(ui, self.locale);
-            settings::behavior(ui, &self.locale);  
+            settings::behavior(ui, self.locale);
             settings::updates(ui, self.locale);
 
             if settings::language(ui, self.locale) {
                 // This returns true if the locales need to be refreshed
                 *self.locale = locale::get_locale(None);
             }
-
         } else if tab == "logs" {
             ui.heading(locale::get_message(self.locale, "logs", None));
             ui.label(locale::get_message(self.locale, "logs-description", None));
 
-            let mut hide_username_from_logs = config::get_config_bool("hide_username_from_logs").unwrap_or(true);
+            let mut hide_username_from_logs =
+                config::get_config_bool("hide_username_from_logs").unwrap_or(true);
 
             let logs = if hide_username_from_logs {
                 log::get_anonymous_logs()
@@ -853,17 +1034,23 @@ impl egui_dock::TabViewer for TabViewer<'_> {
             let lines = logs.lines();
 
             ui.horizontal(|ui| {
-                ui.checkbox(&mut hide_username_from_logs, locale::get_message(&self.locale, "checkbox-hide-user-logs", None));
+                ui.checkbox(
+                    &mut hide_username_from_logs,
+                    locale::get_message(self.locale, "checkbox-hide-user-logs", None),
+                );
                 config::set_config_value("hide_username_from_logs", hide_username_from_logs.into());
 
-                if ui.button(locale::get_message(&self.locale, "button-copy-logs", None)).clicked() {
+                if ui
+                    .button(locale::get_message(self.locale, "button-copy-logs", None))
+                    .clicked()
+                {
                     ui.ctx().copy_text(logs.clone());
                 }
-                if ui.button(locale::get_message(&self.locale, "button-export-logs", None)).clicked() {
-                    if let Some(path) = DialogBuilder::file()
-                        .save_single_file().show()
-                        .unwrap()
-                    {
+                if ui
+                    .button(locale::get_message(self.locale, "button-export-logs", None))
+                    .clicked()
+                {
+                    if let Some(path) = DialogBuilder::file().save_single_file().show().unwrap() {
                         if let Err(e) = std::fs::write(path, logs.clone()) {
                             log_critical!("Failed to save logs: {}", e);
                         }
@@ -871,19 +1058,20 @@ impl egui_dock::TabViewer for TabViewer<'_> {
                 }
             });
 
-            egui::ScrollArea::vertical().auto_shrink(false).show(ui, |ui| {
-                for line in lines {
-                    let colour = if line.contains("WARN") {
-                        egui::Color32::from_rgb(150,150,0)
-                    } else if line.contains("ERROR") | line.contains("CRITICAL") {
-                        egui::Color32::RED
-                    } else {
-                        ui.visuals().text_color()
-                    };
-                    ui.colored_label(colour, line);
-                }
-            });
-
+            egui::ScrollArea::vertical()
+                .auto_shrink(false)
+                .show(ui, |ui| {
+                    for line in lines {
+                        let colour = if line.contains("WARN") {
+                            egui::Color32::from_rgb(150, 150, 0)
+                        } else if line.contains("ERROR") | line.contains("CRITICAL") {
+                            egui::Color32::RED
+                        } else {
+                            ui.visuals().text_color()
+                        };
+                        ui.colored_label(colour, line);
+                    }
+                });
         } else {
             // This is only shown in the about tab
 
@@ -894,36 +1082,47 @@ impl egui_dock::TabViewer for TabViewer<'_> {
                 }
                 ui.vertical(|ui| {
                     ui.heading("RoExtract");
-            
+
                     let mut args = fluent_bundle::FluentArgs::new();
                     args.set("version", VERSION);
                     args.set("date", COMPILE_DATE);
-        
+
                     ui.horizontal(|ui| {
                         ui.label(locale::get_message(self.locale, "version", Some(&args)));
-                        ui.label("|");         
+                        ui.label("|");
                         ui.hyperlink_to("Discord", "https://discord.gg/xqNA5jt6DN");
                     });
-        
                 })
             });
 
             ui.separator();
 
-            ui.heading(locale::get_message(self.locale, "support-project-donate", None));
+            ui.heading(locale::get_message(
+                self.locale,
+                "support-project-donate",
+                None,
+            ));
 
             ui.horizontal(|ui| {
-                ui.hyperlink_to(locale::get_message(self.locale, "support-sponsor", None), "https://github.com/sponsors/AeEn123");
+                ui.hyperlink_to(
+                    locale::get_message(self.locale, "support-sponsor", None),
+                    "https://github.com/sponsors/AeEn123",
+                );
                 ui.label("|");
-                ui.hyperlink_to("Roblox", "https://www.roblox.com/communities/10808976/Alfie-Likes-Computers#!/store")
-
+                ui.hyperlink_to(
+                    "Roblox",
+                    "https://www.roblox.com/communities/10808976/Alfie-Likes-Computers#!/store",
+                )
             });
 
             ui.separator();
 
             ui.heading(locale::get_message(self.locale, "contributors", None));
             for contributor in CONTRIBUTORS {
-                ui.hyperlink_to(format!("@{}",contributor), format!("https://github.com/{}", contributor));
+                ui.hyperlink_to(
+                    format!("@{contributor}"),
+                    format!("https://github.com/{contributor}"),
+                );
             }
 
             ui.separator();
@@ -933,8 +1132,7 @@ impl egui_dock::TabViewer for TabViewer<'_> {
             let sponsor_message = locale::get_message(self.locale, "support-sponsor", None);
             for dependency in DEPENDENCIES {
                 add_dependency_credit(dependency, ui, &sponsor_message);
-            } 
-
+            }
         }
     }
 }
@@ -956,7 +1154,16 @@ struct MyApp {
 
 impl Default for MyApp {
     fn default() -> Self {
-        let tree = DockState::new(vec!["music".to_owned(), "sounds".to_owned(), "images".to_owned(), "rbxm-files".to_owned(), "ktx-files".to_owned(), "settings".to_owned(), "logs".to_owned(), "about".to_owned()]);
+        let tree = DockState::new(vec![
+            "music".to_owned(),
+            "sounds".to_owned(),
+            "images".to_owned(),
+            "rbxm-files".to_owned(),
+            "ktx-files".to_owned(),
+            "settings".to_owned(),
+            "logs".to_owned(),
+            "about".to_owned(),
+        ]);
 
         // Tab map for keyboard navigation
         let mut tab_map = HashMap::new();
@@ -967,8 +1174,8 @@ impl Default for MyApp {
             tab_map.insert((i as u32) + 1, (surface, node, i));
         }
 
-        Self { 
-            tree, 
+        Self {
+            tree,
             tab_map,
             selected: None,
             current_tab: None,
@@ -985,10 +1192,15 @@ impl Default for MyApp {
 }
 
 fn detect_japanese_font() -> Option<std::path::PathBuf> {
-    let font_dirs = ["C:\\Windows\\Fonts\\msgothic.ttc", "/usr/share/fonts/noto-cjk/NotoSerifCJK-Regular.ttc", "~/.local/share/fonts/noto-cjk/NotoSerifCJK-Regular.ttc", "~/.fonts/noto-cjk/NotoSerifCJK-Regular.ttc"];
-    
+    let font_dirs = [
+        "C:\\Windows\\Fonts\\msgothic.ttc",
+        "/usr/share/fonts/noto-cjk/NotoSerifCJK-Regular.ttc",
+        "~/.local/share/fonts/noto-cjk/NotoSerifCJK-Regular.ttc",
+        "~/.fonts/noto-cjk/NotoSerifCJK-Regular.ttc",
+    ];
+
     for font in font_dirs {
-        let resolved_font = PathBuf::from(logic::resolve_path(&font));
+        let resolved_font = PathBuf::from(logic::resolve_path(font));
         match std::fs::metadata(&resolved_font) {
             Ok(metadata) => {
                 if metadata.is_file() {
@@ -1000,9 +1212,8 @@ fn detect_japanese_font() -> Option<std::path::PathBuf> {
                 log_warn!("{}: invalid - {}", resolved_font.display(), e);
             }
         }
-        
-    };
-    return None;
+    }
+    None
 }
 
 // Some code in the function below is taken from this URL
@@ -1017,9 +1228,18 @@ fn init_japanese_font(cc: &eframe::CreationContext<'_>) {
         Some(font_path) => {
             match std::fs::read(font_path) {
                 Ok(bytes) => {
-                    font.font_data.insert("japanese".to_owned(),egui::FontData::from_owned(bytes).into());
-                    font.families.get_mut(&egui::FontFamily::Monospace).unwrap().push("japanese".to_owned());
-                    font.families.get_mut(&egui::FontFamily::Proportional).unwrap().push("japanese".to_owned());
+                    font.font_data.insert(
+                        "japanese".to_owned(),
+                        egui::FontData::from_owned(bytes).into(),
+                    );
+                    font.families
+                        .get_mut(&egui::FontFamily::Monospace)
+                        .unwrap()
+                        .push("japanese".to_owned());
+                    font.families
+                        .get_mut(&egui::FontFamily::Proportional)
+                        .unwrap()
+                        .push("japanese".to_owned());
                     // 3. Configure context with modified `FontDefinitions`.
                     cc.egui_ctx.set_fonts(font);
                 }
@@ -1038,10 +1258,13 @@ pub fn gui_setup(cc: &eframe::CreationContext<'_>) {
     init_japanese_font(cc);
 
     // Get theme from config
-    match config::get_config_string("theme").unwrap_or("system".to_owned()).as_str() {
+    match config::get_config_string("theme")
+        .unwrap_or("system".to_owned())
+        .as_str()
+    {
         "dark" => cc.egui_ctx.set_theme(egui::Theme::Dark),
         "light" => cc.egui_ctx.set_theme(egui::Theme::Light),
-        _ => ()
+        _ => (),
     }
 }
 impl MyApp {
@@ -1062,14 +1285,16 @@ impl eframe::App for MyApp {
         // Switch tabs with keyboard input (num keys)
         if ctx.input(|input| input.modifiers.ctrl || input.modifiers.alt) {
             for i in 1..=self.tab_map.len() as u32 {
-                if ctx.input(|input| input.key_pressed(egui::Key::from_name(&i.to_string()).expect("Invalid key"))) {
+                if ctx.input(|input| {
+                    input.key_pressed(egui::Key::from_name(&i.to_string()).expect("Invalid key"))
+                }) {
                     if let Some(&(surface, node, tab)) = self.tab_map.get(&i) {
-                        self.tree.set_active_tab((surface, node, egui_dock::TabIndex(tab)));
+                        self.tree
+                            .set_active_tab((surface, node, egui_dock::TabIndex(tab)));
                     }
                 }
             }
         }
-
 
         DockArea::new(&mut self.tree)
             .style(Style::from_egui(ctx.style().as_ref()))
@@ -1077,20 +1302,23 @@ impl eframe::App for MyApp {
             .draggable_tabs(false)
             .show_leaf_close_all_buttons(false)
             .show_leaf_collapse_buttons(false)
-            .show(ctx, &mut TabViewer { 
-                // Pass selected as a mutable reference
-                selected: &mut self.selected,
-                renaming: &mut self.renaming,
-                searching: &mut self.searching,
-                search_query: &mut self.search_query,
-                swapping: &mut self.swapping,
-                swapping_asset_a: &mut self.swapping_asset_a,
-                current_tab: &mut self.current_tab,
-                locale: &mut self.locale,
-                asset_context_menu_open: &mut self.asset_context_menu_open,
-                copying: &mut self.copying,
-            });
-        
+            .show(
+                ctx,
+                &mut TabViewer {
+                    // Pass selected as a mutable reference
+                    selected: &mut self.selected,
+                    renaming: &mut self.renaming,
+                    searching: &mut self.searching,
+                    search_query: &mut self.search_query,
+                    swapping: &mut self.swapping,
+                    swapping_asset_a: &mut self.swapping_asset_a,
+                    current_tab: &mut self.current_tab,
+                    locale: &mut self.locale,
+                    asset_context_menu_open: &mut self.asset_context_menu_open,
+                    copying: &mut self.copying,
+                },
+            );
+
         {
             // Allow for different threads to request refresh
             if logic::get_request_repaint() {
@@ -1105,23 +1333,24 @@ pub fn run_gui() {
     if !config::get_config_bool("welcomed").unwrap_or(false) {
         let _ = welcome::run_gui();
     }
-    
+
     // Only run GUI after user has been welcomed
     if config::get_config_bool("welcomed").unwrap_or(true) {
         // Check for updates when running GUI
         if config::get_config_bool("check_for_updates").unwrap_or(false) {
-            updater::check_for_updates(true, config::get_config_bool("automatically_install_updates").unwrap_or(false));
+            updater::check_for_updates(
+                true,
+                config::get_config_bool("automatically_install_updates").unwrap_or(false),
+            );
         }
 
         let options = eframe::NativeOptions {
-            viewport: egui::ViewportBuilder::default()
-                .with_icon(
-                    eframe::icon_data::from_png_bytes(&ICON[..])
-                        .expect("Failed to load icon"),
-                ),
+            viewport: egui::ViewportBuilder::default().with_icon(
+                eframe::icon_data::from_png_bytes(&ICON[..]).expect("Failed to load icon"),
+            ),
             ..Default::default()
         };
-        
+
         let result = eframe::run_native(
             &format!("RoExtract v{VERSION}").to_owned(),
             options,
@@ -1132,5 +1361,4 @@ pub fn run_gui() {
             log_critical!("GUI failed: {}", result.unwrap_err());
         }
     }
-
 }

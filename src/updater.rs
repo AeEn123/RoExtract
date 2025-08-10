@@ -1,4 +1,8 @@
-use std::{fs, path::PathBuf, sync::{LazyLock, Mutex}};
+use std::{
+    fs,
+    path::PathBuf,
+    sync::{LazyLock, Mutex},
+};
 
 use reqwest::blocking::Client;
 use serde::Deserialize;
@@ -10,8 +14,7 @@ mod gui;
 #[cfg(target_os = "windows")]
 use std::ffi::OsString;
 
-static UPDATE_FILE: LazyLock<Mutex<Option<PathBuf>>> = LazyLock::new(||Mutex::new(None));
-
+static UPDATE_FILE: LazyLock<Mutex<Option<PathBuf>>> = LazyLock::new(|| Mutex::new(None));
 
 static URL: &str = "https://api.github.com/repos/AeEn123/RoExtract/releases/latest";
 static PRERELEASE_URL: &str = "https://api.github.com/repos/AeEn123/RoExtract/releases";
@@ -31,11 +34,14 @@ pub struct Release {
 }
 
 fn clean_version_number(version: &str) -> String {
-    version.chars().filter(|c| c.is_digit(10) || *c == '.').collect()
+    version
+        .chars()
+        .filter(|c| c.is_ascii_digit() || *c == '.')
+        .collect()
 }
 
 fn detect_download_binary(assets: &Vec<Asset>) -> &Asset {
-    let os = std::env::consts::OS; // Get the user's operating system to download the correct binary    
+    let os = std::env::consts::OS; // Get the user's operating system to download the correct binary
 
     for asset in assets {
         let name = asset.name.to_lowercase();
@@ -48,12 +54,12 @@ fn detect_download_binary(assets: &Vec<Asset>) -> &Asset {
         };
 
         if name.contains(os) && installer {
-            return asset // Return the correct binary based on OS
+            return asset; // Return the correct binary based on OS
         }
     }
 
     log_warn!("Failed to find asset, going for first asset listed.");
-    return &assets[0];
+    &assets[0]
 }
 
 fn update_action(json: Release, run_gui: bool, auto_download_update: bool) {
@@ -73,7 +79,7 @@ fn update_action(json: Release, run_gui: bool, auto_download_update: bool) {
     } else if run_gui {
         match gui::run_gui(json.clone(), correct_asset.browser_download_url.clone()) {
             Ok(_) => log_info!("User exited GUI"),
-            Err(e) => log_critical!("GUI failed: {}",e)
+            Err(e) => log_critical!("GUI failed: {}", e),
         }
     }
 }
@@ -86,12 +92,12 @@ fn save_install_script() -> PathBuf {
     if temp_dir != PathBuf::new() {
         match fs::write(&path, include_str!("installer/installer.sh")) {
             Ok(_) => log_info!("File written to {}", path.display()),
-            Err(e) => log_error!("Failed to write to {}: {}", path.display(), e)
+            Err(e) => log_error!("Failed to write to {}: {}", path.display(), e),
         }
-        
-        return path;
+
+        path
     } else {
-        return PathBuf::new();
+        PathBuf::new()
     }
 }
 
@@ -103,9 +109,9 @@ fn save_install_script() -> PathBuf {
     if temp_dir != PathBuf::new() {
         match fs::write(&path, include_str!("installer/installer.bat")) {
             Ok(_) => log_info!("File written to {}", path.display()),
-            Err(e) => log_error!("Failed to write to {}: {}", path.display(), e)
+            Err(e) => log_error!("Failed to write to {}: {}", path.display(), e),
         }
-        
+
         return path;
     } else {
         return PathBuf::new();
@@ -115,10 +121,15 @@ fn save_install_script() -> PathBuf {
 pub fn download_update(url: &str, tag_name: Option<&str>) {
     if !config::get_system_config_bool("allow-updates").unwrap_or(true) {
         log_warn!("Updating has been disabled by the system.");
-        return
+        return;
     }
     let client = Client::new();
-    let filename = std::env::current_exe().unwrap().file_name().unwrap().to_string_lossy().to_string();
+    let filename = std::env::current_exe()
+        .unwrap()
+        .file_name()
+        .unwrap()
+        .to_string_lossy()
+        .to_string();
     let temp_dir = logic::get_temp_dir();
 
     let response = client
@@ -127,22 +138,20 @@ pub fn download_update(url: &str, tag_name: Option<&str>) {
         .send();
 
     match response {
-        Ok(data) => {
-            match data.bytes() {
-                Ok(bytes) => {
-                    let path = temp_dir.join(filename);
-                    match fs::write(path.clone(), bytes) {
-                        Ok(_) => {
-                            set_update_file(path);
-                            config::set_config_value("current_tag_name", tag_name.clone().into());
-                            config::save_config_file();
-                        },
-                        Err(e) => log_error!("Failed to write file: {}", e)
+        Ok(data) => match data.bytes() {
+            Ok(bytes) => {
+                let path = temp_dir.join(filename);
+                match fs::write(path.clone(), bytes) {
+                    Ok(_) => {
+                        set_update_file(path);
+                        config::set_config_value("current_tag_name", tag_name.into());
+                        config::save_config_file();
                     }
+                    Err(e) => log_error!("Failed to write file: {}", e),
                 }
-                Err(e) => log_error!("Download failed: Failed to parse: {}", e)
             }
-        }
+            Err(e) => log_error!("Download failed: Failed to parse: {}", e),
+        },
         Err(e) => log_error!("Failed to download: {}", e),
     }
 }
@@ -153,17 +162,16 @@ pub fn set_update_file(file: PathBuf) {
 }
 
 pub fn run_install_script(run_afterwards: bool) -> bool {
-    if let Some(update_file) = {UPDATE_FILE.lock().unwrap().clone()} {
+    if let Some(update_file) = { UPDATE_FILE.lock().unwrap().clone() } {
         log_info!("Installing from {}", update_file.display());
         if config::get_system_config_bool("prefer-installers").unwrap_or(false) {
             // Just run the installer
             match open::that(update_file) {
                 Ok(_) => (),
-                Err(e) => log_error!("Installer failed to launch {} ", e)
+                Err(e) => log_error!("Installer failed to launch {} ", e),
             }
 
             std::process::exit(0);
-
         } else {
             // Run install script
             let install_script = save_install_script();
@@ -172,17 +180,27 @@ pub fn run_install_script(run_afterwards: bool) -> bool {
                 let mut command = std::process::Command::new("cmd");
                 #[cfg(target_family = "unix")]
                 let mut command = std::process::Command::new("sh");
-    
+
                 let program_path = std::env::current_exe().unwrap();
-                
 
                 #[cfg(target_family = "unix")]
                 if run_afterwards {
-                    command.args([install_script, update_file, program_path.clone(), program_path]).spawn().expect("failed to start update script");
+                    command
+                        .args([
+                            install_script,
+                            update_file,
+                            program_path.clone(),
+                            program_path,
+                        ])
+                        .spawn()
+                        .expect("failed to start update script");
                 } else {
-                    command.args([install_script, update_file, program_path]).spawn().expect("failed to start update script");
+                    command
+                        .args([install_script, update_file, program_path])
+                        .spawn()
+                        .expect("failed to start update script");
                 }
-    
+
                 #[cfg(target_os = "windows")] // cmd /c
                 if run_afterwards {
                     command.args([
@@ -201,15 +219,14 @@ pub fn run_install_script(run_afterwards: bool) -> bool {
                         OsString::from("exit"),
                     ]);
                 }
-    
+
                 std::process::exit(0);
             }
-    
-            return true;
-        }
 
+            true
+        }
     } else {
-        return false;
+        false
     }
 }
 
@@ -220,14 +237,14 @@ pub fn check_for_updates(run_gui: bool, auto_download_update: bool) {
 
     let response = if include_prerelease {
         client
-        .get(PRERELEASE_URL)
-        .header("User-Agent", "RoExtract (Rust)")
-        .send()
+            .get(PRERELEASE_URL)
+            .header("User-Agent", "RoExtract (Rust)")
+            .send()
     } else {
         client
-        .get(URL)
-        .header("User-Agent", "RoExtract (Rust)") // Set a User-Agent otherwise it returns 403
-        .send()
+            .get(URL)
+            .header("User-Agent", "RoExtract (Rust)") // Set a User-Agent otherwise it returns 403
+            .send()
     };
 
     match response {
@@ -236,26 +253,30 @@ pub fn check_for_updates(run_gui: bool, auto_download_update: bool) {
             if include_prerelease {
                 match serde_json::from_str::<Vec<Release>>(&text) {
                     Ok(data) => {
-                      let json = data[0].clone();
-                      let current_tag = config::get_config_string("current_tag_name").unwrap_or("None".to_string());
-                      if current_tag != json.tag_name {
-                        update_action(json, run_gui, auto_download_update);
-                      }                      
-                    },
-                    Err(e) => log_error!("Updater failed to parse json: {}", e)
+                        let json = data[0].clone();
+                        let current_tag = config::get_config_string("current_tag_name")
+                            .unwrap_or("None".to_string());
+                        if current_tag != json.tag_name {
+                            update_action(json, run_gui, auto_download_update);
+                        }
+                    }
+                    Err(e) => log_error!("Updater failed to parse json: {}", e),
                 };
             } else {
                 match serde_json::from_str::<Release>(&text) {
                     Ok(json) => {
                         let clean_tag_name = clean_version_number(&json.tag_name);
                         let clean_version = clean_version_number(env!("CARGO_PKG_VERSION"));
-                        if (clean_tag_name != clean_version) | config::get_config_string("current_tag_name").is_some() { // Update back to stable version if user has opted out of development builds
+                        if (clean_tag_name != clean_version)
+                            | config::get_config_string("current_tag_name").is_some()
+                        {
+                            // Update back to stable version if user has opted out of development builds
                             update_action(json, run_gui, auto_download_update);
                         } else {
                             log_info!("No updates are available.")
                         }
                     }
-                    Err(e) => log_error!("Updater Failed to parse json: {}", e)
+                    Err(e) => log_error!("Updater Failed to parse json: {}", e),
                 }
             }
         }
