@@ -70,12 +70,16 @@ You can now test development builds within the settings
 - [x] - Update dependencies
 - [x] - Fix clear cache button
 
-# Changelog for  1.0.1
+# Changelog for 1.0.1
 Name: Minor Update
 # Security Patch
 This update includes a security patch for [CVE-2025-55159](https://nvd.nist.gov/vuln/detail/CVE-2025-55159)
 # Bug fix
 This update includes a bug fix for the clear cache button
+# Localisation
+Added Russian Localisation (Thanks to @IDDQD1337)
+
+**Full Changelog**: https://github.com/AeEn123/RoExtract/compare/v1.0.0...v1.0.1
 
 ## 1.1.0
 - [ ] - Built-in media player to quickly preview sounds
