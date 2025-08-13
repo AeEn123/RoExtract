@@ -6,6 +6,7 @@ GenericName=Roblox Assets Extractor
 Comment=A safe way to extract assets from your Roblox installation.
 Comment[de]=Ein sicherer Weg um Assets von deiner Roblox Installation zu extrahieren.
 Comment[pl]=Bezpieczny sposób na wyodrębnienie zasobów z instalacji Roblox.
+Comment[ru]=Безопасный способ извлечения ресурсов из вашей установки Roblox.
 Categories=Utility;Game
 Exec=
 Icon=com.github.AeEn123.RoExtract
