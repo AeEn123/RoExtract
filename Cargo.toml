@@ -39,10 +39,10 @@ overflow-checks = false
 # strip = true
 
 [profile.release]
-opt-level = 3 # Main search logic in this project, opt-level 3 for speed
+opt-level = 3
+lto = "thin"
 codegen-units = 1
-# lto = "fat"
-# debug = false
+strip = true
 panic = "abort"
 overflow-checks = false
-# strip = true
+

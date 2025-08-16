@@ -4,12 +4,20 @@ use {
 };
 
 fn main() -> io::Result<()> {
-    // Apply icon on windows
+    // Apply file info on windows
     if env::var_os("CARGO_CFG_WINDOWS").is_some() {
-        WindowsResource::new()
-            // This path can be absolute, or relative to your crate root.
-            .set_icon("assets/icon.ico")
-            .compile()?;
+        let mut res = WindowsResource::new()
+
+        // Descriptions
+        res.set("CompanyName", "Alfie Likes Computers");
+        res.set("FileDescription", "A safe way to extract assets from your Roblox installation.");
+        res.set("OriginalFilename", "RoExtract-windows.exe");
+        res.set("InternalName", "RoExtract");
+
+
+        // Icon
+        res.set_icon("assets/icon.ico")
+        res.compile()?;
     }
 
     // Add compile date to the program's environment variables
