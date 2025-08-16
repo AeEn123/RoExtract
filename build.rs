@@ -16,7 +16,7 @@ fn main() -> io::Result<()> {
 
 
         // Icon
-        res.set_icon("assets/icon.ico")
+        res.set_icon("assets/icon.ico");
         res.compile()?;
     }
 
