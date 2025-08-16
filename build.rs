@@ -6,7 +6,7 @@ use {
 fn main() -> io::Result<()> {
     // Apply file info on windows
     if env::var_os("CARGO_CFG_WINDOWS").is_some() {
-        let mut res = WindowsResource::new()
+        let mut res = WindowsResource::new();
 
         // Descriptions
         res.set("CompanyName", "Alfie Likes Computers");
