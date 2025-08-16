@@ -34,15 +34,15 @@ winresource = "0.1.23"
 [profile.release.package."*"]
 opt-level = 3
 codegen-units = 1
-debug = false
+# debug = false
 overflow-checks = false
-strip = true
+# strip = true
 
 [profile.release]
 opt-level = 3 # Main search logic in this project, opt-level 3 for speed
 codegen-units = 1
-lto = "fat"
-debug = false
+# lto = "fat"
+# debug = false
 panic = "abort"
 overflow-checks = false
-strip = true
+# strip = true
