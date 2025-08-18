@@ -9,5 +9,5 @@ Comment[pl]=Bezpieczny sposób na wyodrębnienie zasobów z instalacji Roblox.
 Comment[ru]=Безопасный способ извлечения ресурсов из вашей установки Roblox.
 Categories=Utility;Game
 Exec=
-Icon=com.github.AeEn123.RoExtract
+Icon=io.github.AeEn123.RoExtract
 Terminal=false
