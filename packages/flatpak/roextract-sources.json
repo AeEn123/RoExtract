@@ -1,13 +1,13 @@
 [
     {
     "type": "archive",
-    "url": "https://github.com/AeEn123/RoExtract/archive/refs/tags/v1.0.0.tar.gz",
-    "sha256": "43b1871be0ccec4d51154d6cd342bc706119f61d672ef90d18e234518710dd20"
+    "url": "https://github.com/AeEn123/RoExtract/archive/refs/tags/v1.02.tar.gz",
+    "sha256": "0ea659bac40f07f51970e9fd8c1725f03620d273182e86c9c0df0b9fe7638850"
     },
     {
     "type": "file",
     "url": "https://raw.githubusercontent.com/AeEn123/RoExtract/refs/heads/main/packages/flatpak/RoExtract-desktop.desktop",
-    "sha256": "e614895242b5125cb1cea47191c3a10b1fd3e3ee53a68489610d59affa38e699"
+    "sha256": "d6ef9b6d7f387b856d4b7c7bd8826bffa33699e4a2e2c9bb3a6595df6ba1448d"
     },
     {
     "type": "file",
@@ -17,6 +17,6 @@
     {
     "type": "file",
     "url": "https://raw.githubusercontent.com/AeEn123/RoExtract/refs/heads/main/packages/flatpak/RoExtract-system.json",
-    "sha256": "6439edafb0daab5f22ff88bad0256852e96a0aac8455a75cb278a843468f9ecb"
+    "sha256": "49e90d82cea99a3aef64911ac296c390d015740d4c6a11d493b73ec2fed5616e"
     }
 ]
