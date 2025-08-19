@@ -6,7 +6,7 @@ git clone https://github.com/AeEn123/RoExtract
 ```
 2. Change directory to the packages/flatpak folder inside the cloned repository
 ```
-cd RoExtract/packages/folder
+cd RoExtract/packages/flatpak
 ```
 3. Run the command below to build the flatpak and install it on to your system
 ```
