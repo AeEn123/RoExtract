@@ -78,12 +78,13 @@ This update includes a security patch for [CVE-2025-55159](https://nvd.nist.gov/
 This update includes a bug fix for the clear cache button
 # Localisation
 Added Russian Localisation (Thanks to @IDDQD1337)
-Fixed missing localisation files in English and German (thanks to @Vonercent)
+Fixed missing localisation files in English and German (Thanks to @Vonercent)
 
 **Full Changelog**: https://github.com/AeEn123/RoExtract/compare/v1.0.0...v1.0.1
 
 ## 1.1.0
 - [ ] - Built-in media player to quickly preview sounds
+- [ ] - Ability to convert between formats
 - [ ] - Audio length in list
 - [ ] - Make it into a table with specific details e.g size, type, time created
 - [ ] - Wait for translations
