@@ -90,6 +90,9 @@ Fixed missing localisation files in English and German (Thanks to @Vonercent)
 - [ ] - Wait for translations
 
 ## Future releases
+- [ ] - Roblox mesh extraction and conversion
+- [ ] - Font extraction
+- [ ] - Video extraction
 - [ ] - Finish CLI mode documentation
 - [ ] - Community-made resource packs
 - [ ] - Automatic command line generation for [Bloxstrap](https://github.com/pizzaboxer/bloxstrap)
