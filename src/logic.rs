@@ -595,7 +595,7 @@ pub fn determine_category(bytes: &[u8]) -> Category {
 pub fn get_headers(category: &Category) -> Vec<String> {
     match category {
         Category::Music => {
-            vec!["".to_string()]
+            vec!["OggS".to_string(), "ID3".to_string()]
         }
         Category::Sounds => {
             vec!["OggS".to_string(), "ID3".to_string()]
