@@ -73,7 +73,7 @@ fn clear_file_list() {
     *file_list = Vec::new()
 }
 
-fn bytes_search(haystack: &Vec<u8>, needle: &[u8]) -> Option<usize> {
+fn bytes_search(haystack: &[u8], needle: &[u8]) -> Option<usize> {
     let len = needle.len();
     if len > 0 {
         haystack.windows(len).position(|window| window == needle)
@@ -97,7 +97,7 @@ fn bytes_contains(haystack: &[u8], needle: &[u8]) -> bool {
     }
 }
 
-fn find_header(category: Category, bytes: &Vec<u8>) -> Result<String, String> {
+fn find_header(category: Category, bytes: &[u8]) -> Result<String, String> {
     // Get the header for the current category
     let headers = get_headers(&category);
 
@@ -576,7 +576,7 @@ pub fn create_asset_info(asset: &str, category: Category) -> AssetInfo {
     }
 }
 
-pub fn determine_category(bytes: &Vec<u8>) -> Category {
+pub fn determine_category(bytes: &[u8]) -> Category {
     for category in Category::iter().filter(|&cat| cat != Category::All && cat != Category::Music) {
         // Ignore music and all
         for header in get_headers(&category) {
