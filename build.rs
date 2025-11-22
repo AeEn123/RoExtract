@@ -10,10 +10,12 @@ fn main() -> io::Result<()> {
 
         // Descriptions
         res.set("CompanyName", "Alfie Likes Computers");
-        res.set("FileDescription", "A safe way to extract assets from your Roblox installation.");
+        res.set(
+            "FileDescription",
+            "A safe way to extract assets from your Roblox installation.",
+        );
         res.set("OriginalFilename", "RoExtract-windows.exe");
         res.set("InternalName", "RoExtract");
-
 
         // Icon
         res.set_icon("assets/icon.ico");

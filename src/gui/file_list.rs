@@ -1,12 +1,19 @@
-use crate::{config, gui, locale, logic::{self, AssetInfo}}; use egui::{Color32, TextureHandle};
+use crate::{
+    config, gui, locale,
+    logic::{self, AssetInfo},
+};
+use egui::{Color32, TextureHandle};
 // Used for functionality
 use fluent_bundle::{FluentBundle, FluentResource};
 use native_dialog::{DialogBuilder, MessageLevel};
-use std::{sync::{Arc, LazyLock, Mutex}, thread, time::Duration};
 use std::num::NonZero;
+use std::{
+    sync::{Arc, LazyLock, Mutex},
+    thread,
+    time::Duration,
+};
 
 static ASSETS_LOADING: LazyLock<Mutex<Vec<String>>> = LazyLock::new(|| Mutex::new(Vec::new()));
-
 
 fn double_click(
     asset: logic::AssetInfo,
@@ -196,7 +203,6 @@ fn load_asset_image(asset: AssetInfo, ctx: egui::Context) -> Option<TextureHandl
     }
 }
 
-
 fn clear_cache(locale: &FluentBundle<Arc<FluentResource>>) {
     // Confirmation dialog
     let yes = DialogBuilder::message()
@@ -254,7 +260,6 @@ fn toggle_swap_or_copy(
     }
 }
 
-
 // fn format_size(bytes: u64) -> String {
 //     const UNITS: [&str; 4] = ["KB", "MB", "GB", "TB"];
 //     let mut size = bytes as f64 / 1024.0;
@@ -284,27 +289,26 @@ pub struct FileListUi {
     copying: bool,
     pub locale: FluentBundle<Arc<FluentResource>>,
 }
-    // selected: Option<usize>, // Used for storing selected state to retain keyboard navigation as seen in the tkinter version
-    // current_tab: Option<String>, // Allows for detecting when the user changes tabs to refresh automatically
-    // renaming: bool,
-    // searching: bool,
-    // search_query: String,
-    // swapping: bool,
-    // swapping_asset: Option<logic::AssetInfo>,
-    // asset_context_menu_open: Option<usize>,
-    // copying: bool,
+// selected: Option<usize>, // Used for storing selected state to retain keyboard navigation as seen in the tkinter version
+// current_tab: Option<String>, // Allows for detecting when the user changes tabs to refresh automatically
+// renaming: bool,
+// searching: bool,
+// search_query: String,
+// swapping: bool,
+// swapping_asset: Option<logic::AssetInfo>,
+// asset_context_menu_open: Option<usize>,
+// copying: bool,
 
-    // selected: &'a mut Option<usize>,
-    // current_tab: &'a mut Option<String>,
-    // renaming: &'a mut bool,
-    // searching: &'a mut bool,
-    // search_query: &'a mut String,
-    // swapping: &'a mut bool,
-    // swapping_asset: &'a mut Option<logic::AssetInfo>,
-    // locale: &'a mut FluentBundle<Arc<FluentResource>>,
-    // asset_context_menu_open: &'a mut Option<usize>,
-    // copying: &'a mut bool,
-
+// selected: &'a mut Option<usize>,
+// current_tab: &'a mut Option<String>,
+// renaming: &'a mut bool,
+// searching: &'a mut bool,
+// search_query: &'a mut String,
+// swapping: &'a mut bool,
+// swapping_asset: &'a mut Option<logic::AssetInfo>,
+// locale: &'a mut FluentBundle<Arc<FluentResource>>,
+// asset_context_menu_open: &'a mut Option<usize>,
+// copying: &'a mut bool,
 
 impl FileListUi {
     fn handle_text_edit(&mut self, ui: &mut egui::Ui, alias: &str, file_name: &str) {
@@ -379,7 +383,11 @@ impl FileListUi {
         }
 
         if ui
-            .button(locale::get_message(&self.locale, "button-clear-cache", None))
+            .button(locale::get_message(
+                &self.locale,
+                "button-clear-cache",
+                None,
+            ))
             .clicked()
             || ui.input(|i| i.key_pressed(egui::Key::Delete))
         {
@@ -449,7 +457,7 @@ impl FileListUi {
         }
     }
 
-        // Function to handle asset response within asset list
+    // Function to handle asset response within asset list
     fn handle_asset_response(
         &mut self,
         response: egui::Response,
@@ -494,7 +502,12 @@ impl FileListUi {
         }
 
         if response.double_clicked() {
-            double_click(asset, &mut self.swapping, &mut self.copying, &mut self.swapping_asset);
+            double_click(
+                asset,
+                &mut self.swapping,
+                &mut self.copying,
+                &mut self.swapping_asset,
+            );
         }
 
         // Handle keyboard scrolling
@@ -507,7 +520,6 @@ impl FileListUi {
     }
 
     pub fn ui(&mut self, tab: String, ui: &mut egui::Ui) {
-
         let category = match tab.as_str() {
             "music" => logic::Category::Music,
             "sounds" => logic::Category::Sounds,
@@ -561,7 +573,8 @@ impl FileListUi {
                 self.swapping_asset = None;
             }
         }
-        if ui.input(|inp| inp.events.iter().any(|ev| matches!(ev, egui::Event::Copy))) { // https://github.com/emilk/egui/issues/4065#issuecomment-2071047410
+        if ui.input(|inp| inp.events.iter().any(|ev| matches!(ev, egui::Event::Copy))) {
+            // https://github.com/emilk/egui/issues/4065#issuecomment-2071047410
             // Ctrl+C (Copy)
             toggle_swap_or_copy(&mut self.copying, &mut self.swapping_asset, &self.locale);
             if let Some(i) = self.selected {
@@ -575,7 +588,6 @@ impl FileListUi {
             self.swapping_asset = None;
             self.copying = false;
             self.swapping = false;
-
         }
 
         // GUI logic below here
@@ -701,9 +713,8 @@ impl FileListUi {
             file_list
         };
 
-        let display_image_preview = config::get_config_bool("display_image_preview")
-            .unwrap_or(false)
-            && tab == "images";
+        let display_image_preview =
+            config::get_config_bool("display_image_preview").unwrap_or(false) && tab == "images";
 
         let row_height = if display_image_preview {
             config::get_config_u64("image_preview_size").unwrap_or(128) as f32
@@ -751,7 +762,6 @@ impl FileListUi {
         //     // let alias_x = rect.min.x + 5.0;
         //     // let size_x = rect.min.x + rect.width() * 0.7;
         //     // let modified_x = rect.min.x + rect.width() * 1.0 - 5.0; // adjust for padding
-
 
         //     // // Draw all columns
         //     // ui.painter().text(
@@ -816,10 +826,9 @@ impl FileListUi {
 
                                         // Only attempt to load if it's a real asset
                                         if asset.from_file | asset.from_sql {
-                                            if let Some(texture) = load_asset_image(
-                                                asset.clone(),
-                                                ui.ctx().clone(),
-                                            ) {
+                                            if let Some(texture) =
+                                                load_asset_image(asset.clone(), ui.ctx().clone())
+                                            {
                                                 egui::Image::new(&texture)
                                                     .maintain_aspect_ratio(true)
                                                     .max_height(row_height)
@@ -848,10 +857,7 @@ impl FileListUi {
                                         ui.painter().rect_stroke(
                                             rect,
                                             0.0,
-                                            egui::Stroke::new(
-                                                row_height / 8.0,
-                                                background_colour,
-                                            ),
+                                            egui::Stroke::new(row_height / 8.0, background_colour),
                                             egui::StrokeKind::Inside,
                                         );
 
@@ -878,19 +884,14 @@ impl FileListUi {
 
                                         // Background to make text easier to read
                                         let background_colour = if visuals.dark_mode {
-                                            egui::Color32::from_rgba_unmultiplied(
-                                                27, 27, 27, 160,
-                                            ) // Dark mode
+                                            egui::Color32::from_rgba_unmultiplied(27, 27, 27, 160)
+                                        // Dark mode
                                         } else {
                                             egui::Color32::from_rgba_unmultiplied(
                                                 248, 248, 248, 160,
                                             ) // Light mode
                                         };
-                                        ui.painter().rect_filled(
-                                            text_rect,
-                                            0.0,
-                                            background_colour,
-                                        );
+                                        ui.painter().rect_filled(text_rect, 0.0, background_colour);
 
                                         ui.put(text_rect, text);
                                     }
@@ -945,8 +946,8 @@ impl FileListUi {
 
                                 // Column positions (add padding)
                                 let alias_x = rect.min.x + 5.0;
-                                    // let size_x = rect.min.x + rect.width() * 0.7;
-                                    // let modified_x = rect.min.x + rect.width() * 1.0 - 5.0; // adjust for padding
+                                // let size_x = rect.min.x + rect.width() * 0.7;
+                                // let modified_x = rect.min.x + rect.width() * 1.0 - 5.0; // adjust for padding
 
                                 // Draw all columns
                                 ui.painter().text(

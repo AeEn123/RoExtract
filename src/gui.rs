@@ -2,11 +2,11 @@
 use eframe::egui;
 use egui_dock::{DockArea, DockState, NodeIndex, Style, SurfaceIndex};
 use fluent_bundle::{FluentBundle, FluentResource};
-use native_dialog::{DialogBuilder};
+use native_dialog::DialogBuilder;
 use std::path::PathBuf;
+use std::sync::Arc;
 use std::sync::{LazyLock, Mutex};
 use std::time::Duration;
-use std::sync::Arc;
 
 use std::collections::HashMap;
 // Used for input
@@ -50,7 +50,7 @@ pub static IMAGES: LazyLock<Mutex<HashMap<String, TextureHandle>>> =
 
 struct TabViewer<'a> {
     locale: &'a mut FluentBundle<Arc<FluentResource>>,
-    file_list_ui: &'a mut file_list::FileListUi
+    file_list_ui: &'a mut file_list::FileListUi,
 }
 
 pub fn load_image(
@@ -246,7 +246,7 @@ struct MyApp {
     tree: DockState<String>,
     tab_map: HashMap<u32, (SurfaceIndex, NodeIndex, usize)>, // Tab map for keyboard navigation
     locale: FluentBundle<Arc<FluentResource>>,
-    file_list_ui: file_list::FileListUi
+    file_list_ui: file_list::FileListUi,
 }
 
 impl Default for MyApp {
@@ -275,7 +275,7 @@ impl Default for MyApp {
             tree,
             tab_map,
             locale: locale::get_locale(None),
-            file_list_ui: file_list::FileListUi::default()
+            file_list_ui: file_list::FileListUi::default(),
         }
     }
 }
@@ -357,7 +357,6 @@ pub fn gui_setup(cc: &eframe::CreationContext<'_>) {
     }
 }
 
-
 impl MyApp {
     pub fn new(cc: &eframe::CreationContext<'_>) -> Self {
         gui_setup(cc);
@@ -398,7 +397,7 @@ impl eframe::App for MyApp {
                 &mut TabViewer {
                     locale: &mut self.locale,
                     file_list_ui: &mut self.file_list_ui,
-                }
+                },
             );
 
         {
