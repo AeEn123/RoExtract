@@ -101,7 +101,7 @@ The development builds can be downloaded from the [releases](https://github.com/
 
 If you already have the latest development build of RoExtract installed, you can enable development builds in settings 
 # More Info
-This is my first project written in rust/egui so bugs may appear, in the circumstance that a bug does appear, report an issue and use the legacy python version if the bug makes it unusable.
+This is my first project written in rust/egui so bugs may appear, in the circumstance that a bug does appear, report an issue.
 
 > [!IMPORTANT]
 > This tool is designed for Windows and GNU/Linux and may not work on other operating systems.
@@ -131,4 +131,4 @@ cargo build
 Wait for it to build all the dependencies and the application. After that you should find it in the `target` folder.
 
 # Python version
-See [python.md](/docs/en-GB/python.md)
+The python version is now discontinued.
