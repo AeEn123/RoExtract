@@ -85,13 +85,7 @@ fn bytes_search(haystack: &[u8], needle: &[u8]) -> Option<usize> {
 fn bytes_contains(haystack: &[u8], needle: &[u8]) -> bool {
     let len = needle.len();
     if len > 0 {
-        if needle == b"ID3" {
-            let bin_type = haystack.windows(7).any(|window| window == b"binary/");
-            let mp3_header = haystack.windows(len).any(|window| window == needle);
-            mp3_header && bin_type // Only allow mp3 if type is binary as that is what the client uses
-        } else {
-            haystack.windows(len).any(|window| window == needle)
-        }
+        haystack.windows(len).any(|window| window == needle)
     } else {
         false
     }
@@ -580,8 +574,15 @@ pub fn determine_category(bytes: &[u8]) -> Category {
     for category in Category::iter().filter(|&cat| cat != Category::All && cat != Category::Music) {
         // Ignore music and all
         for header in get_headers(&category) {
-            if bytes_contains(bytes, header.as_bytes()) {
-                return category;
+            // Since MP3 gets an unusual amount of false-positives, we make an extra check
+            if header == "ID3" {
+                if bytes_contains(bytes, header.as_bytes()) && bytes_contains(bytes, b"binary/") {
+                    return category;
+                }
+            } else {
+                if bytes_contains(bytes, header.as_bytes()) {
+                    return category;
+                }
             }
         }
     }
