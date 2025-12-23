@@ -66,29 +66,25 @@ Roblox Studio не поддерживает кэшированные файлы 
 
 Вы можете менять вкладки с помощью Alt (или Ctrl) + 1-8. Вы можете выбирать ресурсы с помощью Tab и открывать с помощью Enter.
 ## Меню настроек
-In the settings menu you will find general customization options as well as actions to do with your roblox cache. Here you can extract all of your roblox cache, change the directory or clear the cache.
-В меню настроек вы найдёте общие настройки кастомизации и также выбор действий с кэшем. Здесь вы можете распаковать весь кэш, сменить директорию или очистить кэш.
+В меню настроек вы найдёте общие параметры кастомизации и также выбор действий с кэшем. Здесь вы можете распаковать весь кэш, сменить директорию или очистить кэш.
 
 # Режим CLI
 Режим CLI ещё в разработке.
 Читайте [CLI.md](/docs/ru-RU/CLI.md)
 
 # Установка на Windows
-The program only comes portable on Windows for now, this may change in the future
-Эта программа предназначена только для портативного использования, это может измениться в будущем.
+Сейчас программа на Windows поставляется только в портативном виде, но в будущем это может измениться.»
 
 # Установка на Linux
 ## Flatpak (ЭКСПЕРЕМЕНТАЛЬНО)
 > [!WARNING]
 > Поддержка Flatpak ЭКСПЕРЕМЕНТАЛЬНАЯ, используйте на свой страх и риск.
 
-There are currently no prebuilt flatpak packages, follow the [build guide](packages/flatpak/README.md) for instructions on building the flatpak package
-Пока нет уже собраных пакетов для Flatpak, используйте [гайд](packages/flatpak/README.md) для инструкций компиляции Flatpak-пакета.
+На данный момент готовых пакетов Flatpak нет. Следуйте инструкциям в [руководстве](packages/flatpak/README.md), чтобы собрать пакет самостоятельно.
 
 ## Arch Linux
 You can install on Arch Linux by using the PKGBUILD located in `packages/arch`
 Вы можете установить RoExtract в Arch Linux используя файл `PKGBUILD` который находится в `packages/arch`
-An example installation script:
 Пример установочного скрипта:
 ```bash
 mkdir /tmp/RoExtract
@@ -108,7 +104,7 @@ If you already have the latest development build of RoExtract installed, you can
 This is my first project written in rust/egui so bugs may appear, in the circumstance that a bug does appear, report an issue.
 
 > [!IMPORTANT]
-> This tool is designed for Windows and GNU/Linux and may not work on other operating systems.
+> Этот инструмент предназначен для Windows и GNU/Linux, и может не работать на других ОС.
 
 > [!TIP]
 > If file listing is too slow, you can clear your cache with the clear cache button in the settings. Also, turning off Windows Defender will speed up file listing, as it scans every time a file is opened.
@@ -135,4 +131,4 @@ cargo build
 Wait for it to build all the dependencies and the application. After that you should find it in the `target` folder.
 
 # Python-версия
-Python-версия теперь заброшена.
+Python-версия больше не поддерживается.
