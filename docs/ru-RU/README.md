@@ -39,23 +39,23 @@ Thank you for your support in this project :), it felt like I lost almost everyt
 Нет, это не вирус. Как и у любого другого свободного ПО с открытым исходным кодом, наш код открыт для просмотра кем угодно, поэтому спрятать в нём что-то вредоносное невозможно. Сборки также безопасны, поскольку теперь они создаются автоматически через GitHub Actions - это гарантирует полную прозрачность. Если вы всё равно не доверяете этому ПО, вы можете воспользоваться веб-демо по ссылке https://aeen123.github.io/RoExtract/demo (для этого ничего скачивать не нужно)
 
 ### Windows говорит "Windows защитила ваш ПК". Что мне делать?
-If Windows detects a program from an unverified publisher, this popup will appear. If this popup does appear, click "More info" and click "Run anyway".
+Это окно появляется, если Windows обнаруживает программу от неизвестного издателя. В таком случае просто нажмите "Подробнее", а затем - "Выполнить в любом случае".
 
+### Это может вызвать бан?
+Нет, в отличие от читов, это ПО **не** взаимодействует с Roblox, делая эту программу безопасным способом извлечения ресурсов.
 
-### Can this get me banned?
-No, unlike cheats, this **does not** inject into roblox. Making this an anti-cheat friendly way of extracting assets.
+### Мои извлечённые ресурсы не проигрываются в медиа-плеере, что делать?
+Некоторые медиа-плееры могут не поддерживать формат извлечённого фвйла. В таком случае попробуйте другой проигрыватель, поддерживающий все форматы, например VLC. **Если файл действительно повреждён, пожалуйста, [сообщите об ошибке.](https://github.com/AeEn123/RoExtract/issues)**
 
-### My extracted assets don’t play in my media player, what can I do?
-Some media players may not support the format that the file is in. If that is the case, please try another media player that supports all of the formats this supports, e.g VLC. **If the file is really broken, please [create an issue.](https://github.com/AeEn123/RoExtract/issues)**
+### Почему файлы KTX находятся в другой вкладке? Не должны ли они находиться во вкладке Текстуры?
+Формально да, должны, но большинство программ для просмотра изображений не поддерживают файлы KTX, поэтому лучше перенести их в другую вкладку, чтобы избежать проблем с совместимостью. Эта вкладка предназначена только для опытных пользователей.
 
-### Why is KTX files in a different tab? Shouldn't it be in the Textures tab?
-Technically it should, but most image viewers don't support KTX files, so it is best to move this aside to a different tab to avoid compatibility issues, this tab should be used for more advanced users.
+### Почему файлы RBXM отображаются просто как "Instance" в Roblox Studio?
+Roblox Studio не поддерживает кэшированные файлы RBXM. Эти файлы могут содержать данные из игр, но детально мы пока этого не изучали.
 
-### Why are RBXM files just an "Instance" in Roblox Studio?
-Roblox Studio doesn't have support for cached RBXM files. These files may contain data from games, but we haven't looked into it yet.
+### Занимает ли это место на диске со временем?
+Your Roblox cache itself does take up storage overtime, this tool itself does not add any storage use overtime unless you are extracting many files overtime, which you can delete easily.
 
-### Does this take up storage overtime?
-Your Roblox cache itself does take up storage overtime, this tool itself does not add any storage use overtime unless you are extracting many files overtime, which you can delete easily. 
 
 # Usage
 ## Tabs
