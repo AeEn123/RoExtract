@@ -54,19 +54,19 @@ Thank you for your support in this project :), it felt like I lost almost everyt
 Roblox Studio не поддерживает кэшированные файлы RBXM. Эти файлы могут содержать данные из игр, но детально мы пока этого не изучали.
 
 ### Занимает ли это место на диске со временем?
-Your Roblox cache itself does take up storage overtime, this tool itself does not add any storage use overtime unless you are extracting many files overtime, which you can delete easily.
+Ваш кэш Roblox действительно занимает всё больше места со временем, но сама программа не увеличивает использование диска, если только вы не извлекаете большое количество файлов (которые можно легко удалить).
 
 
 # Использование
 ## Вкладки
-You can see multiple tabs. RoExtract categorises the files into multiple categories. You can filter them by clicking on the tab.
 Вы видите несколько вкладок. RoExtract распределяет файлы по категориям. Вы можете отфильтровать их, кликнув на вкладку.
-## The toolbar
-Each item in the toolbar allows you to do different operations with the directory or the asset, you can also access the toolbar as a context menu by right clicking. You can disable the toolbar at the top of the screen in the settings, **Enable toolbar** under the **Behaviour** section.
-## Keyboard navigation and shortcuts
-The program is designed to be easy to use with a mouse but also allow for keyboard navigation and shortcuts for more advanced users, the shortcuts are shown on the buttons to show how you can access them quickly.<br>
+## Панель инструментов
+Каждая кнопка в панели инструментов позволяет вам делать разные операции с директорией или ресурсом, вы также можете открыть это меню, нажав ПКМ. Вы можете выключить панель инструментов вверху экрана в настройках, опция **Включить панель инструментов** в разделе **Поведения**.
+## Навигация с помощью клавиатуры и горячие клавиши
+Программа разработана так, чтобы её было удобно использовать мышью, но при этом поддерживает навигацию с помощью клавиатуры для опытных пользователей. Сочетания клавиш отображаются прямо на кнопках, чтобы вы могли быстро их увидеть.
 
 You can cycle through the tabs with Alt (or ctrl) + 1-8 allowing you to navigate between tabs only using the keyboard, you can select assets with tab and confirm with enter.
+Вы можете менять вкладки с помощью Alt (или Ctrl) + 1-8. Вы можете выбирать ресурсы с помощью Tab и подтверждением через Enter.
 ## Settings menu
 In the settings menu you will find general customization options as well as actions to do with your roblox cache. Here you can extract all of your roblox cache, change the directory or clear the cache.
 
