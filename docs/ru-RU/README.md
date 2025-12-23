@@ -57,9 +57,10 @@ Roblox Studio не поддерживает кэшированные файлы 
 Your Roblox cache itself does take up storage overtime, this tool itself does not add any storage use overtime unless you are extracting many files overtime, which you can delete easily.
 
 
-# Usage
-## Tabs
+# Использование
+## Вкладки
 You can see multiple tabs. RoExtract categorises the files into multiple categories. You can filter them by clicking on the tab.
+Вы видите несколько вкладок. RoExtract распределяет файлы по категориям. Вы можете отфильтровать их, кликнув на вкладку.
 ## The toolbar
 Each item in the toolbar allows you to do different operations with the directory or the asset, you can also access the toolbar as a context menu by right clicking. You can disable the toolbar at the top of the screen in the settings, **Enable toolbar** under the **Behaviour** section.
 ## Keyboard navigation and shortcuts
