@@ -25,7 +25,6 @@
 
 Ребрендинг сломал несколько ссылок, но мы приводим всё в порядок.
 
-Thank you for your support in this project :), it felt like I lost almost everything when I lost this repo.
 Спасибо за вашу поддержку этого проекта :), казалось будто я лишился всего, когда я потерял этот репозиторий.
 
 # ЧаВО
@@ -65,22 +64,23 @@ Roblox Studio не поддерживает кэшированные файлы 
 ## Навигация с помощью клавиатуры и горячие клавиши
 Программа разработана так, чтобы её было удобно использовать мышью, но при этом поддерживает навигацию с помощью клавиатуры для опытных пользователей. Сочетания клавиш отображаются прямо на кнопках, чтобы вы могли быстро их увидеть.
 
-You can cycle through the tabs with Alt (or ctrl) + 1-8 allowing you to navigate between tabs only using the keyboard, you can select assets with tab and confirm with enter.
-Вы можете менять вкладки с помощью Alt (или Ctrl) + 1-8. Вы можете выбирать ресурсы с помощью Tab и подтверждением через Enter.
-## Settings menu
+Вы можете менять вкладки с помощью Alt (или Ctrl) + 1-8. Вы можете выбирать ресурсы с помощью Tab и открывать с помощью Enter.
+## Меню настроек
 In the settings menu you will find general customization options as well as actions to do with your roblox cache. Here you can extract all of your roblox cache, change the directory or clear the cache.
+В меню настроек вы найдёте общие настройки кастомизации и также выбор действий с кэшем. Здесь вы можете распаковать весь кэш, сменить директорию или очистить кэш.
 
-# CLI mode
-CLI is work-in-progress.
-See [CLI.md](/docs/en-GB/CLI.md)
+# Режим CLI
+Режим CLI ещё в разработке.
+Читайте [CLI.md](/docs/ru-RU/CLI.md)
 
-# Installing for Windows
+# Установка на Windows
 The program only comes portable on Windows for now, this may change in the future
+Эта программа предназначена только для портативного использования, это может измениться в будущем.
 
-# Installing for Linux
-## Flatpak (VERY EXPERIMENTAL)
-> [!WARNING]
-> Flatpak support is VERY EXPERIMENTAL, use at your own risk.
+# Установка на Linux
+## Flatpak (ЭКСПЕРЕМЕНТАЛЬНО)
+> [!ПРЕДУПРЕЖДЕНИЕ]
+> Поддержка Flatpak ЭКСПЕРЕМЕНТАЛЬНАЯ, используцте на свой страх и риск.
 There are currently no prebuilt flatpak packages, follow the [build guide](packages/flatpak/README.md) for instructions on building the flatpak package
 
 ## Arch Linux
