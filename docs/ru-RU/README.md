@@ -81,17 +81,22 @@ The program only comes portable on Windows for now, this may change in the futur
 ## Flatpak (ЭКСПЕРЕМЕНТАЛЬНО)
 > [!WARNING]
 > Поддержка Flatpak ЭКСПЕРЕМЕНТАЛЬНАЯ, используйте на свой страх и риск.
+
 There are currently no prebuilt flatpak packages, follow the [build guide](packages/flatpak/README.md) for instructions on building the flatpak package
+Пока нет уже собраных пакетов для Flatpak, используйте [гайд](packages/flatpak/README.md) для инструкций компиляции Flatpak-пакета.
 
 ## Arch Linux
 You can install on Arch Linux by using the PKGBUILD located in `packages/arch`
+Вы можете установить RoExtract в Arch Linux используя файл `PKGBUILD` который находится в `packages/arch`
 An example installation script:
+Пример установочного скрипта:
 ```bash
 mkdir /tmp/RoExtract
 cd /tmp/RoExtract
 wget raw.githubusercontent.com/AeEn123/RoExtract/refs/heads/main/packages/arch/PKGBUILD
 makepkg -si
 ```
+
 ## Other distros
 Other distros will hopefully be supported soon. If you know how to make one and want it merged in this project, create a pull request!
 
@@ -129,5 +134,5 @@ cargo build
 ```
 Wait for it to build all the dependencies and the application. After that you should find it in the `target` folder.
 
-# Python version
-The python version is now discontinued.
+# Python-версия
+Python-версия теперь заброшена.
