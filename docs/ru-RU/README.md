@@ -79,8 +79,8 @@ The program only comes portable on Windows for now, this may change in the futur
 
 # Установка на Linux
 ## Flatpak (ЭКСПЕРЕМЕНТАЛЬНО)
-> [!ПРЕДУПРЕЖДЕНИЕ]
-> Поддержка Flatpak ЭКСПЕРЕМЕНТАЛЬНАЯ, используцте на свой страх и риск.
+> [!WARNING]
+> Поддержка Flatpak ЭКСПЕРЕМЕНТАЛЬНАЯ, используйте на свой страх и риск.
 There are currently no prebuilt flatpak packages, follow the [build guide](packages/flatpak/README.md) for instructions on building the flatpak package
 
 ## Arch Linux
