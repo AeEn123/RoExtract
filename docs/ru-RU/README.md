@@ -83,8 +83,7 @@ Roblox Studio не поддерживает кэшированные файлы 
 На данный момент готовых пакетов Flatpak нет. Следуйте инструкциям в [руководстве](packages/flatpak/README.md), чтобы собрать пакет самостоятельно.
 
 ## Arch Linux
-You can install on Arch Linux by using the PKGBUILD located in `packages/arch`
-Вы можете установить RoExtract в Arch Linux используя файл `PKGBUILD` который находится в `packages/arch`
+Вы можете установить RoExtract в Arch Linux, используя файл `PKGBUILD`, который находится в `packages/arch`
 Пример установочного скрипта:
 ```bash
 mkdir /tmp/RoExtract
@@ -93,8 +92,9 @@ wget raw.githubusercontent.com/AeEn123/RoExtract/refs/heads/main/packages/arch/P
 makepkg -si
 ```
 
-## Other distros
+## Другие дистрибутивы
 Other distros will hopefully be supported soon. If you know how to make one and want it merged in this project, create a pull request!
+Другие дистрибутивы, надеюсь, скоро будут поддерживаться. Если вы знаете как поддерживать какой-либо и хотите помочь проекту, <...>
 
 # Testing development builds
 The development builds can be downloaded from the [releases](https://github.com/AeEn123/RoExtract/releases) page.
