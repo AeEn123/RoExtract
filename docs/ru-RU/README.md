@@ -1,44 +1,46 @@
-[![Download for Windows](https://img.shields.io/github/downloads/AeEn123/RoExtract/latest/RoExtract-windows.exe?label=Download&color=blue&style=for-the-badge)](https://github.com/AeEn123/RoExtract/releases/latest/download/RoExtract-windows.exe)
-[![Download for Linux](https://img.shields.io/github/downloads/AeEn123/RoExtract/latest/RoExtract-linux?label=Download&style=for-the-badge)](https://github.com/AeEn123/RoExtract/releases/latest/download/RoExtract-linux)
-[![Website](https://img.shields.io/badge/Website-red?logo=googlechrome&style=for-the-badge)](https://aeen123.github.io/RoExtract/)
+[![Скачать для Windows](https://img.shields.io/github/downloads/AeEn123/RoExtract/latest/RoExtract-windows.exe?label=Скачать&color=blue&style=for-the-badge)](https://github.com/AeEn123/RoExtract/releases/latest/download/RoExtract-windows.exe)
+[![Скачать для Linux](https://img.shields.io/github/downloads/AeEn123/RoExtract/latest/RoExtract-linux?label=Скачать&style=for-the-badge)](https://github.com/AeEn123/RoExtract/releases/latest/download/RoExtract-linux)
+[![Веб-сайт](https://img.shields.io/badge/Веб--сайт-red?logo=googlechrome&style=for-the-badge)](https://aeen123.github.io/RoExtract/)
 
 [![Build and Release](https://github.com/AeEn123/RoExtract/actions/workflows/build-and-release.yml/badge.svg)](https://github.com/AeEn123/RoExtract/actions/workflows/build-and-release.yml)
-[![Discord invite](https://img.shields.io/discord/470242481582243860?label=Discord)](https://discord.gg/xqNA5jt6DN)
-![Total downloads](https://img.shields.io/github/downloads/AeEn123/RoExtract/total?label=Total%20Downloads)
+[![Discord-приглашение](https://img.shields.io/discord/470242481582243860?label=Discord)](https://discord.gg/xqNA5jt6DN)
+![Количество загрузок](https://img.shields.io/github/downloads/AeEn123/RoExtract/total?label=Количество%20загрузок)
 
-# Disclaimer
-This is an independent educational project. RoExtract is **NOT** affiliated with Roblox Corporation in any way.
+# Дисклеймер
+Это независимый и образовательный проект. RoExtract никак **НЕ** связан с Roblox Corporation.
 
 # RoExtract
-This tool extracts cached data from your Roblox installation by looking at the headers of cached files.
+Этот инструмент извлекает кэшированные данные из установленного клиента Roblox путем анализа заголовков файлов кэша.
 
-![Screenshot](/assets/screenshot.png)
+![Скриншот](/assets/screenshot.png)
 
-# RoExtract? And the disclaimer? And the repo was suspended? What happened?
-So recently the repo was suspended due to trademark violation.
+# RoExtract? И дисклеймер? А репозиторий заблокировали? Что случилось?
+Недавно репозиторий был заблокирован из-за нарушений прав на товарные знаки.
 
-I managed to get it back, GitHub support wanted a disclaimer. (thank you GitHub support, still a good support team out there)
+У меня получилось вернуть его, поддержка GitHub хотела дисклеймер. (спасибо поддержке GitHub, всё-таки у них хорошая команда)
 
-The disclaimer was added to the site and readme, to ensure it complies.
+Дисклеймер был добавлен на сайт и README, чтобы обеспечить соответствие требованиям.
 
-I also rebranded the project to RoExtract to avoid further trademark concerns, since the previous name had "Roblox" in the name.
+Я также переименовал проект в RoExtract, чтобы избежать дальнейших проблем с товарными знаками, так как прошлое название содержало слово "Roblox".
 
-The rebrand has broken a few links, but we are cleaning it up.
+Ребрендинг сломал несколько ссылок, но мы приводим всё в порядок.
 
 Thank you for your support in this project :), it felt like I lost almost everything when I lost this repo.
+Спасибо за вашу поддержку этого проекта :), казалось будто я лишился всего, когда я потерял этот репозиторий.
 
-# FAQ
-### The program can't run because VCRUNTIME140.dll is missing 
-Install [Microsoft Visual C++ Redistributable](https://learn.microsoft.com/en-us/cpp/windows/latest-supported-vc-redist)
+# ЧаВО
+### Запуск программы невозможен, так как на компьютере отсутствует vcruntime140.dll. 
+Установите [Microsoft Visual C++ Redistributable](https://learn.microsoft.com/ru-ru/cpp/windows/latest-supported-vc-redist)
 
-### Does this interfere with the roblox client?
-No, it is opening files that your client has already created. You can see them yourself in %Temp%\Roblox
+### Влияет ли это на клиент Roblox?
+Нет, этот инструмент открывает файлы, которые ваш клиент уже создал. Вы можете посмотреть их сами в %Temp%\Roblox
 
-### Is this malware?
-No, this is not malware, similar to other Free and Open Source Software, the code is available for everyone to see. It would be impossible for us to hide malware in here. The builds are also safe as the builds are now created by GitHub actions meaning everything is fully transparent. If you still don't trust this software, you can use the web demo at https://aeen123.github.io/RoExtract/demo (you don't need to download anything for that)
+### Это вирус?
+Нет, это не вирус. Как и у любого другого свободного ПО с открытым исходным кодом, наш код открыт для просмотра кем угодно, поэтому спрятать в нём что-то вредоносное невозможно. Сборки также безопасны, поскольку теперь они создаются автоматически через GitHub Actions - это гарантирует полную прозрачность. Если вы всё равно не доверяете этому ПО, вы можете воспользоваться веб-демо по ссылке https://aeen123.github.io/RoExtract/demo (для этого ничего скачивать не нужно)
 
-### Windows says "Windows protected your PC" What do I do?
+### Windows говорит "Windows защитила ваш ПК". Что мне делать?
 If Windows detects a program from an unverified publisher, this popup will appear. If this popup does appear, click "More info" and click "Run anyway".
+
 
 ### Can this get me banned?
 No, unlike cheats, this **does not** inject into roblox. Making this an anti-cheat friendly way of extracting assets.
