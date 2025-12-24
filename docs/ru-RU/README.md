@@ -4,7 +4,7 @@
 
 [![Build and Release](https://github.com/AeEn123/RoExtract/actions/workflows/build-and-release.yml/badge.svg)](https://github.com/AeEn123/RoExtract/actions/workflows/build-and-release.yml)
 [![Discord-приглашение](https://img.shields.io/discord/470242481582243860?label=Discord)](https://discord.gg/xqNA5jt6DN)
-![Количество загрузок](https://img.shields.io/github/downloads/AeEn123/RoExtract/total?label=Количество%20загрузок)
+![Количество загрузок](https://img.shields.io/github/downloads/AeEn123/RoExtract/total?label=Всего%20Загрузок)
 
 # Дисклеймер
 Это независимый и образовательный проект. RoExtract никак **НЕ** связан с Roblox Corporation.
@@ -19,7 +19,7 @@
 
 У меня получилось вернуть его, поддержка GitHub хотела дисклеймер. (спасибо поддержке GitHub, всё-таки у них хорошая команда)
 
-Дисклеймер был добавлен на сайт и README, чтобы обеспечить соответствие требованиям.
+Дисклеймер был добавлен на сайт и в README, чтобы обеспечить соответствие требованиям.
 
 Я также переименовал проект в RoExtract, чтобы избежать дальнейших проблем с товарными знаками, так как прошлое название содержало слово "Roblox".
 
@@ -44,7 +44,7 @@
 Нет, в отличие от читов, это ПО **не** взаимодействует с Roblox, делая эту программу безопасным способом извлечения ресурсов.
 
 ### Мои извлечённые ресурсы не проигрываются в медиа-плеере, что делать?
-Некоторые медиа-плееры могут не поддерживать формат извлечённого фвйла. В таком случае попробуйте другой проигрыватель, поддерживающий все форматы, например VLC. **Если файл действительно повреждён, пожалуйста, [сообщите об ошибке.](https://github.com/AeEn123/RoExtract/issues)**
+Некоторые медиа-плееры могут не поддерживать формат извлечённого файла. В таком случае попробуйте другой проигрыватель, поддерживающий все форматы, например VLC. **Если файл действительно повреждён, пожалуйста, [сообщите об ошибке.](https://github.com/AeEn123/RoExtract/issues)**
 
 ### Почему файлы KTX находятся в другой вкладке? Не должны ли они находиться во вкладке Текстуры?
 Формально да, должны, но большинство программ для просмотра изображений не поддерживают файлы KTX, поэтому лучше перенести их в другую вкладку, чтобы избежать проблем с совместимостью. Эта вкладка предназначена только для опытных пользователей.
@@ -64,12 +64,12 @@ Roblox Studio не поддерживает кэшированные файлы 
 ## Навигация с помощью клавиатуры и горячие клавиши
 Программа разработана так, чтобы её было удобно использовать мышью, но при этом поддерживает навигацию с помощью клавиатуры для опытных пользователей. Сочетания клавиш отображаются прямо на кнопках, чтобы вы могли быстро их увидеть.
 
-Вы можете менять вкладки с помощью Alt (или Ctrl) + 1-8. Вы можете выбирать ресурсы с помощью Tab и открывать с помощью Enter.
+Вы можете менять вкладки с помощью Alt (или Ctrl) + 1-8. Вы можете выбирать ресурсы с помощью Tab и распаковывать/открывать с помощью Enter.
 ## Меню настроек
 В меню настроек вы найдёте общие параметры кастомизации и также выбор действий с кэшем. Здесь вы можете распаковать весь кэш, сменить директорию или очистить кэш.
 
-# Режим CLI
-Режим CLI ещё в разработке.
+# CLI-режим
+CLI-режим находится в разработке.
 Читайте [CLI.md](/docs/ru-RU/CLI.md)
 
 # Установка на Windows
@@ -93,42 +93,42 @@ makepkg -si
 ```
 
 ## Другие дистрибутивы
-Other distros will hopefully be supported soon. If you know how to make one and want it merged in this project, create a pull request!
-Другие дистрибутивы, надеюсь, скоро будут поддерживаться. Если вы знаете как поддерживать какой-либо и хотите помочь проекту, <...>
+Надеемся, что поддержка других дистрибутивов скоро появится. Если вы умеете создавать пакеты и хотите помочь проекту - создайте pull request!
 
-# Testing development builds
-The development builds can be downloaded from the [releases](https://github.com/AeEn123/RoExtract/releases) page.
-
-If you already have the latest development build of RoExtract installed, you can enable development builds in settings 
-# More Info
-This is my first project written in rust/egui so bugs may appear, in the circumstance that a bug does appear, report an issue.
+# Предрелизные сборки
+Предрелизные сборки можно скачать со [страницы релизов](https://github.com/AeEn123/RoExtract/releases).
+ 
+Если у вас уже установлена самая последняя предрелизная сборка RoExtract, вы можете включить их получение в настройках.
+# Больше информации
+Это мой первый проект, написанный на Rust/egui, поэтому могут возникать баги. Если они появятся, сообщите об ошибке.
 
 > [!IMPORTANT]
-> Этот инструмент предназначен для Windows и GNU/Linux, и может не работать на других ОС.
+> Этот инструмент предназначен только для Windows и GNU/Linux, и может не работать на других ОС.
 
 > [!TIP]
-> If file listing is too slow, you can clear your cache with the clear cache button in the settings. Also, turning off Windows Defender will speed up file listing, as it scans every time a file is opened.
+> Если отображение списка файлов слишком медленное, вы можете очистить ваш кэш с помощью кнопки "Очистить кэш" в настройках. Также, отключение Windows Defender ускорит листинг файлов, так как он сканирует каждый раз, когда открывается файл.
 
-# Building from source
+# Сборка из исходников
 
-Building from source requires cargo, [which can be installed from rustup.](https://rustup.rs/)
+Для сборки из исходников требуется cargo, [который можно установить через rustup.](https://rustup.rs)
 
-## 1. Clone the repository
+## 1. Клонируйте репозиторий
 ```bash
 git clone https://github.com/AeEn123/RoExtract
 cd RoExtract
 ```
-## 2. Build with cargo, the command you run depends on your use-case
-If you want a finished build which runs fast but compiles slowly (recommended for normal use)
+
+## 2. Соберите с помощью cargo, нужная команда зависит от сценария использования
+Если вы хотите релизную сборку, которая быстро работает, но долго компилируется (рекомендуется для обычного использования)
 ```bash
 cargo build --release
 ```
 
-If you want a development build which runs slowly but compiles fast (recommended for development)
+Если вы хотите предрелизную сборку, которая медленно работает, но быстро компилируется (рекомендуется для разработки)
 ```bash
 cargo build
 ```
-Wait for it to build all the dependencies and the application. After that you should find it in the `target` folder.
+Дождитесь окончания сборки зависимостей и самого приложения. После этого, вы найдёте сборку в папке `target`.
 
 # Python-версия
 Python-версия больше не поддерживается.
