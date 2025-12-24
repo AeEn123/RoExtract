@@ -1,31 +1,31 @@
-# CLI (Command Line Interface) Mode
+# Режим командной строки (CLI)
 > [!NOTE]
-> CLI Mode is for more advanced users. If you are a regular user looking for a GUI, see [README.md](../README.md)
+> CLI-режим предназначен для опытных пользователей. Если вам нужен графический интерфейс (GUI), см. [README.md](../README.md)
 
 > [!NOTE]
-> The CLI mode is still under development. CLI mode does not have many features and things may change.
+> CLI-режим находится в разработке. Его функционал ограничен, и в будущем всё может поменяться.
 
-This mode is useful when you want to use the tool remotely (no display) and/or you want to automate the tool.
+Этот режим полезен, когда вы хотите использовать приложение удалённо (без монитора) и/или когда вы хотите автоматизировать его работу.
 
-# Commands and Usage
+# Команды и использование
 ## --help
-### Usage:
+### Использование:
 ```
-./RoExtract --help <command>
+./RoExtract --help <команда>
 ```
-### Description:
-Outputs a help page showing a list of commands
-### Arguments:
-The `<command>` argument is optional.
-When `<command>` is provided, it will show help for that commands.
+### Описание:
+Выводит справку со списком команд.
+### Аргументы:
+Аргумент `<команда>` необязателен.
+Если он указан, выводится справка для этой команды.
 
 ## --list
-### Usage:
+### Использование:
 ```
-./RoExtract --list <catagory>
+./RoExtract --list <категория>
 ```
-### Description:
-Will list files within that catagory.
-### Arguments:
-`<catagory>` is not optional.
-`<catagory>` must be either `music`, `sounds`, `images`, `ktx`, or `rbxm`.
+### Описание:
+Отобразит файлы в этой категории.
+### Аргументы:
+`<категория>` обязательна.
+`<категория>` должна быть одной из следующих: `music`, `sounds`, `images`, `ktx` или `rbxm`.
