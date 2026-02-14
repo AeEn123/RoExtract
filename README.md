@@ -14,6 +14,10 @@
 # Disclaimer
 This is an independent educational project. RoExtract is **NOT** affiliated with Roblox Corporation in any way.
 
+# No longer supported
+RoExtract is officially no longer supported and will not be updated for newer Roblox versions, I will still merge pull requests but any work will not come from myself due to personal issues.
+This may change in the future if I do get more time and motiviation to wrok on this project again.
+
 # RoExtract
 This tool extracts cached data from your Roblox installation by looking at the headers of cached files.
 
