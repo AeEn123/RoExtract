@@ -310,6 +310,9 @@ pub fn refresh(
                     let bytes_read = file.read(&mut buffer)?;
                     buffer.truncate(bytes_read);
 
+                    // Decompress asset data so asset detection works with zstd-compressed data.
+                    let buffer = logic::maybe_decompress(buffer);
+
                     for header in headers {
                         // Check if header is not empty before actually checking file
                         if !header.is_empty() {
@@ -348,7 +351,7 @@ pub fn refresh(
 pub fn read_asset(asset: &logic::AssetInfo) -> Result<Vec<u8>, std::io::Error> {
     let dir = get_category_cache_directory(asset.category);
     let asset_path = dir.join(&asset.name);
-    fs::read(asset_path)
+    fs::read(asset_path).map(logic::maybe_decompress)
 }
 
 pub fn swap_assets(asset_a: &logic::AssetInfo, asset_b: &logic::AssetInfo) -> std::io::Result<()> {

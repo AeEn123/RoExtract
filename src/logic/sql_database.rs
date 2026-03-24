@@ -334,6 +334,7 @@ pub fn read_asset(asset: &logic::AssetInfo) -> Result<Vec<u8>, std::io::Error> {
             params![id_bytes],
             |row| row.get(0),
         )
+        .map(logic::maybe_decompress)
         .map_err(std::io::Error::other)
     } else {
         Err(std::io::Error::other("No SQL connection!"))

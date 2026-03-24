@@ -73,6 +73,28 @@ fn clear_file_list() {
     *file_list = Vec::new()
 }
 
+/// Zstd magic bytes: 0xFD2FB528 (little-endian)
+const ZSTD_MAGIC: [u8; 4] = [0x28, 0xB5, 0x2F, 0xFD];
+
+/// If `bytes` starts with the zstd magic number, decompress and return the
+/// decompressed data.  Otherwise return `bytes` unchanged.
+pub fn maybe_decompress(bytes: Vec<u8>) -> Vec<u8> {
+    if bytes.starts_with(&ZSTD_MAGIC) {
+        match zstd::decode_all(bytes.as_slice()) {
+            Ok(decompressed) => {
+                log_info!("Decompressed zstd-compressed cache file ({} → {} bytes)", bytes.len(), decompressed.len());
+                decompressed
+            }
+            Err(e) => {
+                log_warn!("Failed to decompress zstd data, using raw bytes: {}", e);
+                bytes
+            }
+        }
+    } else {
+        bytes
+    }
+}
+
 fn bytes_search(haystack: &[u8], needle: &[u8]) -> Option<usize> {
     let len = needle.len();
     if len > 0 {
