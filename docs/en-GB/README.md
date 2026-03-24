@@ -14,18 +14,10 @@ This tool extracts cached data from your Roblox installation by looking at the h
 
 ![Screenshot](/assets/screenshot.png)
 
-# RoExtract? And the disclaimer? And the repo was suspended? What happened?
-So recently the repo was suspended due to trademark violation.
-
-I managed to get it back, GitHub support wanted a disclaimer. (thank you GitHub support, still a good support team out there)
-
-The disclaimer was added to the site and readme, to ensure it complies.
-
-I also rebranded the project to RoExtract to avoid further trademark concerns, since the previous name had "Roblox" in the name.
-
-The rebrand has broken a few links, but we are cleaning it up.
-
-Thank you for your support in this project :), it felt like I lost almost everything when I lost this repo.
+# Project Status
+I have ran out of motivation for the project, however I have begun starting to heavily use [Generative AI](https://en.wikipedia.org/wiki/Generative_AI) tools to help me develop this without much motivation.
+People who are not a fan of this and want to continue working on the code as it was before the heavy use of GenAI should check the [human](https://github.com/AeEn123/RoExtract/tree/human) branch out.
+For now I will be using GenAI to introduce the latest features and fix bugs. I understand this is not a good direction for the project to go in but it is better than it being abandoned and no one forking it.
 
 # FAQ
 ### The program can't run because VCRUNTIME140.dll is missing 
