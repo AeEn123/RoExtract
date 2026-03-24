@@ -278,8 +278,7 @@ pub fn refresh(
                             name: hex::encode(row.get::<_, Vec<u8>>(0)?),
                             _size: row.get(1)?,
                             last_modified,
-                            from_file: false,
-                            from_sql: true,
+                            source: logic::AssetSource::SqlDatabase,
                             category: if category == logic::Category::All {
                                 logic::determine_category(&bytes)
                             } else {
@@ -362,8 +361,7 @@ pub fn create_asset_info(asset: &str, category: logic::Category) -> Option<logic
                     name: asset.to_string(),
                     _size: row.get(1)?,
                     last_modified,
-                    from_file: false,
-                    from_sql: true,
+                    source: logic::AssetSource::SqlDatabase,
                     category,
                 })
             },

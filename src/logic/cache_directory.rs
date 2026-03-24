@@ -26,8 +26,7 @@ fn create_asset_info_unchecked(path: &PathBuf, category: logic::Category) -> log
                     name: file_name.to_string_lossy().to_string(),
                     _size: size,
                     last_modified,
-                    from_file: true,
-                    from_sql: false,
+                    source: logic::AssetSource::LegacyCache,
                     category,
                 }
             }
@@ -37,8 +36,7 @@ fn create_asset_info_unchecked(path: &PathBuf, category: logic::Category) -> log
                     name: file_name.to_string_lossy().to_string(),
                     _size: 0,
                     last_modified: None,
-                    from_file: true,
-                    from_sql: false,
+                    source: logic::AssetSource::LegacyCache,
                     category,
                 }
             }
@@ -49,8 +47,7 @@ fn create_asset_info_unchecked(path: &PathBuf, category: logic::Category) -> log
                 name: path.to_string_lossy().to_string(),
                 _size: 0,
                 last_modified: None,
-                from_file: true,
-                from_sql: false,
+                source: logic::AssetSource::LegacyCache,
                 category,
             }
         }

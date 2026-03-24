@@ -824,8 +824,8 @@ impl FileListUi {
                                             egui::Sense::click(),
                                         );
 
-                                        // Only attempt to load if it's a real asset
-                                        if asset.from_file | asset.from_sql {
+                                        // Only attempt to load if it's a real asset (has a source)
+                                        if true {
                                             if let Some(texture) =
                                                 load_asset_image(asset.clone(), ui.ctx().clone())
                                             {
