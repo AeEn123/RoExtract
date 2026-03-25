@@ -28,6 +28,7 @@ fn create_asset_info_unchecked(path: &PathBuf, category: logic::Category) -> log
                     last_modified,
                     from_file: true,
                     from_sql: false,
+                    from_rbx_storage: false,
                     category,
                 }
             }
@@ -39,6 +40,7 @@ fn create_asset_info_unchecked(path: &PathBuf, category: logic::Category) -> log
                     last_modified: None,
                     from_file: true,
                     from_sql: false,
+                    from_rbx_storage: false,
                     category,
                 }
             }
@@ -51,6 +53,7 @@ fn create_asset_info_unchecked(path: &PathBuf, category: logic::Category) -> log
                 last_modified: None,
                 from_file: true,
                 from_sql: false,
+                from_rbx_storage: false,
                 category,
             }
         }

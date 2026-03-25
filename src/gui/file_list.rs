@@ -825,7 +825,7 @@ impl FileListUi {
                                         );
 
                                         // Only attempt to load if it's a real asset
-                                        if asset.from_file | asset.from_sql {
+                                        if asset.from_file | asset.from_sql | asset.from_rbx_storage {
                                             if let Some(texture) =
                                                 load_asset_image(asset.clone(), ui.ctx().clone())
                                             {

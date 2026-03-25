@@ -280,6 +280,7 @@ pub fn refresh(
                             last_modified,
                             from_file: false,
                             from_sql: true,
+                            from_rbx_storage: false,
                             category: if category == logic::Category::All {
                                 logic::determine_category(&bytes)
                             } else {
@@ -364,6 +365,7 @@ pub fn create_asset_info(asset: &str, category: logic::Category) -> Option<logic
                     last_modified,
                     from_file: false,
                     from_sql: true,
+                    from_rbx_storage: false,
                     category,
                 })
             },

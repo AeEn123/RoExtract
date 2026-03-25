@@ -16,6 +16,7 @@ use crate::{config, locale};
 
 pub mod cache_directory;
 pub mod sql_database;
+pub mod rbx_storage_directory;
 
 static TEMP_DIRECTORY: LazyLock<Mutex<PathBuf>> = LazyLock::new(|| Mutex::new(create_temp_dir()));
 
@@ -54,6 +55,7 @@ pub struct AssetInfo {
     pub last_modified: Option<SystemTime>,
     pub from_file: bool,
     pub from_sql: bool,
+    pub from_rbx_storage: bool,
     pub category: Category,
 }
 
@@ -154,6 +156,7 @@ fn create_no_files(locale: &FluentBundle<Arc<FluentResource>>) -> AssetInfo {
         last_modified: None,
         from_file: false,
         from_sql: false,
+        from_rbx_storage: false,
         category: Category::All,
     }
 }
@@ -163,10 +166,12 @@ fn read_asset(asset: &AssetInfo) -> Result<Vec<u8>, std::io::Error> {
         cache_directory::read_asset(asset)
     } else if asset.from_sql {
         sql_database::read_asset(asset)
+    } else if asset.from_rbx_storage {
+        rbx_storage_directory::read_asset(asset)
     } else {
         Err(std::io::Error::new(
             std::io::ErrorKind::InvalidInput,
-            "Not from_file or from_sql",
+            "Not from_file, from_sql, or from_rbx_storage",
         ))
     }
 }
@@ -273,6 +278,7 @@ pub fn refresh(category: Category, cli_list_mode: bool, yield_for_thread: bool) 
 
         sql_database::refresh(category, cli_list_mode, &locale);
         cache_directory::refresh(category, cli_list_mode, &locale);
+        rbx_storage_directory::refresh(category, cli_list_mode, &locale);
 
         {
             let mut task = LIST_TASK_RUNNING.lock().unwrap();
@@ -469,12 +475,16 @@ pub fn extract_all(destination: PathBuf, yield_for_thread: bool, use_alias: bool
 pub fn swap_assets(asset_a: AssetInfo, asset_b: AssetInfo) {
     let cache_directory_result = cache_directory::swap_assets(&asset_a, &asset_b);
     let sql_database_result = sql_database::swap_assets(&asset_a, &asset_b);
+    let rbx_storage_result = rbx_storage_directory::swap_assets(&asset_a, &asset_b);
 
     // Confirmation and error messages
     let locale = locale::get_locale(None);
     let mut args = FluentArgs::new();
 
-    if cache_directory_result.as_ref().is_err() && sql_database_result.as_ref().is_err() {
+    if cache_directory_result.as_ref().is_err()
+        && sql_database_result.as_ref().is_err()
+        && rbx_storage_result.as_ref().is_err()
+    {
         // cache_directory error
         args.set(
             "error",
@@ -501,6 +511,18 @@ pub fn swap_assets(asset_a: AssetInfo, asset_b: AssetInfo) {
             Some(&args),
         ));
         log_error!("Error opening file '{}'", sql_database_result.unwrap_err());
+
+        // rbx_storage error
+        args.set(
+            "error",
+            rbx_storage_result.as_ref().unwrap_err().to_string(),
+        );
+        update_status(locale::get_message(
+            &locale,
+            "failed-opening-file",
+            Some(&args),
+        ));
+        log_error!("Error opening file '{}'", rbx_storage_result.unwrap_err());
     } else {
         args.set("item_a", asset_a.name);
         args.set("item_b", asset_b.name);
@@ -511,12 +533,16 @@ pub fn swap_assets(asset_a: AssetInfo, asset_b: AssetInfo) {
 pub fn copy_assets(asset_a: AssetInfo, asset_b: AssetInfo) {
     let cache_directory_result = cache_directory::copy_assets(&asset_a, &asset_b);
     let sql_database_result = sql_database::copy_assets(&asset_a, &asset_b);
+    let rbx_storage_result = rbx_storage_directory::copy_assets(&asset_a, &asset_b);
 
     // Confirmation and error messages
     let locale = locale::get_locale(None);
     let mut args = FluentArgs::new();
 
-    if cache_directory_result.as_ref().is_err() && sql_database_result.as_ref().is_err() {
+    if cache_directory_result.as_ref().is_err()
+        && sql_database_result.as_ref().is_err()
+        && rbx_storage_result.as_ref().is_err()
+    {
         // cache_directory error
         args.set(
             "error",
@@ -543,6 +569,18 @@ pub fn copy_assets(asset_a: AssetInfo, asset_b: AssetInfo) {
             Some(&args),
         ));
         log_error!("Error opening file '{}'", sql_database_result.unwrap_err());
+
+        // rbx_storage error
+        args.set(
+            "error",
+            rbx_storage_result.as_ref().unwrap_err().to_string(),
+        );
+        update_status(locale::get_message(
+            &locale,
+            "failed-opening-file",
+            Some(&args),
+        ));
+        log_error!("Error opening file '{}'", rbx_storage_result.unwrap_err());
     } else {
         args.set("item_a", asset_a.name);
         args.set("item_b", asset_b.name);
@@ -588,6 +626,7 @@ pub fn create_asset_info(asset: &str, category: Category) -> AssetInfo {
         last_modified: None,
         from_file: false,
         from_sql: false,
+        from_rbx_storage: false,
         category,
     }
 }
