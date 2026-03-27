@@ -325,6 +325,14 @@ pub fn extract_to_file(
         Err(_) => bytes.clone(), // No header was found.
     };
 
+    // Ensure parent directory exists (needed when asset name contains subdirectories,
+    // e.g. rbx-storage assets stored as "ab/abcdef...")
+    if let Some(parent) = destination.parent() {
+        if let Err(e) = fs::create_dir_all(parent) {
+            log_error!("Failed to create parent directory: {}", e);
+        }
+    }
+
     match fs::write(destination.clone(), extracted_bytes) {
         Ok(_) => (),
         Err(e) => log_error!("Error writing file: {}", e),

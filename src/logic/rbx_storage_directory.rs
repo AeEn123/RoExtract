@@ -7,17 +7,38 @@ use std::sync::Arc;
 use crate::locale;
 use crate::logic::{self, determine_category};
 
-/// Derive the rbx-storage directory from the SQL database path.
-/// e.g. `…/Roblox/rbx-storage.db` → `…/Roblox/rbx-storage`
+/// Default rbx-storage directory paths for each platform.
+/// These are tried when the DB-derived path doesn't exist (e.g. Linux/Sober,
+/// where the DB lives under `data/` but the cache dir is under `cache/`).
+const DEFAULT_DIRECTORIES: [&str; 2] = [
+    "%localappdata%\\Roblox\\rbx-storage",
+    "~/.var/app/org.vinegarhq.Sober/cache/sober/rbx-storage",
+];
+
+/// Find the rbx-storage directory.
+/// First tries to derive it from the SQL database path (works on Windows).
+/// Falls back to the hardcoded default list (needed on Linux/Sober).
 pub fn get_rbx_storage_dir() -> Option<PathBuf> {
-    let db_path = logic::sql_database::get_db_path()?;
-    let parent = std::path::Path::new(&db_path).parent()?;
-    let dir = parent.join("rbx-storage");
-    if dir.is_dir() {
-        Some(dir)
-    } else {
-        None
+    // Try deriving from the DB path first (works for Windows)
+    if let Some(db_path) = logic::sql_database::get_db_path() {
+        if let Some(parent) = std::path::Path::new(&db_path).parent() {
+            let dir = parent.join("rbx-storage");
+            if dir.is_dir() {
+                return Some(dir);
+            }
+        }
     }
+
+    // Fall back to hardcoded defaults (needed for Linux/Sober)
+    for default in DEFAULT_DIRECTORIES {
+        let resolved = logic::resolve_path(default);
+        let dir = PathBuf::from(&resolved);
+        if dir.is_dir() {
+            return Some(dir);
+        }
+    }
+
+    None
 }
 
 fn create_asset_info(
