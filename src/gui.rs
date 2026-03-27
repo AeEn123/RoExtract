@@ -116,6 +116,7 @@ impl egui_dock::TabViewer for TabViewer<'_> {
             settings::actions(ui, self.locale);
             settings::cache_dir_management(ui, self.locale);
             settings::sql_db_management(ui, self.locale);
+            settings::rbx_storage_dir_management(ui, self.locale);
             settings::behavior(ui, self.locale);
             settings::updates(ui, self.locale);
 

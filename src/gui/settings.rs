@@ -367,3 +367,66 @@ pub fn language(ui: &mut egui::Ui, locale: &FluentBundle<Arc<FluentResource>>) -
     );
     user_clicked // Refresh depending on if the user clicked or not
 }
+
+pub fn rbx_storage_dir_management(ui: &mut egui::Ui, locale: &FluentBundle<Arc<FluentResource>>) {
+    ui.separator();
+    ui.label(locale::get_message(
+        locale,
+        "custom-rbx-storage-dir-description",
+        None,
+    ));
+
+    let mut args = FluentArgs::new();
+    args.set(
+        "directory",
+        logic::rbx_storage_directory::get_rbx_storage_dir()
+            .map(|p| p.to_string_lossy().to_string())
+            .unwrap_or_else(|| locale::get_message(locale, "no-directory", None)),
+    );
+
+    ui.label(locale::get_message(locale, "rbx-storage-directory", Some(&args)));
+
+    ui.horizontal(|ui| {
+        if ui
+            .button(locale::get_message(locale, "button-change-rbx-storage-dir", None))
+            .clicked()
+        {
+            let option_path = DialogBuilder::file().open_single_dir().show().unwrap();
+
+            if let Some(path) = option_path {
+                let path_str = path.to_string_lossy().to_string();
+                if path.is_dir() {
+                    config::set_config_value("rbx_storage_directory", path_str.into());
+                    logic::rbx_storage_directory::set_rbx_storage_dir(
+                        logic::rbx_storage_directory::detect_directory(),
+                    );
+                } else {
+                    DialogBuilder::message()
+                        .set_level(MessageLevel::Info)
+                        .set_title(locale::get_message(
+                            locale,
+                            "error-invalid-directory-title",
+                            None,
+                        ))
+                        .set_text(locale::get_message(
+                            locale,
+                            "error-invalid-directory-description",
+                            None,
+                        ))
+                        .alert()
+                        .show()
+                        .unwrap();
+                }
+            }
+        }
+        if ui
+            .button(locale::get_message(locale, "button-reset-rbx-storage-dir", None))
+            .clicked()
+        {
+            config::remove_config_value("rbx_storage_directory");
+            logic::rbx_storage_directory::set_rbx_storage_dir(
+                logic::rbx_storage_directory::detect_directory(),
+            );
+        }
+    });
+}

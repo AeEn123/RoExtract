@@ -15,8 +15,8 @@ use strum_macros::{Display, EnumIter};
 use crate::{config, locale};
 
 pub mod cache_directory;
-pub mod sql_database;
 pub mod rbx_storage_directory;
+pub mod sql_database;
 
 static TEMP_DIRECTORY: LazyLock<Mutex<PathBuf>> = LazyLock::new(|| Mutex::new(create_temp_dir()));
 
@@ -84,7 +84,11 @@ pub fn maybe_decompress(bytes: Vec<u8>) -> Vec<u8> {
     if bytes.starts_with(&ZSTD_MAGIC) {
         match zstd::decode_all(bytes.as_slice()) {
             Ok(decompressed) => {
-                log_info!("Decompressed zstd-compressed cache file ({} → {} bytes)", bytes.len(), decompressed.len());
+                log_debug!(
+                    "Decompressed zstd-compressed cache file ({} → {} bytes)",
+                    bytes.len(),
+                    decompressed.len()
+                );
                 decompressed
             }
             Err(e) => {
@@ -664,7 +668,7 @@ pub fn determine_category(bytes: &[u8]) -> Category {
 pub fn get_headers(category: &Category) -> Vec<String> {
     match category {
         Category::Music => {
-            vec!["OggS".to_string(), "ID3".to_string()]
+            vec![] // No headers for music, Roblox stores these without an HTTP header so there's no point looking out for them.
         }
         Category::Sounds => {
             vec!["OggS".to_string(), "ID3".to_string()]

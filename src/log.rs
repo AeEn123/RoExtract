@@ -36,7 +36,7 @@ macro_rules! log_error {
 #[macro_export]
 macro_rules! log_debug {
     ($($arg:tt)*) => {
-        if cfg!(debug_assertions) {
+        if cfg!(debug_assertions) | true { // Temporary enable debug logging for release builds
             $crate::log::log("DEBUG: ", &format!($($arg)*), file!(), line!(), column!())
         }
     };
