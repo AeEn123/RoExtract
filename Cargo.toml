@@ -1,6 +1,6 @@
 [package]
 name = "RoExtract"
-version = "1.0.2"
+version = "1.0.3"
 edition = "2021"
 
 [dependencies]
@@ -46,4 +46,3 @@ codegen-units = 1
 strip = true
 panic = "abort"
 overflow-checks = false
-
