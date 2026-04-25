@@ -544,6 +544,25 @@ impl FileListUi {
 
         let mut focus_search_box = false; // Focus the search box toggle for this frame
 
+        // Empty state
+        if file_list.is_empty() {
+            ui.vertical_centered(|ui| {
+                ui.add_space(40.0);
+                let icon_size = 48.0;
+                ui.add(
+                    egui::Label::new(egui::RichText::new("📂").size(icon_size)).selectable(false),
+                );
+                ui.heading(locale::get_message(&self.locale, "empty-state-title", None));
+                ui.label(locale::get_message(
+                    &self.locale,
+                    "empty-state-description",
+                    None,
+                ));
+                ui.label(locale::get_message(&self.locale, "empty-state-hint", None));
+            });
+            return;
+        }
+
         // Handle key shortcuts here
         if ui.input(|i| i.key_pressed(egui::Key::F2)) {
             // Rename hotkey
