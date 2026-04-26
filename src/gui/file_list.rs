@@ -5,7 +5,7 @@ use crate::{
 use egui::{Color32, TextureHandle};
 // Used for functionality
 use fluent_bundle::{FluentBundle, FluentResource};
-use native_dialog::{DialogBuilder, MessageLevel};
+use native_dialog::{DialogBuilder, MessageLevel, file};
 use std::num::NonZero;
 use std::{
     sync::{Arc, LazyLock, Mutex},
@@ -547,9 +547,20 @@ impl FileListUi {
         if ui.input(|i| i.key_pressed(egui::Key::F5)) {
             logic::refresh(category, false, false);
         }
-        
+
+        let file_list_is_empty = {
+            file_list.is_empty()
+            || (
+                file_list.len() == 1
+                // The "No files to list" asset shows as from none of these
+                && !file_list[0].from_file
+                && !file_list[0].from_sql
+                && !file_list[0].from_rbx_storage // TODO: Maybe I should make this an enum...
+            )
+        };
+
         // Empty state
-        if file_list.is_empty() {
+        if file_list_is_empty {
             ui.vertical_centered(|ui| {
                 ui.add_space(40.0);
                 let icon_size = 48.0;
