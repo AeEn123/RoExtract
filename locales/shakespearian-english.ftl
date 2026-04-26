@@ -52,6 +52,11 @@ confirmation-custom-directory-description = Wouldst thou select a different vaul
 confirmation-ban-warning-title = A Forewarning of Banishment  
 confirmation-ban-warning-description = Meddling with the relics of games may cause thy client to act errantly, leading to a perilous fate—banishment! Proceed only if thy courage be steadfast. Dost thou comprehend?  
 
+# Empty state
+empty-state-title = No Assets Hath Been Found
+empty-state-description = Prithee, launch the Roblox client at least once, then click Refresh to uncover thy cached assets.
+empty-state-hint = Should extraction prove sluggish, endeavour to clear the cache first.
+
 # Errors  
 error-invalid-database-title = A Scroll of Tables Most Unfit!  
 error-invalid-database-description = Pray, ensure the path thou gavest leadeth to a true SQLite Scroll of Tables.  
