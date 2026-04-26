@@ -46,6 +46,10 @@ actions = Aktionen
 updates = Aktualisierungen
 language-settings = Spracheneinstellungen
 
+# Empty state
+empty-state-title = Geen Assets Gevonden
+empty-state-description = Start de Roblox-client minstens één keer op en klik vervolgens op Neuladen om gecachede assets te detecteren.
+empty-state-hint = Als de extractie traag is, probeer dan eerst de cache te wissen.
 
 # Kontrollkästchen
 check-for-updates = Für Aktualisierungen suchen

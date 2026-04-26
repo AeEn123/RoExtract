@@ -52,6 +52,11 @@ confirmation-custom-directory-description = 您想要选择不同的目录吗？
 confirmation-ban-warning-title = 潜在风险警告
 confirmation-ban-warning-description = 在游戏中编辑资源可能导致客户端表现异常
 
+# Empty state
+empty-state-title = 未找到资源
+empty-state-description = 请至少运行一次 Roblox 客户端，然后点击"刷新"以检测缓存的资源。
+empty-state-hint = 如果提取速度较慢，请先尝试清除缓存。
+
 # Errors
 error-invalid-database-description = Please make sure the path you provided is an SQLite Database # TODO: Translate
 error-invalid-database-title = Invalid database! # TODO: Translate

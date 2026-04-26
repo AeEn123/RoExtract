@@ -51,6 +51,11 @@ confirmation-clear-cache-description = Czy jesteś pewny(a) że chcesz wyczyści
 confirmation-custom-directory-title = Wybierz inny katalog
 confirmation-custom-directory-description = Czy chcesz wybrać inny katalog pamięci podręcznej?
 
+# Empty state
+empty-state-title = Nie Znaleziono Zasobów
+empty-state-description = Uruchom klienta Roblox przynajmniej raz, a następnie kliknij Odśwież, aby wykryć zbuforowane zasoby.
+empty-state-hint = Jeśli wyodrębnianie jest wolne, spróbuj najpierw wyczyścić pamięć podręczną.
+
 # Errors
 error-invalid-database-description = Proszę upewnij się że podana scieżka jest bazą danych SQLite
 error-invalid-database-title = Nieprawidłowa baza danych

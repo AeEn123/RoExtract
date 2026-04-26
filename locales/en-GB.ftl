@@ -52,6 +52,11 @@ confirmation-custom-sql-description = Do you want to choose a different SQL Data
 confirmation-ban-warning-title = Potential ban alert
 confirmation-ban-warning-description = Editing assets in games can cause your client to behave differently leading to potential game bans! Use at your own risk. Do you understand?
 
+# Empty state
+empty-state-title = No Assets Found
+empty-state-description = Run the Roblox client at least once, then click Refresh to detect cached assets.
+empty-state-hint = If extraction is slow, try clearing the cache first.
+
 # Errors
 no-files = No files to list.
 error-directory-detection-title = Directory detection failed!

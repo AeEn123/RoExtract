@@ -38,8 +38,8 @@ button-disable-display-image-preview = stop dispalyignt image preivwews
 input-preview-size = previeas size
 
 # Confirmations
-confirmation-custom-sql-title = Choose a SQL Database # TODO: Translate
-confirmation-custom-sql-description = Do you want to choose a different SQL Database? # TODO: Translate
+confirmation-custom-sql-title = chops2 an sql databse
+confirmation-custom-sql-description = do you want to chhsose a different aql databsee?
 confirmation-generic-confirmation-title = ocnfimration
 confirmation-delete-confirmation-title = deletiong fiels
 confirmation-delete-confirmation-description = aer yours ture youw anyt tot delte fielxsz int this direct6ory
@@ -52,6 +52,11 @@ confirmation-custom-directory-description = do youw atn tto choose a d9ifternt d
 confirmation-ban-warning-title = poitiuernal ban elert
 confirmation-ban-warning-description = editing assets in game can casu eouyhuy mrlcient to ebacheve asifdcnfgrfernetly,d oy yu dunersatnd
 
+# Empty state
+empty-state-title = no assets foudj
+empty-state-description = run the robloz clibwt at lerst omce, then clikc recrtfesh to detcte xached assets.
+empty-state-hint = if exteractipn is slow, try clearjing the cachw firsr.
+
 # Errors
 error-invalid-database-description = mkas sure teht epath you rpovide isa vald sql datbase
 error-invalid-database-title = invald datbase
@@ -60,10 +65,10 @@ error-sql-detection-description = databsbe detection faleld!!11!!1 is tehr pclei
 no-files = no fiels to lsit
 error-directory-detection-title = directyory ded4rection failewd
 error-directory-detection-description = isr oblox isntalledf dadn  yotu eran it tat least once
-error-temporary-directory-title = Failed to create a temporary directory!
-error-temporary-directory-description = Error: Failed to create a temporary directory! Do you have read/write access to your temp folder? If this error continues, try running as administrator
-error-invalid-directory-title = Invalid directory!
-error-invalid-directory-description = Please make sure the path you provided is a directory
+error-temporary-directory-title = faled to creatr a twmpaorary directpru!!1!1!1!1!11!
+error-temporary-directory-description = error: faled to creatr a twmpaorary directpru!!1!1!1!1!11! do ypu ahve read/rite access to youer temp folder? if thia error continiea, try rinnign as adminnistrattor
+error-invalid-directory-title = invalie dircetory!
+error-invalid-directory-description = please make sur eth epath you prpvided is a ditrcrtory
 generic-error-critical = cirtical error
 
 # Headings

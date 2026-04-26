@@ -544,6 +544,36 @@ impl FileListUi {
 
         let mut focus_search_box = false; // Focus the search box toggle for this frame
 
+        if ui.input(|i| i.key_pressed(egui::Key::F5)) {
+            logic::refresh(category, false, false);
+        }
+        
+        // Empty state
+        if file_list.is_empty() {
+            ui.vertical_centered(|ui| {
+                ui.add_space(40.0);
+                let icon_size = 48.0;
+                ui.add(
+                    egui::Label::new(egui::RichText::new("📂").size(icon_size)).selectable(false),
+                );
+                ui.heading(locale::get_message(&self.locale, "empty-state-title", None));
+                ui.label(locale::get_message(
+                    &self.locale,
+                    "empty-state-description",
+                    None,
+                ));
+                ui.label(locale::get_message(&self.locale, "empty-state-hint", None));
+                ui.add_space(20.0);
+                if ui
+                    .button(locale::get_message(&self.locale, "button-refresh", None))
+                    .clicked()
+                {
+                    logic::refresh(category, false, false);
+                }
+            });
+            return;
+        }
+
         // Handle key shortcuts here
         if ui.input(|i| i.key_pressed(egui::Key::F2)) {
             // Rename hotkey
@@ -560,9 +590,6 @@ impl FileListUi {
         }
         if ui.input(|i| i.key_pressed(egui::Key::F3)) {
             extract_all_of_type(category, &self.locale);
-        }
-        if ui.input(|i| i.key_pressed(egui::Key::F5)) {
-            logic::refresh(category, false, false);
         }
         if ui.input(|i| i.modifiers.ctrl && i.key_pressed(egui::Key::D)) {
             // Ctrl+D (Swap)

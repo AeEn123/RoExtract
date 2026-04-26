@@ -52,6 +52,11 @@ confirmation-custom-directory-description = Ye wish to set a new cache course, a
 confirmation-ban-warning-title = Beware! A Curse May Be Upon Ye!  
 confirmation-ban-warning-description = Tamperin’ with booty in games could get ye marooned! Sail at yer own risk! Do ye understand, matey?  
 
+# Empty state
+empty-state-title = No Booty Be Found
+empty-state-description = Set sail the Roblox vessel at least once, then click Hoist the Colors to spy yer cached plunder.
+empty-state-hint = If haulin' be slow, try clearin' the hold first, ye scallywag.
+
 # Errors
 error-invalid-database-title = That Be No Proper Ledger!
 error-invalid-database-description = Make sure the path leads to a proper SQLite treasure map!
