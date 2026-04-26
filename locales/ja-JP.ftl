@@ -39,6 +39,10 @@ confirmation-custom-directory-description = 別のキャッシュディレクト
 confirmation-ban-warning-title = 潜在的なBAN警告
 confirmation-ban-warning-description = ゲーム内のアセットを編集すると、クライアントの動作が変わり、ゲームからBANされる可能性があります！自己責任で使用してください。理解しましたか？
 
+empty-state-title = アセットが見つかりません
+empty-state-description = Robloxクライアントを少なくとも一度起動してから、「更新」をクリックしてキャッシュされたアセットを検出してください。
+empty-state-hint = 抽出が遅い場合は、まずキャッシュをクリアしてみてください。
+
 # エラー
 no-files = リストするファイルがありません。
 error-directory-detection-title = ディレクトリ検出に失敗しました！
