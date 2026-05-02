@@ -719,6 +719,80 @@ pub fn get_status() -> String {
     STATUS.lock().unwrap().clone()
 }
 
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_maybe_decompress_no_zstd() {
+        let bytes = vec![1, 2, 3, 4];
+        let result = maybe_decompress(bytes.clone());
+        assert_eq!(result, bytes);
+    }
+
+    #[test]
+    fn test_bytes_search() {
+        let haystack = b"hello world";
+        assert_eq!(bytes_search(haystack, b"hello"), Some(0));
+        assert_eq!(bytes_search(haystack, b"world"), Some(6));
+        assert_eq!(bytes_search(haystack, b"rust"), None);
+        assert_eq!(bytes_search(haystack, b""), None);
+    }
+
+    #[test]
+    fn test_bytes_contains() {
+        let haystack = b"hello world";
+        assert!(bytes_contains(haystack, b"hello"));
+        assert!(bytes_contains(haystack, b"world"));
+        assert!(!bytes_contains(haystack, b"rust"));
+        assert!(!bytes_contains(haystack, b""));
+    }
+
+    #[test]
+    fn test_determine_category_png() {
+        let png_bytes = b"\x89PNG\r\n\x1a\n";
+        assert_eq!(determine_category(png_bytes), Category::Images);
+    }
+
+    #[test]
+    fn test_determine_category_webp() {
+        let webp_bytes = b"RIFF....WEBP";
+        assert_eq!(determine_category(webp_bytes), Category::Images);
+    }
+
+    #[test]
+    fn test_determine_category_ktx() {
+        let ktx_bytes = b"\xABKTX 11\xBB";
+        assert_eq!(determine_category(ktx_bytes), Category::Ktx);
+    }
+
+    #[test]
+    fn test_determine_category_rbxm() {
+        let rbxm_bytes = b"<roblox!";
+        assert_eq!(determine_category(rbxm_bytes), Category::Rbxm);
+    }
+
+    #[test]
+    fn test_determine_category_mp3() {
+        // ID3 header requires "binary/" for Category::Sounds in this app
+        let mp3_bytes = b"ID3...binary/";
+        assert_eq!(determine_category(mp3_bytes), Category::Sounds);
+    }
+
+    #[test]
+    fn test_determine_category_unknown() {
+        let unknown_bytes = b"unknown data";
+        assert_eq!(determine_category(unknown_bytes), Category::All);
+    }
+
+    #[test]
+    fn test_get_headers() {
+        assert!(get_headers(&Category::Images).contains(&"PNG".to_string()));
+        assert!(get_headers(&Category::Images).contains(&"WEBP".to_string()));
+        assert!(get_headers(&Category::Music).is_empty());
+    }
+}
+
 pub fn get_progress() -> f32 {
     *PROGRESS.lock().unwrap()
 }

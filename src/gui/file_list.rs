@@ -5,7 +5,7 @@ use crate::{
 use egui::{Color32, TextureHandle};
 // Used for functionality
 use fluent_bundle::{FluentBundle, FluentResource};
-use native_dialog::{DialogBuilder, MessageLevel, file};
+use native_dialog::{DialogBuilder, MessageLevel};
 use std::num::NonZero;
 use std::{
     sync::{Arc, LazyLock, Mutex},
@@ -550,13 +550,14 @@ impl FileListUi {
 
         let file_list_is_empty = {
             file_list.is_empty()
-            || (
-                file_list.len() == 1
+                || (
+                    file_list.len() == 1
                 // The "No files to list" asset shows as from none of these
                 && !file_list[0].from_file
                 && !file_list[0].from_sql
-                && !file_list[0].from_rbx_storage // TODO: Maybe I should make this an enum...
-            )
+                && !file_list[0].from_rbx_storage
+                    // TODO: Maybe I should make this an enum...
+                )
         };
 
         // Empty state
@@ -863,7 +864,8 @@ impl FileListUi {
                                         );
 
                                         // Only attempt to load if it's a real asset
-                                        if asset.from_file | asset.from_sql | asset.from_rbx_storage {
+                                        if asset.from_file | asset.from_sql | asset.from_rbx_storage
+                                        {
                                             if let Some(texture) =
                                                 load_asset_image(asset.clone(), ui.ctx().clone())
                                             {

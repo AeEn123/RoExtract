@@ -402,3 +402,30 @@ pub fn create_asset_info(asset: &str, category: logic::Category) -> Option<logic
         None
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::env;
+    use std::fs::File;
+
+    #[test]
+    fn test_validate_directory() {
+        let temp_dir = env::temp_dir();
+        assert!(validate_directory(temp_dir.to_str().unwrap()).is_ok());
+
+        let mut invalid_path = temp_dir.clone();
+        invalid_path.push("roextract_nonexistent_dir");
+        if invalid_path.exists() {
+            fs::remove_dir_all(&invalid_path).unwrap();
+        }
+        assert!(validate_directory(invalid_path.to_str().unwrap()).is_err());
+
+        let mut file_path = temp_dir.clone();
+        file_path.push("roextract_test_file");
+        File::create(&file_path).unwrap();
+        assert!(validate_directory(file_path.to_str().unwrap()).is_err()); // It's a file, not a directory
+        
+        fs::remove_file(&file_path).unwrap();
+    }
+}

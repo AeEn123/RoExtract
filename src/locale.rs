@@ -84,3 +84,29 @@ pub fn get_locale(lang: Option<&str>) -> FluentBundle<Arc<FluentResource>> {
 pub fn get_language_list() -> Vec<(String, String)> {
     LANGUAGE_LIST.lock().unwrap().clone()
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_get_locale_en() {
+        let bundle = get_locale(Some("en-GB"));
+        assert_eq!(bundle.locales[0].to_string(), "en-GB");
+    }
+
+    #[test]
+    fn test_get_message() {
+        let bundle = get_locale(Some("en-GB"));
+        // "idling" is a common key, let's check if it returns something other than "idling"
+        let msg = get_message(&bundle, "idling", None);
+        assert_ne!(msg, "idling");
+    }
+
+    #[test]
+    fn test_get_message_unknown() {
+        let bundle = get_locale(Some("en-GB"));
+        let msg = get_message(&bundle, "nonexistent-key", None);
+        assert_eq!(msg, "nonexistent-key");
+    }
+}

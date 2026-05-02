@@ -473,3 +473,31 @@ pub fn clean_up() -> Result<(), (Connection, rusqlite::Error)> {
 
     result
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::fs::File;
+    use std::env;
+
+    #[test]
+    fn test_validate_file() {
+        let mut temp_path = env::temp_dir();
+        temp_path.push("roextract_test.db");
+        File::create(&temp_path).unwrap();
+
+        let path_str = temp_path.to_str().unwrap();
+        assert!(validate_file(path_str).is_ok());
+
+        let mut invalid_path = env::temp_dir();
+        invalid_path.push("roextract_nonexistent.db");
+        if invalid_path.exists() {
+            fs::remove_file(&invalid_path).unwrap();
+        }
+        assert!(validate_file(invalid_path.to_str().unwrap()).is_err());
+
+        assert!(validate_file(env::temp_dir().to_str().unwrap()).is_err()); // It's a directory, not a file
+        
+        fs::remove_file(&temp_path).unwrap();
+    }
+}
