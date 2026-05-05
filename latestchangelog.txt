@@ -1,3 +1,0 @@
-v0.07--------------------
-+ Added Linux support
-+ Added option to download new Rust rewrite
