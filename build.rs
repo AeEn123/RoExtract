@@ -12,10 +12,24 @@ fn main() -> io::Result<()> {
         res.set("CompanyName", "Alfie Likes Computers");
         res.set(
             "FileDescription",
-            "A safe way to extract assets from your Roblox installation.",
+            "A safe way to extract assets from your Roblox cache.",
         );
         res.set("OriginalFilename", "RoExtract-windows.exe");
         res.set("InternalName", "RoExtract");
+
+        // Explicitly opt out of Windows installer-detection heuristics.
+        res.set_manifest(
+            r#"<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<assembly xmlns="urn:schemas-microsoft-com:asm.v1" manifestVersion="1.0">
+    <trustInfo xmlns="urn:schemas-microsoft-com:asm.v2">
+        <security>
+            <requestedPrivileges xmlns="urn:schemas-microsoft-com:asm.v3">
+                <requestedExecutionLevel level="asInvoker" uiAccess="false" />
+            </requestedPrivileges>
+        </security>
+    </trustInfo>
+</assembly>"#,
+        );
 
         // Icon
         res.set_icon("assets/icon.ico");
