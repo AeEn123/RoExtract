@@ -12,6 +12,8 @@ settings = Ustawienia
 about = Informacje
 
 # Buttons
+button-reset-rbx-storage-dir = Reset rbx-storage Directory # TODO: Translate
+button-change-rbx-storage-dir = Change rbx-storage Directory # TODO: Translate
 button-reset-sql-db = Zresetuj bazę danych SQL
 button-change-sql-db = Zmień bazę danych SQL
 button-disable-display-image-preview = Przestań wyświetlać podgląd obrazu
@@ -71,6 +73,7 @@ error-invalid-directory-title = Nieprawidłowy katalog
 error-invalid-directory-description = Upewnij się, że ścieżka którą podałeś(aś) jest katalogiem
 
 # Headings
+downloading-update = Downloading update… # TODO: Translate
 actions = Akcje
 updates = Aktualizacje
 language-settings = Ustawienia języka
@@ -90,6 +93,7 @@ use-alias = Eksportuj alternatywne nazwy plików
 
 
 # Descriptions
+custom-rbx-storage-dir-description = If you want to use a different rbx-storage directory, change it below. You can reset it back to the default with the other button. # TODO: Translate
 custom-sql-db-description = Jeśli chcesz uzyskać dostęp do innej pamięci podręcznej, zmień swoją bazę danych SQL poniżej. Możesz przywrócić domyślną za pomocą drugiego przycisku. To nie jest to samo co folder instalacyjny.
 overwrite-with = Podwójnie kliknij plik aby nadpisać z "{ $asset }"
 copy-choose-file = Podwójnie kliknij plik do skopiowania.
@@ -120,6 +124,8 @@ error-extracting-file = BŁĄD: Nie udało się wyodrębnić plików: { $error }
 error-check-logs = BŁĄD: Sprawdź dziennik po więcej informacji.
 
 # Misc
+no-directory = Not found # TODO: Translate
+rbx-storage-directory = rbx-storage Directory: { $directory } # TODO: Translate
 sql-database = Baza danych SQL: { $path }
 setting-below-restart-required = Uwaga: Zmienianie ustawienia poniżej wymaga restartu programu aby się zastosowało
 support-project-donate = ♥ Wesprzyj projekt darowizną

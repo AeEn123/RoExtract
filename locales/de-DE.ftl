@@ -141,3 +141,10 @@ error-invalid-database-description = Bitte stelle sicher, das der Pfad den du an
 
 confirmation-custom-sql-description = Do you want to choose a different SQL Database? # TODO: Translate
 confirmation-custom-sql-title = Choose a SQL Database # TODO: Translate
+
+custom-rbx-storage-dir-description = If you want to use a different rbx-storage directory, change it below. You can reset it back to the default with the other button. # TODO: Translate
+rbx-storage-directory = rbx-storage Directory: { $directory } # TODO: Translate
+button-change-rbx-storage-dir = Change rbx-storage Directory # TODO: Translate
+downloading-update = Downloading update… # TODO: Translate
+button-reset-rbx-storage-dir = Reset rbx-storage Directory # TODO: Translate
+no-directory = Not found # TODO: Translate

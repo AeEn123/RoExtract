@@ -327,6 +327,7 @@ pub fn refresh(
                                     create_asset_info_unchecked(&path, *category)
                                 };
                                 logic::update_file_list(asset_info, cli_list_mode);
+                                break; // Stop after the first match so a file isn't listed twice
                             }
                         }
                     }

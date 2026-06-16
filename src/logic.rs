@@ -132,6 +132,22 @@ fn find_header(category: Category, bytes: &[u8]) -> Result<String, String> {
     Err("Headers not found in bytes".to_owned())
 }
 
+/// Detect a file extension from the leading magic bytes of a *raw* file (one
+/// stored without an HTTP header, such as music in Roblox's `/sounds` folder).
+/// Returns `None` when the format isn't recognised so the caller can decide on a
+/// fallback.
+fn detect_file_extension(bytes: &[u8]) -> Option<&'static str> {
+    if bytes.starts_with(b"OggS") {
+        Some("ogg") // Ogg container (Roblox music is typically Ogg Vorbis)
+    } else if bytes.starts_with(b"ID3")
+        || (bytes.len() >= 2 && bytes[0] == 0xFF && (bytes[1] & 0xE0) == 0xE0)
+    {
+        Some("mp3") // ID3 tag, or a raw MPEG audio frame sync (0xFFEx)
+    } else {
+        None
+    }
+}
+
 fn extract_bytes(header: &str, bytes: Vec<u8>) -> Vec<u8> {
     // Set offset depending on header
     let offset: usize = match header {
@@ -142,10 +158,12 @@ fn extract_bytes(header: &str, bytes: Vec<u8>) -> Vec<u8> {
     };
 
     // Find the header in the file
-    if let Some(mut index) = bytes_search(&bytes, header.as_bytes()) {
-        // Found the header, extract from the bytes
-        index -= offset; // Apply offset
-                         // Return all the bytes after the found header index
+    if let Some(index) = bytes_search(&bytes, header.as_bytes()) {
+        // Found the header, extract from the bytes.
+        // Use saturating_sub so a header found before `offset` bytes can't
+        // underflow the index and cause an out-of-bounds slice panic.
+        let index = index.saturating_sub(offset); // Apply offset
+                                                   // Return all the bytes after the found header index
         return bytes[index..].to_vec();
     }
     log_warn!("Failed to extract a file!");
@@ -324,9 +342,29 @@ pub fn extract_to_file(
                 destination.set_extension(extension);
             }
 
-            extract_bytes(&header, bytes.clone()) // Extract between the header to the end of the file.
+            extract_bytes(&header, bytes) // Extract between the header to the end of the file.
         }
-        Err(_) => bytes.clone(), // No header was found.
+        Err(_) => {
+            // No HTTP header was found. This is the normal case for music, which
+            // Roblox stores as raw audio in /sounds, so the bytes are the file
+            // itself and must all be kept. The header→extension branch above is
+            // never reached for music (it has no headers), so detect the
+            // extension from the file's own magic bytes here, defaulting to
+            // ".ogg" for the music tab since Roblox music is Ogg audio.
+            if add_extension {
+                let extension = detect_file_extension(&bytes).or({
+                    if asset.category == Category::Music {
+                        Some("ogg")
+                    } else {
+                        None
+                    }
+                });
+                if let Some(extension) = extension {
+                    destination.set_extension(extension);
+                }
+            }
+            bytes
+        }
     };
 
     // Ensure parent directory exists (needed when asset name contains subdirectories,
@@ -357,8 +395,8 @@ pub fn extract_asset_to_bytes(asset: AssetInfo) -> Result<Vec<u8>, std::io::Erro
     let bytes = read_asset(&asset)?;
 
     match find_header(asset.category, &bytes) {
-        Ok(header) => Ok(extract_bytes(&header, bytes.clone())), // Extract between the header to the end of the file.
-        Err(_) => Ok(bytes.clone()),                             // No header was found.
+        Ok(header) => Ok(extract_bytes(&header, bytes)), // Extract between the header to the end of the file.
+        Err(_) => Ok(bytes),                             // No header was found.
     }
 }
 
@@ -602,24 +640,22 @@ pub fn copy_assets(asset_a: AssetInfo, asset_b: AssetInfo) {
 
 pub fn filter_file_list(query: String) {
     let query_lower = query.to_lowercase();
-    // Clear file list before
-    {
-        let mut filtered_file_list = FILTERED_FILE_LIST.lock().unwrap();
-        *filtered_file_list = Vec::new();
-    }
     let file_list = get_file_list(); // Clone file list
-    for file in file_list {
-        if file.name.contains(&query_lower)
-            || config::get_asset_alias(&file.name)
-                .to_lowercase()
-                .contains(&query_lower)
-        {
-            {
-                let mut filtered_file_list = FILTERED_FILE_LIST.lock().unwrap();
-                filtered_file_list.push(file);
-            }
-        }
-    }
+
+    // Match against both the (lowercased) asset name and its alias so the
+    // search is case-insensitive on both. Collect once, then assign under a
+    // single lock instead of locking on every matched entry.
+    let filtered: Vec<AssetInfo> = file_list
+        .into_iter()
+        .filter(|file| {
+            file.name.to_lowercase().contains(&query_lower)
+                || config::get_asset_alias(&file.name)
+                    .to_lowercase()
+                    .contains(&query_lower)
+        })
+        .collect();
+
+    *FILTERED_FILE_LIST.lock().unwrap() = filtered;
 }
 
 pub fn create_asset_info(asset: &str, category: Category) -> AssetInfo {
@@ -665,22 +701,22 @@ pub fn determine_category(bytes: &[u8]) -> Category {
 }
 
 // File headers for each category
-pub fn get_headers(category: &Category) -> Vec<String> {
+pub fn get_headers(category: &Category) -> Vec<&'static str> {
     match category {
         Category::Music => {
             vec![] // No headers for music, Roblox stores these without an HTTP header so there's no point looking out for them.
         }
         Category::Sounds => {
-            vec!["OggS".to_string(), "ID3".to_string()]
+            vec!["OggS", "ID3"]
         }
         Category::Ktx => {
-            vec!["KTX".to_string()]
+            vec!["KTX"]
         }
         Category::Rbxm => {
-            vec!["<roblox!".to_string()]
+            vec!["<roblox!"]
         }
         Category::Images => {
-            vec!["PNG".to_string(), "WEBP".to_string()]
+            vec!["PNG", "WEBP"]
         }
         Category::All => {
             // Go through all
@@ -787,9 +823,51 @@ mod tests {
 
     #[test]
     fn test_get_headers() {
-        assert!(get_headers(&Category::Images).contains(&"PNG".to_string()));
-        assert!(get_headers(&Category::Images).contains(&"WEBP".to_string()));
+        assert!(get_headers(&Category::Images).contains(&"PNG"));
+        assert!(get_headers(&Category::Images).contains(&"WEBP"));
         assert!(get_headers(&Category::Music).is_empty());
+    }
+
+    #[test]
+    fn test_extract_bytes_offset_underflow() {
+        // The WEBP offset is 8. If the header is found at an index smaller than
+        // the offset, the index must saturate to 0 instead of underflowing and
+        // panicking with an out-of-bounds slice.
+        let bytes = b"WEBPdata".to_vec();
+        let result = extract_bytes("WEBP", bytes.clone());
+        assert_eq!(result, bytes);
+    }
+
+    #[test]
+    fn test_extract_bytes_png_offset() {
+        // PNG has an offset of 1, so extraction starts one byte before "PNG".
+        let bytes = b"\x89PNG\r\n".to_vec();
+        let result = extract_bytes("PNG", bytes.clone());
+        assert_eq!(result, bytes);
+    }
+
+    #[test]
+    fn test_extract_bytes_no_header_returns_input() {
+        let bytes = b"no header here".to_vec();
+        let result = extract_bytes("OggS", bytes.clone());
+        assert_eq!(result, bytes);
+    }
+
+    #[test]
+    fn test_detect_file_extension_ogg() {
+        assert_eq!(detect_file_extension(b"OggS\x00\x02"), Some("ogg"));
+    }
+
+    #[test]
+    fn test_detect_file_extension_mp3() {
+        assert_eq!(detect_file_extension(b"ID3\x04\x00"), Some("mp3")); // ID3-tagged
+        assert_eq!(detect_file_extension(&[0xFF, 0xFB, 0x90, 0x00]), Some("mp3")); // frame sync
+    }
+
+    #[test]
+    fn test_detect_file_extension_unknown() {
+        assert_eq!(detect_file_extension(b"not audio"), None);
+        assert_eq!(detect_file_extension(&[]), None);
     }
 }
 

@@ -13,6 +13,8 @@ about = 关于
 logs = 日志
 
 # Buttons
+button-reset-rbx-storage-dir = Reset rbx-storage Directory # TODO: Translate
+button-change-rbx-storage-dir = Change rbx-storage Directory # TODO: Translate
 button-reset-sql-db = Reset SQL Database # TODO: Translate
 button-change-sql-db = Change SQL Database # TODO: Translate
 button-delete-this-dir = 删除此目录 <Del>
@@ -72,6 +74,7 @@ error-invalid-directory-description = 请确保您提供的路径是一个目录
 generic-error-critical = 严重错误
 
 # Headings
+downloading-update = Downloading update… # TODO: Translate
 actions = 操作
 updates = 更新
 language-settings = 语言设置
@@ -90,6 +93,7 @@ download-development-build = 使用开发版本以提前获得功能
 checkbox-hide-user-logs = 从日志中隐藏用户名
 
 # Descriptions
+custom-rbx-storage-dir-description = If you want to use a different rbx-storage directory, change it below. You can reset it back to the default with the other button. # TODO: Translate
 custom-sql-db-description = If you want to access a different cache, change your SQL Database below, you can set it back to default with the other button. This is different from your installation folder. # TODO: Translate
 clear-cache-description = 如果从目录列出文件耗时太长，您可以清理Roblox缓存来帮助解决，客户端将在需要时重新生成这些文件
 extract-all-description = 此按钮将把所有资源提取到文件夹
@@ -113,6 +117,8 @@ swapped = 已将 { $item_a } 与 { $item_b } 替换
 copied = 已用 { $item_a } 覆盖 { $item_b }
 
 # Misc
+no-directory = Not found # TODO: Translate
+rbx-storage-directory = rbx-storage Directory: { $directory } # TODO: Translate
 sql-database = SQL Database: { $path } # TODO: Translate
 no-function = （尚未功能化）
 version = 版本: v{ $version } (编译于 { $date })

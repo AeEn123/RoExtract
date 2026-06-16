@@ -12,7 +12,9 @@ settings = Edicts & Adjustments
 about = Of This Matter  
 logs = Chronicles  
 
-# Buttons  
+# Buttons
+button-reset-rbx-storage-dir = Reset rbx-storage Directory # TODO: Translate
+button-change-rbx-storage-dir = Change rbx-storage Directory # TODO: Translate  
 button-reset-sql-db = Restore the Scroll of Tables to Its Pristine State  
 button-change-sql-db = Choose Another Scroll of Tables  
 button-delete-this-dir = Cast This Folder into Oblivion <Del>  
@@ -71,7 +73,8 @@ error-invalid-directory-title = A Chamber Most Unfit!
 error-invalid-directory-description = Pray, ensure that the path thou hast given leadeth to a true chamber.  
 generic-error-critical = A Most Dire Misfortune!  
 
-# Headings  
+# Headings
+downloading-update = Downloading update… # TODO: Translate  
 actions = Deeds  
 updates = Tidings of Change  
 language-settings = The Tongue’s Edicts  
@@ -89,7 +92,8 @@ refresh-before-extract = Renew the List Ere Thou Takest Forth Scrolls
 download-development-build = Partake of Unfinished Labors to Glimpse the Future (These may be unstable)  
 checkbox-hide-user-logs = Conceal the Name of the User from the Chronicles  
 
-# Descriptions  
+# Descriptions
+custom-rbx-storage-dir-description = If you want to use a different rbx-storage directory, change it below. You can reset it back to the default with the other button. # TODO: Translate  
 custom-sql-db-description = Shouldst thou desire to consult another scroll of tables, alter the path below. It may yet be restored to its default with a simple click. Mark thee well, this is not thy installation vault.  
 clear-cache-description = If thy listing of scrolls taketh too long, and the retrieval is sluggish, thou mayest cleanse thy cache with the button below. The scrolls shall be reborn when next thou summoneth Roblox.  
 extract-all-description = The button below shall copy all relics and sort them into proper chambers, such as /harmonious_tones, /painted_likenesses. Thou mayest select the root chamber ere beginning.  
@@ -119,7 +123,9 @@ failed-not-file = WOE! '{ $file }' Is No True Scroll
 error-extracting-file = WOE! Could Not Retrieve: { $error }  
 error-check-logs = WOE! Look to the Chronicles for Further Ills.  
 
-# Misc  
+# Misc
+no-directory = Not found # TODO: Translate
+rbx-storage-directory = rbx-storage Directory: { $directory } # TODO: Translate  
 sql-database = Scroll of Tables: { $path }  
 no-function = (Yet It Doth Not Work)  
 version = Edition: v{ $version } (compiled upon { $date })  
