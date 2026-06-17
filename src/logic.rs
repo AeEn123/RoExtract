@@ -28,13 +28,20 @@ static STATUS: LazyLock<Mutex<String>> = LazyLock::new(|| {
         None,
     ))
 });
-static FILE_LIST: LazyLock<Mutex<Vec<AssetInfo>>> = LazyLock::new(|| Mutex::new(Vec::new()));
+// The asset lists are stored behind an `Arc` so the GUI can take a cheap
+// snapshot every frame (an atomic refcount bump) instead of deep-cloning the
+// whole `Vec<AssetInfo>` (and all its `String`s) on every repaint. The writer
+// uses `Arc::make_mut` for copy-on-write: at most one deep clone happens per
+// frame during a refresh (when a reader is holding the previous snapshot), and
+// zero clones happen in the steady state when nothing is being refreshed.
+static FILE_LIST: LazyLock<Mutex<Arc<Vec<AssetInfo>>>> =
+    LazyLock::new(|| Mutex::new(Arc::new(Vec::new())));
 static REQUEST_REPAINT: LazyLock<Mutex<bool>> = LazyLock::new(|| Mutex::new(false));
 static PROGRESS: LazyLock<Mutex<f32>> = LazyLock::new(|| Mutex::new(1.0));
 static LIST_TASK_RUNNING: LazyLock<Mutex<bool>> = LazyLock::new(|| Mutex::new(false));
 static STOP_LIST_RUNNING: LazyLock<Mutex<bool>> = LazyLock::new(|| Mutex::new(false));
-static FILTERED_FILE_LIST: LazyLock<Mutex<Vec<AssetInfo>>> =
-    LazyLock::new(|| Mutex::new(Vec::new()));
+static FILTERED_FILE_LIST: LazyLock<Mutex<Arc<Vec<AssetInfo>>>> =
+    LazyLock::new(|| Mutex::new(Arc::new(Vec::new())));
 static TASK_RUNNING: LazyLock<Mutex<bool>> = LazyLock::new(|| Mutex::new(false)); // Delete/extract
 
 // CLI stuff
@@ -67,12 +74,14 @@ fn update_file_list(value: AssetInfo, cli_list_mode: bool) {
         println!("{}", value.name);
     }
     let mut file_list = FILE_LIST.lock().unwrap();
-    file_list.push(value)
+    // Copy-on-write: only deep-clones if a reader (the GUI) is currently holding
+    // a snapshot of the list; otherwise it mutates the existing allocation.
+    Arc::make_mut(&mut file_list).push(value)
 }
 
 fn clear_file_list() {
     let mut file_list = FILE_LIST.lock().unwrap();
-    *file_list = Vec::new()
+    *file_list = Arc::new(Vec::new())
 }
 
 /// Zstd magic bytes: 0xFD2FB528 (little-endian)
@@ -437,7 +446,7 @@ pub fn extract_dir(
             let total = file_list.len();
             let mut count = 0;
 
-            for entry in file_list {
+            for entry in file_list.iter() {
                 count += 1; // Increase counter for progress
                 update_progress(count as f32 / total as f32); // Convert to f32 to allow floating point output
 
@@ -454,7 +463,7 @@ pub fn extract_dir(
                 args.set("item", count);
                 args.set("total", total);
 
-                match extract_to_file(entry, dest, true) {
+                match extract_to_file(entry.clone(), dest, true) {
                     Ok(_) => {
                         update_status(locale::get_message(
                             &locale,
@@ -646,16 +655,17 @@ pub fn filter_file_list(query: String) {
     // search is case-insensitive on both. Collect once, then assign under a
     // single lock instead of locking on every matched entry.
     let filtered: Vec<AssetInfo> = file_list
-        .into_iter()
+        .iter()
         .filter(|file| {
             file.name.to_lowercase().contains(&query_lower)
                 || config::get_asset_alias(&file.name)
                     .to_lowercase()
                     .contains(&query_lower)
         })
+        .cloned()
         .collect();
 
-    *FILTERED_FILE_LIST.lock().unwrap() = filtered;
+    *FILTERED_FILE_LIST.lock().unwrap() = Arc::new(filtered);
 }
 
 pub fn create_asset_info(asset: &str, category: Category) -> AssetInfo {
@@ -743,11 +753,12 @@ pub fn update_progress(value: f32) {
     *request = true;
 }
 
-pub fn get_file_list() -> Vec<AssetInfo> {
+pub fn get_file_list() -> Arc<Vec<AssetInfo>> {
+    // Cheap snapshot: clones the `Arc` (a refcount bump), not the `Vec`.
     FILE_LIST.lock().unwrap().clone()
 }
 
-pub fn get_filtered_file_list() -> Vec<AssetInfo> {
+pub fn get_filtered_file_list() -> Arc<Vec<AssetInfo>> {
     FILTERED_FILE_LIST.lock().unwrap().clone()
 }
 
@@ -764,6 +775,51 @@ mod tests {
         let bytes = vec![1, 2, 3, 4];
         let result = maybe_decompress(bytes.clone());
         assert_eq!(result, bytes);
+    }
+
+    fn dummy_asset(name: &str) -> AssetInfo {
+        AssetInfo {
+            name: name.to_owned(),
+            _size: 0,
+            last_modified: None,
+            from_file: true,
+            from_sql: false,
+            from_rbx_storage: false,
+            category: Category::Music,
+        }
+    }
+
+    // Exercises the Arc-backed asset list: a snapshot handed out by
+    // get_file_list() must stay stable when the list is mutated afterwards
+    // (this is the copy-on-write guarantee the GUI relies on to render a frame
+    // from a consistent view), and filtering must produce the expected subset.
+    // Kept in one test so it can't race other tests over the global list.
+    #[test]
+    fn test_file_list_arc_snapshot_and_filter() {
+        clear_file_list();
+        update_file_list(dummy_asset("apple"), false);
+
+        // Take a snapshot, then mutate the live list.
+        let snapshot = get_file_list();
+        assert_eq!(snapshot.len(), 1);
+        update_file_list(dummy_asset("banana"), false);
+
+        // The snapshot is unchanged; the live list reflects the new push.
+        assert_eq!(snapshot.len(), 1, "snapshot must not see later writes");
+        assert_eq!(snapshot[0].name, "apple");
+        let live = get_file_list();
+        assert_eq!(live.len(), 2);
+        // The write should have copied-on-write to a fresh allocation.
+        assert!(!Arc::ptr_eq(&snapshot, &live));
+
+        // Filtering matches on the asset name (case-insensitive).
+        filter_file_list("APP".to_owned());
+        let filtered = get_filtered_file_list();
+        assert_eq!(filtered.len(), 1);
+        assert_eq!(filtered[0].name, "apple");
+
+        clear_file_list();
+        assert_eq!(get_file_list().len(), 0);
     }
 
     #[test]
