@@ -5,10 +5,8 @@ use egui_commonmark::{CommonMarkCache, CommonMarkViewer};
 use fluent_bundle::{FluentBundle, FluentResource};
 use std::sync::Arc;
 
-/// An in-app modal that asks the user whether they want to download an
-/// available update. It is shown inside the main application window (rather than
-/// as a separate native window) so the update check can run in the background
-/// without blocking startup.
+/// In-app update prompt shown inside the main window. The check runs in the
+/// background so the window can open immediately.
 pub struct UpdatePrompt {
     cache: CommonMarkCache,
     locale: FluentBundle<Arc<FluentResource>>,
@@ -36,8 +34,7 @@ impl UpdatePrompt {
             .resizable(true)
             .anchor(egui::Align2::CENTER_CENTER, egui::vec2(0.0, 0.0))
             .show(ctx, |ui| {
-                // While the binary downloads, show feedback instead of the
-                // changelog/buttons. The spinner keeps requesting repaints.
+                // Show a spinner while the binary downloads.
                 if updater::is_downloading() {
                     ui.horizontal(|ui| {
                         ui.spinner();

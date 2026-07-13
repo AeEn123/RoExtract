@@ -373,9 +373,7 @@ impl MyApp {
 
 impl eframe::App for MyApp {
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
-        // Kick off the update check once, on the first frame, so the window is
-        // already visible. The check runs on a background thread and wakes the
-        // GUI via the context when it finds an update.
+        // Kick off the background update check once, on the first frame.
         if !self.update_check_started {
             self.update_check_started = true;
             if config::get_config_bool("check_for_updates").unwrap_or(false) {
@@ -386,7 +384,7 @@ impl eframe::App for MyApp {
             }
         }
 
-        // Surface an update found by the background check as an in-app prompt.
+        // Surface any update found by the background check.
         if self.update_prompt.is_none() {
             if let Some((release, url)) = updater::take_available_update() {
                 self.update_prompt = Some(updater::gui::UpdatePrompt::new(release, url));
@@ -406,8 +404,7 @@ impl eframe::App for MyApp {
         // Switch tabs with keyboard input (num keys)
         if ctx.input(|input| input.modifiers.ctrl || input.modifiers.alt) {
             for i in 1..=self.tab_map.len() as u32 {
-                // Number keys only have names "1".."9"; skip anything without a
-                // valid key name instead of panicking.
+                // from_name returns None for key names "0" and beyond "9"; skip.
                 let Some(key) = egui::Key::from_name(&i.to_string()) else {
                     continue;
                 };
@@ -451,8 +448,7 @@ pub fn run_gui() {
 
     // Only run GUI after user has been welcomed
     if config::get_config_bool("welcomed").unwrap_or(true) {
-        // The update check now runs on a background thread from within the app
-        // (see MyApp::update) so it doesn't block the window from opening.
+        // Update check now runs in MyApp::update (background thread, non-blocking).
 
         let options = eframe::NativeOptions {
             viewport: egui::ViewportBuilder::default().with_icon(

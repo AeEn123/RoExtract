@@ -21,14 +21,13 @@ use std::ffi::OsString;
 
 static UPDATE_FILE: LazyLock<Mutex<Option<PathBuf>>> = LazyLock::new(|| Mutex::new(None));
 
-/// An update that has been detected by a background check and is waiting to be
-/// shown to the user as an in-app prompt. Holds the release and the resolved
-/// download URL for the current platform.
+/// Update found by a background check, waiting to be shown to the user.
+/// Holds the release and the resolved download URL for the current platform.
 static AVAILABLE_UPDATE: LazyLock<Mutex<Option<(Release, String)>>> =
     LazyLock::new(|| Mutex::new(None));
 
-/// Set while a binary download is in progress so the GUI can show feedback and
-/// avoid starting a second download.
+/// True while a binary download is in progress (used for GUI feedback and to
+/// prevent concurrent downloads).
 static DOWNLOADING: AtomicBool = AtomicBool::new(false);
 
 static URL: &str = "https://api.github.com/repos/AeEn123/RoExtract/releases/latest";
@@ -74,7 +73,7 @@ fn detect_download_binary(assets: &[Asset]) -> Option<&Asset> {
     }
 
     log_warn!("Failed to find asset, going for first asset listed.");
-    assets.first() // None if the release has no assets, avoiding an index panic
+    assets.first() // None if there are no assets, instead of panicking on index
 }
 
 fn update_action(json: Release, auto_download_update: bool) {
@@ -246,10 +245,9 @@ pub fn run_install_script(run_afterwards: bool) -> bool {
     }
 }
 
-/// Performs the (blocking) network request to GitHub and returns the release
-/// that should be offered as an update, or `None` if there is nothing newer or
-/// the request failed. This is the only function that touches the network for
-/// update checks; callers decide whether to run it on a background thread.
+/// Blocking GitHub request returning the release to offer as an update, or
+/// `None` if nothing is newer or the request failed. Callers decide whether to
+/// run this on a background thread.
 fn fetch_available_update() -> Option<Release> {
     let include_prerelease = config::get_config_bool("include_prerelease").unwrap_or(false);
 
@@ -309,19 +307,16 @@ fn fetch_available_update() -> Option<Release> {
     None
 }
 
-/// Blocking update check used by the CLI (`--check-for-updates`,
-/// `--download-new-update`). The CLI's whole job is this one request and the
-/// process exits straight after, so blocking is correct here.
+/// Blocking update check for the CLI (`--check-for-updates`,
+/// `--download-new-update`); the process exits right after.
 pub fn check_for_updates(auto_download_update: bool) {
     if let Some(json) = fetch_available_update() {
         update_action(json, auto_download_update);
     }
 }
 
-/// Non-blocking update check used by the GUI. Runs the network request on a
-/// background thread so the main window can open immediately. If an update is
-/// found it is either auto-downloaded (when enabled) or stored for the GUI to
-/// surface as an in-app prompt; `ctx` is used to wake the GUI when that happens.
+/// Non-blocking update check for the GUI. Runs on a background thread so the
+/// window can open immediately; stores any update for the GUI to surface.
 pub fn check_for_updates_background(ctx: egui::Context, auto_download_update: bool) {
     thread::spawn(move || {
         let Some(json) = fetch_available_update() else {
@@ -333,7 +328,6 @@ pub fn check_for_updates_background(ctx: egui::Context, auto_download_update: bo
             return;
         }
 
-        // Resolve the download URL up front so the GUI doesn't have to.
         let url = match detect_download_binary(&json.assets) {
             Some(asset) => asset.browser_download_url.clone(),
             None => {
@@ -358,9 +352,8 @@ pub fn is_downloading() -> bool {
     DOWNLOADING.load(Ordering::Relaxed)
 }
 
-/// Downloads the update binary on a background thread and, once finished,
-/// launches the install script. Non-blocking so the GUI stays responsive while
-/// the (potentially large) binary downloads.
+/// Downloads the update binary on a background thread, then launches the
+/// install script. Returns immediately so the GUI stays responsive.
 pub fn download_and_install(ctx: egui::Context, url: String, tag_name: Option<String>) {
     if DOWNLOADING.swap(true, Ordering::SeqCst) {
         return; // A download is already running

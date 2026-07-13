@@ -37,7 +37,7 @@ There is no `opencode.json` and no other instruction files in the repo; this is 
 ## Architecture in one pass
 
 - Entry: `src/main.rs`. parses CLI args via `clap`; with no flags it calls `gui::run_gui()`. On exit it always calls `config::save_config_file()` and `logic::clean_up()` (unless an update install script took over via `updater::run_install_script`, which `exit(0)`s the process).
-- `src/logic.rs` is the core. `Category` enum (`Music`, `Sounds`, `Images`, `Ktx`, `Rbxm`, `All`) drives both GUI tabs and CLI `--mode`. Assets are identified by magic-byte headers in `get_headers()`; music is special — Roblox stores it raw with no HTTP header, so it has empty headers and the extension is detected from the file's own magic bytes (see `detect_file_extension`, defaulting to `ogg`).
+- `src/logic.rs` is the core. `Category` enum (`Music`, `Sounds`, `Images`, `Ktx`, `Rbxm`, `All`) drives both GUI tabs and CLI `--mode`. Assets are identified by magic-byte headers in `get_headers()`; `Music` reuses the same `OggS`/`ID3` headers as `Sounds` (Roblox stores music as raw audio in `/sounds`), but is excluded from `determine_category` because it is location-based and would shadow `Sounds`.
 - Three pluggable asset backends in `src/logic/`, each implementing `refresh`, `read_asset`, `create_asset_info`, `swap_assets`, `copy_assets`, `clear_cache`:
   - `cache_directory.rs` — Roblox's HTTP cache on disk. Default dirs: `%Temp%\Roblox` (Windows) and `~/.var/app/org.vinegarhq.Sober/cache/sober` (Linux/Vinegar Sober). Fs-reading path.
   - `sql_database.rs` — Roblox's SQLite asset DB (`rusqlite` with the `bundled` feature, so no system SQLite needed).
@@ -62,3 +62,7 @@ There is no `opencode.json` and no other instruction files in the repo; this is 
 - `.github/workflows/build-and-release.yml` triggers on pushes/PRs to `main` touching `**.rs`, `**.toml`, `**.ftl`, or `assets/**`. It builds Windows (`windows-latest`) and Linux (`ubuntu-latest`) release binaries and, on pushes to `main` (not PRs), publishes a prerelease tagged `dev-build-{run_id}` with `RoExtract-windows.exe` and `RoExtract-linux`.
 - There is no stable-release workflow in-repo; stable releases are cut manually. The `delete-old-releases.yml` workflow trims old dev releases.
 - Packaging: Arch PKGBUILD (`packages/arch/PKGBUILD`) and experimental Flatpak (`packages/flatpak/`, see its README). Both expect `cargo build --release` and ship a `RoExtract-system.json` next to the binary.
+
+## Commit conventions
+
+- AI-assisted commits use a `Co-Authored-By:` trailer crediting the agent (e.g. `Co-Authored-By: Claude Sonnet 4.6 <noreply@anthropic.com>`, `Co-Authored-By: gemini-code-assist[bot] <…@users.noreply.github.com>`). Add one for your own model when committing, matching the established format. Don't bump `CARGO_PKG_VERSION` unless the maintainer asks (a recurring annoyance they call out in commit messages).

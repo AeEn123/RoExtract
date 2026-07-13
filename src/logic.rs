@@ -28,12 +28,9 @@ static STATUS: LazyLock<Mutex<String>> = LazyLock::new(|| {
         None,
     ))
 });
-// The asset lists are stored behind an `Arc` so the GUI can take a cheap
-// snapshot every frame (an atomic refcount bump) instead of deep-cloning the
-// whole `Vec<AssetInfo>` (and all its `String`s) on every repaint. The writer
-// uses `Arc::make_mut` for copy-on-write: at most one deep clone happens per
-// frame during a refresh (when a reader is holding the previous snapshot), and
-// zero clones happen in the steady state when nothing is being refreshed.
+// Asset lists are `Arc<Vec<AssetInfo>>` so the GUI can snapshot them per-frame
+// with a refcount bump instead of a deep clone; writers use `Arc::make_mut` for
+// copy-on-write (clones only when a reader holds the previous snapshot).
 static FILE_LIST: LazyLock<Mutex<Arc<Vec<AssetInfo>>>> =
     LazyLock::new(|| Mutex::new(Arc::new(Vec::new())));
 static REQUEST_REPAINT: LazyLock<Mutex<bool>> = LazyLock::new(|| Mutex::new(false));
@@ -74,8 +71,7 @@ fn update_file_list(value: AssetInfo, cli_list_mode: bool) {
         println!("{}", value.name);
     }
     let mut file_list = FILE_LIST.lock().unwrap();
-    // Copy-on-write: only deep-clones if a reader (the GUI) is currently holding
-    // a snapshot of the list; otherwise it mutates the existing allocation.
+    // make_mut clones only if a snapshot is still being read elsewhere.
     Arc::make_mut(&mut file_list).push(value)
 }
 
@@ -141,22 +137,6 @@ fn find_header(category: Category, bytes: &[u8]) -> Result<String, String> {
     Err("Headers not found in bytes".to_owned())
 }
 
-/// Detect a file extension from the leading magic bytes of a *raw* file (one
-/// stored without an HTTP header, such as music in Roblox's `/sounds` folder).
-/// Returns `None` when the format isn't recognised so the caller can decide on a
-/// fallback.
-fn detect_file_extension(bytes: &[u8]) -> Option<&'static str> {
-    if bytes.starts_with(b"OggS") {
-        Some("ogg") // Ogg container (Roblox music is typically Ogg Vorbis)
-    } else if bytes.starts_with(b"ID3")
-        || (bytes.len() >= 2 && bytes[0] == 0xFF && (bytes[1] & 0xE0) == 0xE0)
-    {
-        Some("mp3") // ID3 tag, or a raw MPEG audio frame sync (0xFFEx)
-    } else {
-        None
-    }
-}
-
 fn extract_bytes(header: &str, bytes: Vec<u8>) -> Vec<u8> {
     // Set offset depending on header
     let offset: usize = match header {
@@ -168,11 +148,8 @@ fn extract_bytes(header: &str, bytes: Vec<u8>) -> Vec<u8> {
 
     // Find the header in the file
     if let Some(index) = bytes_search(&bytes, header.as_bytes()) {
-        // Found the header, extract from the bytes.
-        // Use saturating_sub so a header found before `offset` bytes can't
-        // underflow the index and cause an out-of-bounds slice panic.
-        let index = index.saturating_sub(offset); // Apply offset
-                                                   // Return all the bytes after the found header index
+        // Apply the offset; saturate so a near-start header can't underflow.
+        let index = index.saturating_sub(offset);
         return bytes[index..].to_vec();
     }
     log_warn!("Failed to extract a file!");
@@ -353,27 +330,7 @@ pub fn extract_to_file(
 
             extract_bytes(&header, bytes) // Extract between the header to the end of the file.
         }
-        Err(_) => {
-            // No HTTP header was found. This is the normal case for music, which
-            // Roblox stores as raw audio in /sounds, so the bytes are the file
-            // itself and must all be kept. The header→extension branch above is
-            // never reached for music (it has no headers), so detect the
-            // extension from the file's own magic bytes here, defaulting to
-            // ".ogg" for the music tab since Roblox music is Ogg audio.
-            if add_extension {
-                let extension = detect_file_extension(&bytes).or({
-                    if asset.category == Category::Music {
-                        Some("ogg")
-                    } else {
-                        None
-                    }
-                });
-                if let Some(extension) = extension {
-                    destination.set_extension(extension);
-                }
-            }
-            bytes
-        }
+        Err(_) => bytes, // No header found; write the raw bytes as-is.
     };
 
     // Ensure parent directory exists (needed when asset name contains subdirectories,
@@ -649,11 +606,10 @@ pub fn copy_assets(asset_a: AssetInfo, asset_b: AssetInfo) {
 
 pub fn filter_file_list(query: String) {
     let query_lower = query.to_lowercase();
-    let file_list = get_file_list(); // Clone file list
+    let file_list = get_file_list(); // Snapshot (Arc refcount bump)
 
-    // Match against both the (lowercased) asset name and its alias so the
-    // search is case-insensitive on both. Collect once, then assign under a
-    // single lock instead of locking on every matched entry.
+    // Match case-insensitively on name and alias; collect once and assign under
+    // a single lock rather than locking per match.
     let filtered: Vec<AssetInfo> = file_list
         .iter()
         .filter(|file| {
@@ -690,18 +646,19 @@ pub fn create_asset_info(asset: &str, category: Category) -> AssetInfo {
 }
 
 pub fn determine_category(bytes: &[u8]) -> Category {
+    // Music shares headers with Sounds and iterates first, so it would shadow
+    // Sounds and mis-classify every OggS/ID3 file as Music. Skip both: this
+    // classifies *unknown* bytes (e.g. an "All" listing), and Music is a
+    // location-based (/sounds) category, not a byte-signature one.
     for category in Category::iter().filter(|&cat| cat != Category::All && cat != Category::Music) {
-        // Ignore music and all
         for header in get_headers(&category) {
-            // Since MP3 gets an unusual amount of false-positives, we make an extra check
+            // ID3 gets false positives, so also require an HTTP "binary/" marker.
             if header == "ID3" {
                 if bytes_contains(bytes, header.as_bytes()) && bytes_contains(bytes, b"binary/") {
                     return category;
                 }
-            } else {
-                if bytes_contains(bytes, header.as_bytes()) {
-                    return category;
-                }
+            } else if bytes_contains(bytes, header.as_bytes()) {
+                return category;
             }
         }
     }
@@ -710,11 +667,17 @@ pub fn determine_category(bytes: &[u8]) -> Category {
     Category::All
 }
 
-// File headers for each category
+// File headers for each category.
+//
+// `Category::Music` reuses the same OggS/ID3 headers as `Sounds` because
+// Roblox stores music as raw audio in /sounds with no HTTP header. This lets
+// `find_header` succeed on a music file and resolve its extension via the
+// existing header→extension table in `extract_to_file`, instead of needing a
+// separate magic-byte detector for the no-header path.
 pub fn get_headers(category: &Category) -> Vec<&'static str> {
     match category {
         Category::Music => {
-            vec![] // No headers for music, Roblox stores these without an HTTP header so there's no point looking out for them.
+            vec!["OggS", "ID3"]
         }
         Category::Sounds => {
             vec!["OggS", "ID3"]
@@ -729,11 +692,12 @@ pub fn get_headers(category: &Category) -> Vec<&'static str> {
             vec!["PNG", "WEBP"]
         }
         Category::All => {
-            // Go through all
-            Category::iter() // For each category except Category::All
-                .filter(|&cat| cat != Category::All)
-                .flat_map(|cat| get_headers(&cat)) // Get headers
-                .filter(|item| !item.is_empty()) // Remove blank strings
+            // Aggregate headers from every category except `All` and `Music`.
+            // Music shares its headers with Sounds (see above) and is location-based
+            // (/sounds), so including it here would just duplicate the audio headers.
+            Category::iter()
+                .filter(|&cat| cat != Category::All && cat != Category::Music)
+                .flat_map(|cat| get_headers(&cat))
                 .collect()
         }
     }
@@ -754,7 +718,7 @@ pub fn update_progress(value: f32) {
 }
 
 pub fn get_file_list() -> Arc<Vec<AssetInfo>> {
-    // Cheap snapshot: clones the `Arc` (a refcount bump), not the `Vec`.
+    // Snapshot: bumps the Arc refcount, doesn't clone the Vec.
     FILE_LIST.lock().unwrap().clone()
 }
 
@@ -789,11 +753,10 @@ mod tests {
         }
     }
 
-    // Exercises the Arc-backed asset list: a snapshot handed out by
-    // get_file_list() must stay stable when the list is mutated afterwards
-    // (this is the copy-on-write guarantee the GUI relies on to render a frame
-    // from a consistent view), and filtering must produce the expected subset.
-    // Kept in one test so it can't race other tests over the global list.
+    // A snapshot from get_file_list() must stay stable after later writes (the
+    // copy-on-write guarantee the GUI relies on), and filter_file_list must
+    // produce the matching subset. Kept in one test to avoid racing other tests
+    // over the global list.
     #[test]
     fn test_file_list_arc_snapshot_and_filter() {
         clear_file_list();
@@ -881,7 +844,20 @@ mod tests {
     fn test_get_headers() {
         assert!(get_headers(&Category::Images).contains(&"PNG"));
         assert!(get_headers(&Category::Images).contains(&"WEBP"));
-        assert!(get_headers(&Category::Music).is_empty());
+        // Music reuses the audio headers so find_header can resolve its extension.
+        assert!(get_headers(&Category::Music).contains(&"OggS"));
+        assert!(get_headers(&Category::Music).contains(&"ID3"));
+    }
+
+    #[test]
+    fn test_get_headers_all_excludes_music_duplicates() {
+        // All aggregates every category except All and Music, so the audio
+        // headers appear exactly once (from Sounds), not twice.
+        let all = get_headers(&Category::All);
+        let oggs = all.iter().filter(|&&h| h == "OggS").count();
+        let id3 = all.iter().filter(|&&h| h == "ID3").count();
+        assert_eq!(oggs, 1);
+        assert_eq!(id3, 1);
     }
 
     #[test]
@@ -907,23 +883,6 @@ mod tests {
         let bytes = b"no header here".to_vec();
         let result = extract_bytes("OggS", bytes.clone());
         assert_eq!(result, bytes);
-    }
-
-    #[test]
-    fn test_detect_file_extension_ogg() {
-        assert_eq!(detect_file_extension(b"OggS\x00\x02"), Some("ogg"));
-    }
-
-    #[test]
-    fn test_detect_file_extension_mp3() {
-        assert_eq!(detect_file_extension(b"ID3\x04\x00"), Some("mp3")); // ID3-tagged
-        assert_eq!(detect_file_extension(&[0xFF, 0xFB, 0x90, 0x00]), Some("mp3")); // frame sync
-    }
-
-    #[test]
-    fn test_detect_file_extension_unknown() {
-        assert_eq!(detect_file_extension(b"not audio"), None);
-        assert_eq!(detect_file_extension(&[]), None);
     }
 }
 
