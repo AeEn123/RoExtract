@@ -1,20 +1,34 @@
 use std::{
     fs,
     path::PathBuf,
-    sync::{LazyLock, Mutex},
+    sync::{
+        atomic::{AtomicBool, Ordering},
+        LazyLock, Mutex,
+    },
+    thread,
 };
 
+use eframe::egui;
 use reqwest::blocking::Client;
 use serde::Deserialize;
 
 use crate::{config, logic};
 
-mod gui;
+pub mod gui;
 
 #[cfg(target_os = "windows")]
 use std::ffi::OsString;
 
 static UPDATE_FILE: LazyLock<Mutex<Option<PathBuf>>> = LazyLock::new(|| Mutex::new(None));
+
+/// Update found by a background check, waiting to be shown to the user.
+/// Holds the release and the resolved download URL for the current platform.
+static AVAILABLE_UPDATE: LazyLock<Mutex<Option<(Release, String)>>> =
+    LazyLock::new(|| Mutex::new(None));
+
+/// True while a binary download is in progress (used for GUI feedback and to
+/// prevent concurrent downloads).
+static DOWNLOADING: AtomicBool = AtomicBool::new(false);
 
 static URL: &str = "https://api.github.com/repos/AeEn123/RoExtract/releases/latest";
 static PRERELEASE_URL: &str = "https://api.github.com/repos/AeEn123/RoExtract/releases";
@@ -40,7 +54,7 @@ fn clean_version_number(version: &str) -> String {
         .collect()
 }
 
-fn detect_download_binary(assets: &Vec<Asset>) -> &Asset {
+fn detect_download_binary(assets: &[Asset]) -> Option<&Asset> {
     let os = std::env::consts::OS; // Get the user's operating system to download the correct binary
 
     for asset in assets {
@@ -54,33 +68,34 @@ fn detect_download_binary(assets: &Vec<Asset>) -> &Asset {
         };
 
         if name.contains(os) && installer {
-            return asset; // Return the correct binary based on OS
+            return Some(asset); // Return the correct binary based on OS
         }
     }
 
     log_warn!("Failed to find asset, going for first asset listed.");
-    &assets[0]
+    assets.first() // None if there are no assets, instead of panicking on index
 }
 
-fn update_action(json: Release, run_gui: bool, auto_download_update: bool) {
+fn update_action(json: Release, auto_download_update: bool) {
     log_info!("An update is available.");
     log_info!("{}", &json.name);
     log_info!("{}", &json.body);
 
-    let correct_asset = detect_download_binary(&json.assets);
-
     if auto_download_update {
+        let correct_asset = match detect_download_binary(&json.assets) {
+            Some(asset) => asset,
+            None => {
+                log_error!("Update available but the release contains no downloadable assets.");
+                return;
+            }
+        };
+
         let tag_name = if json.tag_name.contains("dev-build") {
             Some(json.tag_name.as_str())
         } else {
             None
         };
         download_update(&correct_asset.browser_download_url, tag_name);
-    } else if run_gui {
-        match gui::run_gui(json.clone(), correct_asset.browser_download_url.clone()) {
-            Ok(_) => log_info!("User exited GUI"),
-            Err(e) => log_critical!("GUI failed: {}", e),
-        }
     }
 }
 
@@ -230,7 +245,10 @@ pub fn run_install_script(run_afterwards: bool) -> bool {
     }
 }
 
-pub fn check_for_updates(run_gui: bool, auto_download_update: bool) {
+/// Blocking GitHub request returning the release to offer as an update, or
+/// `None` if nothing is newer or the request failed. Callers decide whether to
+/// run this on a background thread.
+fn fetch_available_update() -> Option<Release> {
     let include_prerelease = config::get_config_bool("include_prerelease").unwrap_or(false);
 
     let client = Client::new();
@@ -253,11 +271,14 @@ pub fn check_for_updates(run_gui: bool, auto_download_update: bool) {
             if include_prerelease {
                 match serde_json::from_str::<Vec<Release>>(&text) {
                     Ok(data) => {
-                        let json = data[0].clone();
-                        let current_tag = config::get_config_string("current_tag_name")
-                            .unwrap_or("None".to_string());
-                        if current_tag != json.tag_name {
-                            update_action(json, run_gui, auto_download_update);
+                        if let Some(json) = data.into_iter().next() {
+                            let current_tag = config::get_config_string("current_tag_name")
+                                .unwrap_or("None".to_string());
+                            if current_tag != json.tag_name {
+                                return Some(json);
+                            }
+                        } else {
+                            log_info!("No releases returned by the update server.");
                         }
                     }
                     Err(e) => log_error!("Updater failed to parse json: {}", e),
@@ -271,7 +292,7 @@ pub fn check_for_updates(run_gui: bool, auto_download_update: bool) {
                             | config::get_config_string("current_tag_name").is_some()
                         {
                             // Update back to stable version if user has opted out of development builds
-                            update_action(json, run_gui, auto_download_update);
+                            return Some(json);
                         } else {
                             log_info!("No updates are available.")
                         }
@@ -282,4 +303,70 @@ pub fn check_for_updates(run_gui: bool, auto_download_update: bool) {
         }
         Err(e) => log_error!("Failed to check for update: {}", e),
     }
+
+    None
+}
+
+/// Blocking update check for the CLI (`--check-for-updates`,
+/// `--download-new-update`); the process exits right after.
+pub fn check_for_updates(auto_download_update: bool) {
+    if let Some(json) = fetch_available_update() {
+        update_action(json, auto_download_update);
+    }
+}
+
+/// Non-blocking update check for the GUI. Runs on a background thread so the
+/// window can open immediately; stores any update for the GUI to surface.
+pub fn check_for_updates_background(ctx: egui::Context, auto_download_update: bool) {
+    thread::spawn(move || {
+        let Some(json) = fetch_available_update() else {
+            return;
+        };
+
+        if auto_download_update {
+            update_action(json, true);
+            return;
+        }
+
+        let url = match detect_download_binary(&json.assets) {
+            Some(asset) => asset.browser_download_url.clone(),
+            None => {
+                log_error!("Update available but the release contains no downloadable assets.");
+                return;
+            }
+        };
+
+        log_info!("An update is available: {}", json.name);
+        *AVAILABLE_UPDATE.lock().unwrap() = Some((json, url));
+        ctx.request_repaint(); // Wake the GUI so it can show the prompt
+    });
+}
+
+/// Returns and clears the pending update detected by a background check, if any.
+pub fn take_available_update() -> Option<(Release, String)> {
+    AVAILABLE_UPDATE.lock().unwrap().take()
+}
+
+/// Whether a binary download is currently in progress.
+pub fn is_downloading() -> bool {
+    DOWNLOADING.load(Ordering::Relaxed)
+}
+
+/// Downloads the update binary on a background thread, then launches the
+/// install script. Returns immediately so the GUI stays responsive.
+pub fn download_and_install(ctx: egui::Context, url: String, tag_name: Option<String>) {
+    if DOWNLOADING.swap(true, Ordering::SeqCst) {
+        return; // A download is already running
+    }
+
+    thread::spawn(move || {
+        download_update(&url, tag_name.as_deref());
+
+        // On success this hands off to the install script and exits the process.
+        if !run_install_script(true) {
+            log_error!("Update download failed; not installing.");
+            DOWNLOADING.store(false, Ordering::SeqCst);
+            ctx.request_repaint(); // Let the GUI re-show the prompt buttons
+        }
+    });
 }

@@ -65,7 +65,7 @@ fn extract(
     add_extension: bool,
 ) {
     if let Some(asset) = asset {
-        let dest = destination.unwrap_or(asset.clone().into());
+        let dest = destination.unwrap_or_else(|| asset.clone().into());
         let info = logic::create_asset_info(&asset, category);
         match logic::extract_to_file(info, dest, add_extension) {
             Ok(destination) => println!("{}", destination.display()),
@@ -139,9 +139,9 @@ fn main() {
             logic::cache_directory::get_cache_directory().display()
         );
     } else if args.check_for_updates {
-        updater::check_for_updates(false, false);
+        updater::check_for_updates(false);
     } else if args.download_new_update {
-        updater::check_for_updates(false, true);
+        updater::check_for_updates(true);
     } else {
         // If nothing passed, run GUI
         gui::run_gui();

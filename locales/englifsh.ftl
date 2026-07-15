@@ -13,6 +13,8 @@ about = aobut
 logs = loges
 
 # Buttons
+button-reset-rbx-storage-dir = Reset rbx-storage Directory # TODO: Translate
+button-change-rbx-storage-dir = Change rbx-storage Directory # TODO: Translate
 button-reset-sql-db = reset slq databsae
 button-change-sql-db = hcange slq databse
 button-delete-this-dir = deltlets thsi disrectory <Del>
@@ -72,6 +74,7 @@ error-invalid-directory-description = please make sur eth epath you prpvided is 
 generic-error-critical = cirtical error
 
 # Headings
+downloading-update = Downloading update… # TODO: Translate
 actions = atcions
 updates = udopates
 language-settings = languesage settings
@@ -91,6 +94,7 @@ checkbox-hide-user-logs = hidies uder5tname from lgo
 
 
 # Descriptions
+custom-rbx-storage-dir-description = If you want to use a different rbx-storage directory, change it below. You can reset it back to the default with the other button. # TODO: Translate
 custom-sql-db-description = if yotuw ant ttaccess ot a different caceh, change eiyoru slq databse bloew
 clear-cache-description = ife itl is tlanging too lgin to lsit file sm foirmm at edirectory, youc anc lear tyouyr bolxoc ache sto help,t ehc ;leitn  will regerneate this files whern  needed
 extract-all-description = tehbeutotn wiull extadct all assets to folder
@@ -115,6 +119,8 @@ swapped = swaopped { $item_a } with { $item_b }
 copied = overwriten { $item_b } with { $item_a }
 
 # Misc
+no-directory = Not found # TODO: Translate
+rbx-storage-directory = rbx-storage Directory: { $directory } # TODO: Translate
 sql-database = slq datbase: { $path }
 no-function = (Not functional yet)
 version = vwrisoon: v{ $version } (omcpleid at { $date })

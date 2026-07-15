@@ -249,6 +249,8 @@ struct MyApp {
     tab_map: HashMap<u32, (SurfaceIndex, NodeIndex, usize)>, // Tab map for keyboard navigation
     locale: FluentBundle<Arc<FluentResource>>,
     file_list_ui: file_list::FileListUi,
+    update_check_started: bool, // Ensures the background update check only runs once
+    update_prompt: Option<updater::gui::UpdatePrompt>, // In-app "update available" prompt
 }
 
 impl Default for MyApp {
@@ -278,6 +280,8 @@ impl Default for MyApp {
             tab_map,
             locale: locale::get_locale(None),
             file_list_ui: file_list::FileListUi::default(),
+            update_check_started: false,
+            update_prompt: None,
         }
     }
 }
@@ -369,6 +373,29 @@ impl MyApp {
 
 impl eframe::App for MyApp {
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
+        // Kick off the background update check once, on the first frame.
+        if !self.update_check_started {
+            self.update_check_started = true;
+            if config::get_config_bool("check_for_updates").unwrap_or(false) {
+                updater::check_for_updates_background(
+                    ctx.clone(),
+                    config::get_config_bool("automatically_install_updates").unwrap_or(false),
+                );
+            }
+        }
+
+        // Surface any update found by the background check.
+        if self.update_prompt.is_none() {
+            if let Some((release, url)) = updater::take_available_update() {
+                self.update_prompt = Some(updater::gui::UpdatePrompt::new(release, url));
+            }
+        }
+        if let Some(prompt) = &mut self.update_prompt {
+            if prompt.show(ctx) {
+                self.update_prompt = None;
+            }
+        }
+
         // Display the status bar at the bottom
         egui::TopBottomPanel::bottom("status_bar").show(ctx, |ui| {
             ui.add(egui::ProgressBar::new(logic::get_progress()).text(logic::get_status()));
@@ -377,9 +404,11 @@ impl eframe::App for MyApp {
         // Switch tabs with keyboard input (num keys)
         if ctx.input(|input| input.modifiers.ctrl || input.modifiers.alt) {
             for i in 1..=self.tab_map.len() as u32 {
-                if ctx.input(|input| {
-                    input.key_pressed(egui::Key::from_name(&i.to_string()).expect("Invalid key"))
-                }) {
+                // from_name returns None for key names "0" and beyond "9"; skip.
+                let Some(key) = egui::Key::from_name(&i.to_string()) else {
+                    continue;
+                };
+                if ctx.input(|input| input.key_pressed(key)) {
                     if let Some(&(surface, node, tab)) = self.tab_map.get(&i) {
                         self.tree
                             .set_active_tab((surface, node, egui_dock::TabIndex(tab)));
@@ -419,13 +448,7 @@ pub fn run_gui() {
 
     // Only run GUI after user has been welcomed
     if config::get_config_bool("welcomed").unwrap_or(true) {
-        // Check for updates when running GUI
-        if config::get_config_bool("check_for_updates").unwrap_or(false) {
-            updater::check_for_updates(
-                true,
-                config::get_config_bool("automatically_install_updates").unwrap_or(false),
-            );
-        }
+        // Update check now runs in MyApp::update (background thread, non-blocking).
 
         let options = eframe::NativeOptions {
             viewport: egui::ViewportBuilder::default().with_icon(

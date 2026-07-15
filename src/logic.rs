@@ -28,13 +28,17 @@ static STATUS: LazyLock<Mutex<String>> = LazyLock::new(|| {
         None,
     ))
 });
-static FILE_LIST: LazyLock<Mutex<Vec<AssetInfo>>> = LazyLock::new(|| Mutex::new(Vec::new()));
+// Asset lists are `Arc<Vec<AssetInfo>>` so the GUI can snapshot them per-frame
+// with a refcount bump instead of a deep clone; writers use `Arc::make_mut` for
+// copy-on-write (clones only when a reader holds the previous snapshot).
+static FILE_LIST: LazyLock<Mutex<Arc<Vec<AssetInfo>>>> =
+    LazyLock::new(|| Mutex::new(Arc::new(Vec::new())));
 static REQUEST_REPAINT: LazyLock<Mutex<bool>> = LazyLock::new(|| Mutex::new(false));
 static PROGRESS: LazyLock<Mutex<f32>> = LazyLock::new(|| Mutex::new(1.0));
 static LIST_TASK_RUNNING: LazyLock<Mutex<bool>> = LazyLock::new(|| Mutex::new(false));
 static STOP_LIST_RUNNING: LazyLock<Mutex<bool>> = LazyLock::new(|| Mutex::new(false));
-static FILTERED_FILE_LIST: LazyLock<Mutex<Vec<AssetInfo>>> =
-    LazyLock::new(|| Mutex::new(Vec::new()));
+static FILTERED_FILE_LIST: LazyLock<Mutex<Arc<Vec<AssetInfo>>>> =
+    LazyLock::new(|| Mutex::new(Arc::new(Vec::new())));
 static TASK_RUNNING: LazyLock<Mutex<bool>> = LazyLock::new(|| Mutex::new(false)); // Delete/extract
 
 // CLI stuff
@@ -67,12 +71,13 @@ fn update_file_list(value: AssetInfo, cli_list_mode: bool) {
         println!("{}", value.name);
     }
     let mut file_list = FILE_LIST.lock().unwrap();
-    file_list.push(value)
+    // make_mut clones only if a snapshot is still being read elsewhere.
+    Arc::make_mut(&mut file_list).push(value)
 }
 
 fn clear_file_list() {
     let mut file_list = FILE_LIST.lock().unwrap();
-    *file_list = Vec::new()
+    *file_list = Arc::new(Vec::new())
 }
 
 /// Zstd magic bytes: 0xFD2FB528 (little-endian)
@@ -142,10 +147,9 @@ fn extract_bytes(header: &str, bytes: Vec<u8>) -> Vec<u8> {
     };
 
     // Find the header in the file
-    if let Some(mut index) = bytes_search(&bytes, header.as_bytes()) {
-        // Found the header, extract from the bytes
-        index -= offset; // Apply offset
-                         // Return all the bytes after the found header index
+    if let Some(index) = bytes_search(&bytes, header.as_bytes()) {
+        // Apply the offset; saturate so a near-start header can't underflow.
+        let index = index.saturating_sub(offset);
         return bytes[index..].to_vec();
     }
     log_warn!("Failed to extract a file!");
@@ -324,9 +328,9 @@ pub fn extract_to_file(
                 destination.set_extension(extension);
             }
 
-            extract_bytes(&header, bytes.clone()) // Extract between the header to the end of the file.
+            extract_bytes(&header, bytes) // Extract between the header to the end of the file.
         }
-        Err(_) => bytes.clone(), // No header was found.
+        Err(_) => bytes, // No header found; write the raw bytes as-is.
     };
 
     // Ensure parent directory exists (needed when asset name contains subdirectories,
@@ -357,8 +361,8 @@ pub fn extract_asset_to_bytes(asset: AssetInfo) -> Result<Vec<u8>, std::io::Erro
     let bytes = read_asset(&asset)?;
 
     match find_header(asset.category, &bytes) {
-        Ok(header) => Ok(extract_bytes(&header, bytes.clone())), // Extract between the header to the end of the file.
-        Err(_) => Ok(bytes.clone()),                             // No header was found.
+        Ok(header) => Ok(extract_bytes(&header, bytes)), // Extract between the header to the end of the file.
+        Err(_) => Ok(bytes),                             // No header was found.
     }
 }
 
@@ -399,7 +403,7 @@ pub fn extract_dir(
             let total = file_list.len();
             let mut count = 0;
 
-            for entry in file_list {
+            for entry in file_list.iter() {
                 count += 1; // Increase counter for progress
                 update_progress(count as f32 / total as f32); // Convert to f32 to allow floating point output
 
@@ -416,7 +420,7 @@ pub fn extract_dir(
                 args.set("item", count);
                 args.set("total", total);
 
-                match extract_to_file(entry, dest, true) {
+                match extract_to_file(entry.clone(), dest, true) {
                     Ok(_) => {
                         update_status(locale::get_message(
                             &locale,
@@ -602,24 +606,22 @@ pub fn copy_assets(asset_a: AssetInfo, asset_b: AssetInfo) {
 
 pub fn filter_file_list(query: String) {
     let query_lower = query.to_lowercase();
-    // Clear file list before
-    {
-        let mut filtered_file_list = FILTERED_FILE_LIST.lock().unwrap();
-        *filtered_file_list = Vec::new();
-    }
-    let file_list = get_file_list(); // Clone file list
-    for file in file_list {
-        if file.name.contains(&query_lower)
-            || config::get_asset_alias(&file.name)
-                .to_lowercase()
-                .contains(&query_lower)
-        {
-            {
-                let mut filtered_file_list = FILTERED_FILE_LIST.lock().unwrap();
-                filtered_file_list.push(file);
-            }
-        }
-    }
+    let file_list = get_file_list(); // Snapshot (Arc refcount bump)
+
+    // Match case-insensitively on name and alias; collect once and assign under
+    // a single lock rather than locking per match.
+    let filtered: Vec<AssetInfo> = file_list
+        .iter()
+        .filter(|file| {
+            file.name.to_lowercase().contains(&query_lower)
+                || config::get_asset_alias(&file.name)
+                    .to_lowercase()
+                    .contains(&query_lower)
+        })
+        .cloned()
+        .collect();
+
+    *FILTERED_FILE_LIST.lock().unwrap() = Arc::new(filtered);
 }
 
 pub fn create_asset_info(asset: &str, category: Category) -> AssetInfo {
@@ -644,18 +646,19 @@ pub fn create_asset_info(asset: &str, category: Category) -> AssetInfo {
 }
 
 pub fn determine_category(bytes: &[u8]) -> Category {
+    // Music shares headers with Sounds and iterates first, so it would shadow
+    // Sounds and mis-classify every OggS/ID3 file as Music. Skip both: this
+    // classifies *unknown* bytes (e.g. an "All" listing), and Music is a
+    // location-based (/sounds) category, not a byte-signature one.
     for category in Category::iter().filter(|&cat| cat != Category::All && cat != Category::Music) {
-        // Ignore music and all
         for header in get_headers(&category) {
-            // Since MP3 gets an unusual amount of false-positives, we make an extra check
+            // ID3 gets false positives, so also require an HTTP "binary/" marker.
             if header == "ID3" {
                 if bytes_contains(bytes, header.as_bytes()) && bytes_contains(bytes, b"binary/") {
                     return category;
                 }
-            } else {
-                if bytes_contains(bytes, header.as_bytes()) {
-                    return category;
-                }
+            } else if bytes_contains(bytes, header.as_bytes()) {
+                return category;
             }
         }
     }
@@ -664,30 +667,37 @@ pub fn determine_category(bytes: &[u8]) -> Category {
     Category::All
 }
 
-// File headers for each category
-pub fn get_headers(category: &Category) -> Vec<String> {
+// File headers for each category.
+//
+// `Category::Music` reuses the same OggS/ID3 headers as `Sounds` because
+// Roblox stores music as raw audio in /sounds with no HTTP header. This lets
+// `find_header` succeed on a music file and resolve its extension via the
+// existing header→extension table in `extract_to_file`, instead of needing a
+// separate magic-byte detector for the no-header path.
+pub fn get_headers(category: &Category) -> Vec<&'static str> {
     match category {
         Category::Music => {
-            vec![] // No headers for music, Roblox stores these without an HTTP header so there's no point looking out for them.
+            vec!["OggS", "ID3"]
         }
         Category::Sounds => {
-            vec!["OggS".to_string(), "ID3".to_string()]
+            vec!["OggS", "ID3"]
         }
         Category::Ktx => {
-            vec!["KTX".to_string()]
+            vec!["KTX"]
         }
         Category::Rbxm => {
-            vec!["<roblox!".to_string()]
+            vec!["<roblox!"]
         }
         Category::Images => {
-            vec!["PNG".to_string(), "WEBP".to_string()]
+            vec!["PNG", "WEBP"]
         }
         Category::All => {
-            // Go through all
-            Category::iter() // For each category except Category::All
-                .filter(|&cat| cat != Category::All)
-                .flat_map(|cat| get_headers(&cat)) // Get headers
-                .filter(|item| !item.is_empty()) // Remove blank strings
+            // Aggregate headers from every category except `All` and `Music`.
+            // Music shares its headers with Sounds (see above) and is location-based
+            // (/sounds), so including it here would just duplicate the audio headers.
+            Category::iter()
+                .filter(|&cat| cat != Category::All && cat != Category::Music)
+                .flat_map(|cat| get_headers(&cat))
                 .collect()
         }
     }
@@ -707,11 +717,12 @@ pub fn update_progress(value: f32) {
     *request = true;
 }
 
-pub fn get_file_list() -> Vec<AssetInfo> {
+pub fn get_file_list() -> Arc<Vec<AssetInfo>> {
+    // Snapshot: bumps the Arc refcount, doesn't clone the Vec.
     FILE_LIST.lock().unwrap().clone()
 }
 
-pub fn get_filtered_file_list() -> Vec<AssetInfo> {
+pub fn get_filtered_file_list() -> Arc<Vec<AssetInfo>> {
     FILTERED_FILE_LIST.lock().unwrap().clone()
 }
 
@@ -728,6 +739,50 @@ mod tests {
         let bytes = vec![1, 2, 3, 4];
         let result = maybe_decompress(bytes.clone());
         assert_eq!(result, bytes);
+    }
+
+    fn dummy_asset(name: &str) -> AssetInfo {
+        AssetInfo {
+            name: name.to_owned(),
+            _size: 0,
+            last_modified: None,
+            from_file: true,
+            from_sql: false,
+            from_rbx_storage: false,
+            category: Category::Music,
+        }
+    }
+
+    // A snapshot from get_file_list() must stay stable after later writes (the
+    // copy-on-write guarantee the GUI relies on), and filter_file_list must
+    // produce the matching subset. Kept in one test to avoid racing other tests
+    // over the global list.
+    #[test]
+    fn test_file_list_arc_snapshot_and_filter() {
+        clear_file_list();
+        update_file_list(dummy_asset("apple"), false);
+
+        // Take a snapshot, then mutate the live list.
+        let snapshot = get_file_list();
+        assert_eq!(snapshot.len(), 1);
+        update_file_list(dummy_asset("banana"), false);
+
+        // The snapshot is unchanged; the live list reflects the new push.
+        assert_eq!(snapshot.len(), 1, "snapshot must not see later writes");
+        assert_eq!(snapshot[0].name, "apple");
+        let live = get_file_list();
+        assert_eq!(live.len(), 2);
+        // The write should have copied-on-write to a fresh allocation.
+        assert!(!Arc::ptr_eq(&snapshot, &live));
+
+        // Filtering matches on the asset name (case-insensitive).
+        filter_file_list("APP".to_owned());
+        let filtered = get_filtered_file_list();
+        assert_eq!(filtered.len(), 1);
+        assert_eq!(filtered[0].name, "apple");
+
+        clear_file_list();
+        assert_eq!(get_file_list().len(), 0);
     }
 
     #[test]
@@ -787,9 +842,47 @@ mod tests {
 
     #[test]
     fn test_get_headers() {
-        assert!(get_headers(&Category::Images).contains(&"PNG".to_string()));
-        assert!(get_headers(&Category::Images).contains(&"WEBP".to_string()));
-        assert!(get_headers(&Category::Music).is_empty());
+        assert!(get_headers(&Category::Images).contains(&"PNG"));
+        assert!(get_headers(&Category::Images).contains(&"WEBP"));
+        // Music reuses the audio headers so find_header can resolve its extension.
+        assert!(get_headers(&Category::Music).contains(&"OggS"));
+        assert!(get_headers(&Category::Music).contains(&"ID3"));
+    }
+
+    #[test]
+    fn test_get_headers_all_excludes_music_duplicates() {
+        // All aggregates every category except All and Music, so the audio
+        // headers appear exactly once (from Sounds), not twice.
+        let all = get_headers(&Category::All);
+        let oggs = all.iter().filter(|&&h| h == "OggS").count();
+        let id3 = all.iter().filter(|&&h| h == "ID3").count();
+        assert_eq!(oggs, 1);
+        assert_eq!(id3, 1);
+    }
+
+    #[test]
+    fn test_extract_bytes_offset_underflow() {
+        // The WEBP offset is 8. If the header is found at an index smaller than
+        // the offset, the index must saturate to 0 instead of underflowing and
+        // panicking with an out-of-bounds slice.
+        let bytes = b"WEBPdata".to_vec();
+        let result = extract_bytes("WEBP", bytes.clone());
+        assert_eq!(result, bytes);
+    }
+
+    #[test]
+    fn test_extract_bytes_png_offset() {
+        // PNG has an offset of 1, so extraction starts one byte before "PNG".
+        let bytes = b"\x89PNG\r\n".to_vec();
+        let result = extract_bytes("PNG", bytes.clone());
+        assert_eq!(result, bytes);
+    }
+
+    #[test]
+    fn test_extract_bytes_no_header_returns_input() {
+        let bytes = b"no header here".to_vec();
+        let result = extract_bytes("OggS", bytes.clone());
+        assert_eq!(result, bytes);
     }
 }
 

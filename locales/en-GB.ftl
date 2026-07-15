@@ -76,6 +76,7 @@ actions = Actions
 updates = Updates
 language-settings = Language settings
 new-updates = New updates available
+downloading-update = Downloading update…
 contributors = Contributors
 dependencies = Dependencies
 behavior = Behavior

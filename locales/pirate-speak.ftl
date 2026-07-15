@@ -13,6 +13,8 @@ about = 'Bout This Vessel
 logs = Ship’s Log  
 
 # Buttons
+button-reset-rbx-storage-dir = Reset rbx-storage Directory # TODO: Translate
+button-change-rbx-storage-dir = Change rbx-storage Directory # TODO: Translate
 button-reset-sql-db = Scuttle the SQL Ledger
 button-change-sql-db = Chart a New Course fer the SQL Ledger
 button-delete-this-dir = Scuttle This Hold <Del>  
@@ -71,7 +73,8 @@ error-invalid-directory-title = That Ain’t a Proper Course!
 error-invalid-directory-description = Avast! The path ye set ain’t leadin’ to a proper hold!  
 generic-error-critical = A Most Dire Curse!  
 
-# Headings  
+# Headings
+downloading-update = Downloading update… # TODO: Translate  
 actions = Orders  
 updates = Messages in a Bottle  
 language-settings = Speak Like a Pirate  
@@ -90,6 +93,7 @@ download-development-build = Test New Gadgets (May Be Unstable Waters)
 checkbox-hide-user-logs = Hide Ye True Name from the Ship’s Log  
 
 # Descriptions
+custom-rbx-storage-dir-description = If you want to use a different rbx-storage directory, change it below. You can reset it back to the default with the other button. # TODO: Translate
 custom-sql-db-description = If ye be needin’ to access a different stash o’ booty, chart a new course fer yer SQL ledger below. Ye can always sail back to default waters. This be not the same as yer main installin’ cove.
 clear-cache-description = If it be takin’ too long to find treasure, ye can toss all cargo overboard. The ship will fetch new supplies next time ye sail.  
 extract-all-description = This button will haul all loot aboard and sort it into proper holds, like /cannon-blasts and /treasure-maps. Pick yer stash spot when ye begin.  
@@ -120,6 +124,8 @@ error-extracting-file = ERROR: Couldn’t Haul It Aboard: { $error }
 error-check-logs = ERROR: Check the Captain’s Log for More Clues.  
 
 # Misc
+no-directory = Not found # TODO: Translate
+rbx-storage-directory = rbx-storage Directory: { $directory } # TODO: Translate
 sql-database = Ledger o' SQL: { $path }
 no-function = (Not Workin’ Yet, Matey)  
 version = Ship’s Version: v{ $version } (Forged on { $date })  
