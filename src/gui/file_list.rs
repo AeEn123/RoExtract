@@ -389,7 +389,6 @@ impl FileListUi {
                 None,
             ))
             .clicked()
-            || ui.input(|i| i.key_pressed(egui::Key::Delete))
         {
             clear_cache(&self.locale);
             self.asset_context_menu_open = None;
@@ -544,10 +543,6 @@ impl FileListUi {
 
         let mut focus_search_box = false; // Focus the search box toggle for this frame
 
-        if ui.input(|i| i.key_pressed(egui::Key::F5)) {
-            logic::refresh(category, false, false);
-        }
-
         let file_list_is_empty = {
             file_list.is_empty()
                 || (
@@ -560,13 +555,88 @@ impl FileListUi {
                 )
         };
 
+        // Handle key shortcuts here
+        if ui.input(|i| i.key_pressed(egui::Key::F2)) {
+            // Rename hotkey (F2)
+            self.renaming = !self.renaming;
+        }
+        if ui.input(|i| i.key_pressed(egui::Key::F5)) {
+            // Refresh (F5)
+            logic::refresh(category, false, false);
+        }
+        if ui.input(|i| i.modifiers.ctrl && i.key_pressed(egui::Key::F)) {
+            // Search (Ctrl+F)
+            self.searching = !self.searching;
+            focus_search_box = true;
+        }
+        if ui.input(|i| i.key_pressed(egui::Key::F3)) {
+            // Extract all (F3)
+            extract_all_of_type(category, &self.locale);
+        }
+        if ui.input(|i| i.modifiers.ctrl && i.key_pressed(egui::Key::D)) {
+            // Swap (Ctrl+D)
+            toggle_swap_or_copy(&mut self.swapping, &mut self.swapping_asset, &self.locale);
+            if let Some(i) = self.selected {
+                self.swapping_asset = file_list.get(i).cloned();
+            } else {
+                self.swapping_asset = None;
+            }
+        }
+        if ui.input(|i| i.modifiers.ctrl && i.key_pressed(egui::Key::E)) {
+            // Ctrl+E (Extract)
+            if let Some(selected) = self.selected {
+                if let Some(asset) = file_list.get(selected) {
+                    extract_file_button(asset.clone());
+                }
+            }
+        }
+
+        if ui.input(|i| i.key_pressed(egui::Key::Escape)) && !self.searching {
+            // Cancel actions (Esc)
+            self.swapping_asset = None;
+            self.copying = false;
+            self.swapping = false;
+        }
+
+        // Shortcuts to deactivate during text entry
+        if !self.renaming && !self.searching {
+            if ui.input(|i| i.key_pressed(egui::Key::Delete)) {
+                // Clear cache (del)
+                clear_cache(&self.locale);
+            }
+
+            if ui.input(|inp| inp.events.iter().any(|ev| matches!(ev, egui::Event::Copy))) {
+                // https://github.com/emilk/egui/issues/4065#issuecomment-2071047410
+                // Copy (Ctrl+C)
+                toggle_swap_or_copy(&mut self.copying, &mut self.swapping_asset, &self.locale);
+                if let Some(i) = self.selected {
+                    self.swapping_asset = file_list.get(i).cloned();
+                } else {
+                    self.swapping_asset = None;
+                }
+            }
+        }
+
+        // GUI logic below here
+
+        // Top UI buttons
+        if config::get_config_bool("use_topbar_buttons").unwrap_or(true) {
+            ui.push_id("Topbar buttons", |ui| {
+                egui::ScrollArea::horizontal().show(ui, |ui| {
+                    ui.horizontal(|ui| {
+                        self.asset_buttons(ui, category, &mut focus_search_box, None);
+                    });
+                })
+            });
+        }
+
         // Empty state
         if file_list_is_empty {
             ui.vertical_centered(|ui| {
                 ui.add_space(40.0);
                 let icon_size = 48.0;
                 ui.add(
-                    egui::Label::new(egui::RichText::new("📂").size(icon_size)).selectable(false),
+                    egui::Label::new(egui::RichText::new("📂").size(icon_size)).selectable(false), // Folder icon
                 );
                 ui.heading(locale::get_message(&self.locale, "empty-state-title", None));
                 ui.label(locale::get_message(
@@ -584,62 +654,6 @@ impl FileListUi {
                 }
             });
             return;
-        }
-
-        // Handle key shortcuts here
-        if ui.input(|i| i.key_pressed(egui::Key::F2)) {
-            // Rename hotkey
-            self.renaming = !self.renaming;
-        }
-        if ui.input(|i| i.modifiers.ctrl && i.key_pressed(egui::Key::F)) {
-            // Ctrl+F (Search)
-            self.searching = !self.searching;
-            focus_search_box = true;
-        }
-        if ui.input(|i| i.key_pressed(egui::Key::Delete)) && !self.renaming {
-            // del key used for editing, don't allow during editing
-            clear_cache(&self.locale);
-        }
-        if ui.input(|i| i.key_pressed(egui::Key::F3)) {
-            extract_all_of_type(category, &self.locale);
-        }
-        if ui.input(|i| i.modifiers.ctrl && i.key_pressed(egui::Key::D)) {
-            // Ctrl+D (Swap)
-            toggle_swap_or_copy(&mut self.swapping, &mut self.swapping_asset, &self.locale);
-            if let Some(i) = self.selected {
-                self.swapping_asset = file_list.get(i).cloned();
-            } else {
-                self.swapping_asset = None;
-            }
-        }
-        if ui.input(|inp| inp.events.iter().any(|ev| matches!(ev, egui::Event::Copy))) {
-            // https://github.com/emilk/egui/issues/4065#issuecomment-2071047410
-            // Ctrl+C (Copy)
-            toggle_swap_or_copy(&mut self.copying, &mut self.swapping_asset, &self.locale);
-            if let Some(i) = self.selected {
-                self.swapping_asset = file_list.get(i).cloned();
-            } else {
-                self.swapping_asset = None;
-            }
-        }
-        if ui.input(|i| i.key_pressed(egui::Key::Escape)) && !self.searching {
-            // Esc (Cancel actions)
-            self.swapping_asset = None;
-            self.copying = false;
-            self.swapping = false;
-        }
-
-        // GUI logic below here
-
-        // Top UI buttons
-        if config::get_config_bool("use_topbar_buttons").unwrap_or(true) {
-            ui.push_id("Topbar buttons", |ui| {
-                egui::ScrollArea::horizontal().show(ui, |ui| {
-                    ui.horizontal(|ui| {
-                        self.asset_buttons(ui, category, &mut focus_search_box, None);
-                    });
-                })
-            });
         }
 
         let mut scroll_to: Option<usize> = None; // This is reset every frame, so it doesn't constantly scroll to the same label
@@ -684,16 +698,6 @@ impl FileListUi {
                             &mut self.copying,
                             &mut self.swapping_asset,
                         );
-                    }
-                }
-            }
-
-            if ui.input(|i| i.modifiers.ctrl && i.key_pressed(egui::Key::E)) {
-                // Ctrl+E (Extract)
-                if let Some(selected) = self.selected {
-                    // Get file name after getting the selected value
-                    if let Some(asset) = file_list.get(selected) {
-                        extract_file_button(asset.clone());
                     }
                 }
             }

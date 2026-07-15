@@ -83,6 +83,9 @@ Fixed missing localisation files in English and German (Thanks to @Vonercent)
 **Full Changelog**: https://github.com/AeEn123/RoExtract/compare/v1.0.0...v1.0.1
 
 ## 1.1.0
+- [ ] - Rewrite in listing - independent lists for each type
+- [ ] - Split cache_directory.rs into two files
+- [ ] - Hande file list filtering in file_list.rs instead
 - [ ] - Built-in media player to quickly preview sounds
 - [ ] - Ability to convert between formats
 - [ ] - Audio length in list
