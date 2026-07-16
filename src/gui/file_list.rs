@@ -151,56 +151,59 @@ fn extract_file_button(asset: logic::AssetInfo) {
 }
 
 fn load_asset_image(asset: AssetInfo, ctx: egui::Context) -> Option<TextureHandle> {
-    let images = { gui::IMAGES.lock().unwrap().clone() };
-    if let Some(texture) = images.get(&asset.name) {
-        Some(texture.clone())
-    } else {
-        {
-            let assets_loading = ASSETS_LOADING.lock().unwrap().clone(); // Default to 2 CPU threads
-            if assets_loading.contains(&asset.name)
-                || assets_loading.len()
-                    >= thread::available_parallelism()
-                        .unwrap_or(NonZero::new(2).unwrap())
-                        .into()
-            {
-                return None; // Don't load multiple at a time or more than CPU threads
-            }
-        }
-        thread::spawn(move || {
-            {
-                let mut assets_loading = ASSETS_LOADING.lock().unwrap();
-                assets_loading.push(asset.name.clone()); // Add the asset to the loading set
-            }
+    if let Some(texture) = gui::get_cached_texture(&asset.name) {
+        return Some(texture);
+    }
 
-            match logic::extract_asset_to_bytes(asset.clone()) {
-                Ok(bytes) => {
-                    match gui::load_image(&asset.name, bytes.as_slice(), ctx) {
-                        Ok(_) => {
-                            let mut assets_loading = ASSETS_LOADING.lock().unwrap();
-                            assets_loading.retain(|x| x != &asset.name); // Remove the asset from the loading set
-                        }
-                        Err(e) => {
-                            log_warn!(
-                                "Failed to load {} as image, cooldown for 1000 ms ({})",
-                                asset.name,
-                                e
-                            );
-                            thread::sleep(Duration::from_millis(1000));
-                            let mut assets_loading = ASSETS_LOADING.lock().unwrap();
-                            assets_loading.retain(|x| x != &asset.name); // Remove the asset from the loading set
-                        }
-                    }
+    {
+        let assets_loading = ASSETS_LOADING.lock().unwrap();
+        if assets_loading.contains(&asset.name)
+            || assets_loading.len()
+                >= thread::available_parallelism()
+                    .unwrap_or(NonZero::new(2).unwrap())
+                    .into()
+        {
+            return None; // Don't load multiple at a time or more than CPU threads
+        }
+    }
+
+    // Cap the texture to 2x the preview size (for retina) before uploading to
+    // GPU — drastically reduces per-image VRAM for large source textures.
+    let preview_size = config::get_config_u64("image_preview_size").unwrap_or(128) as u32;
+    let max_dimension = (preview_size * 2).max(256);
+
+    thread::spawn(move || {
+        {
+            let mut assets_loading = ASSETS_LOADING.lock().unwrap();
+            assets_loading.push(asset.name.clone()); // Add the asset to the loading set
+        }
+
+        match logic::extract_asset_to_bytes(asset.clone()) {
+            Ok(bytes) => match gui::load_image(&asset.name, bytes.as_slice(), ctx, Some(max_dimension)) {
+                Ok(_) => {
+                    let mut assets_loading = ASSETS_LOADING.lock().unwrap();
+                    assets_loading.retain(|x| x != &asset.name);
                 }
                 Err(e) => {
-                    log_error!("Unable read file, 1000 ms cooldown: {}", e);
+                    log_warn!(
+                        "Failed to load {} as image, cooldown for 1000 ms ({})",
+                        asset.name,
+                        e
+                    );
                     thread::sleep(Duration::from_millis(1000));
                     let mut assets_loading = ASSETS_LOADING.lock().unwrap();
-                    assets_loading.retain(|x| x != &asset.name); // Remove the asset from the loading set
+                    assets_loading.retain(|x| x != &asset.name);
                 }
+            },
+            Err(e) => {
+                log_error!("Unable read file, 1000 ms cooldown: {}", e);
+                thread::sleep(Duration::from_millis(1000));
+                let mut assets_loading = ASSETS_LOADING.lock().unwrap();
+                assets_loading.retain(|x| x != &asset.name);
             }
-        });
-        None
-    }
+        }
+    });
+    None
 }
 
 fn clear_cache(locale: &FluentBundle<Arc<FluentResource>>) {
@@ -222,6 +225,7 @@ fn clear_cache(locale: &FluentBundle<Arc<FluentResource>>) {
         .unwrap();
 
     if yes {
+        gui::clear_image_cache();
         logic::clear_cache();
     }
 }

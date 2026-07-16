@@ -8,7 +8,7 @@ use std::sync::Arc;
 use std::sync::{LazyLock, Mutex};
 use std::time::Duration;
 
-use std::collections::HashMap;
+use std::collections::{HashMap, VecDeque};
 // Used for input
 use crate::{config, locale, log, logic, updater}; // Used for functionality
 use eframe::egui::TextureHandle;
@@ -46,38 +46,109 @@ const DEPENDENCIES: [[&str; 2]; 14] = [
     ["https://github.com/image-rs/image", ""],
 ];
 
-pub static IMAGES: LazyLock<Mutex<HashMap<String, TextureHandle>>> =
-    LazyLock::new(|| Mutex::new(HashMap::new()));
+/// Maximum number of image textures kept in GPU memory. Once exceeded, the
+/// least-recently-used entries are evicted. Without this bound, browsing
+/// thousands of cached images would consume unbounded VRAM.
+const MAX_TEXTURES: usize = 256;
+
+struct ImageCache {
+    textures: HashMap<String, TextureHandle>,
+    order: VecDeque<String>,
+}
+
+impl ImageCache {
+    fn new() -> Self {
+        Self {
+            textures: HashMap::new(),
+            order: VecDeque::new(),
+        }
+    }
+
+    /// Look up a texture and mark it most-recently-used if present.
+    fn get(&mut self, id: &str) -> Option<TextureHandle> {
+        let texture = self.textures.get(id)?.clone();
+        if let Some(pos) = self.order.iter().position(|k| k == id) {
+            self.order.remove(pos);
+        }
+        self.order.push_back(id.to_owned());
+        Some(texture)
+    }
+
+    /// Insert a texture, evicting least-recently-used entries if over capacity.
+    fn insert(&mut self, id: String, texture: TextureHandle) {
+        if self.textures.contains_key(&id) {
+            if let Some(pos) = self.order.iter().position(|k| k == &id) {
+                self.order.remove(pos);
+            }
+        }
+        self.textures.insert(id.clone(), texture);
+        self.order.push_back(id);
+        while self.order.len() > MAX_TEXTURES {
+            if let Some(old_id) = self.order.pop_front() {
+                self.textures.remove(&old_id);
+            }
+        }
+    }
+
+    fn clear(&mut self) {
+        self.textures.clear();
+        self.order.clear();
+    }
+}
+
+static IMAGE_CACHE: LazyLock<Mutex<ImageCache>> =
+    LazyLock::new(|| Mutex::new(ImageCache::new()));
 
 struct TabViewer<'a> {
     locale: &'a mut FluentBundle<Arc<FluentResource>>,
     file_list_ui: &'a mut file_list::FileListUi,
 }
 
+/// Returns a cached texture without cloning the entire cache.
+pub fn get_cached_texture(id: &str) -> Option<TextureHandle> {
+    IMAGE_CACHE.lock().unwrap().get(id)
+}
+
+/// Evict all cached textures, freeing GPU memory.
+pub fn clear_image_cache() {
+    IMAGE_CACHE.lock().unwrap().clear();
+}
+
+/// Decode `data` into a GPU texture, optionally downscaling it first to cap
+/// per-texture VRAM usage. Cached in a bounded LRU.
 pub fn load_image(
     id: &str,
     data: &[u8],
     ctx: egui::Context,
+    max_dimension: Option<u32>,
 ) -> Result<TextureHandle, image::ImageError> {
-    let images = { IMAGES.lock().unwrap().clone() };
-    if let Some(texture) = images.get(id) {
-        Ok(texture.clone())
-    } else {
-        let icon_image = image::load_from_memory(data)?;
-        let icon_rgba = icon_image.to_rgba8();
-        let icon_size = [icon_rgba.width() as usize, icon_rgba.height() as usize];
-        let texture = ctx.load_texture(
-            id,
-            egui::ColorImage::from_rgba_unmultiplied(
-                icon_size,
-                icon_rgba.as_flat_samples().as_slice(),
-            ),
-            Default::default(),
-        );
-        let mut images = IMAGES.lock().unwrap();
-        images.insert(id.to_string(), texture.clone());
-        Ok(texture)
+    if let Some(texture) = get_cached_texture(id) {
+        return Ok(texture);
     }
+
+    let mut icon_image = image::load_from_memory(data)?;
+
+    // Downscale large images before uploading to GPU. For thumbnail previews
+    // there's no need to keep full resolution — this can cut VRAM by 10-60x.
+    if let Some(max_dim) = max_dimension {
+        if icon_image.width() > max_dim || icon_image.height() > max_dim {
+            icon_image = icon_image.thumbnail(max_dim, max_dim);
+        }
+    }
+
+    let icon_rgba = icon_image.to_rgba8();
+    let icon_size = [icon_rgba.width() as usize, icon_rgba.height() as usize];
+    let texture = ctx.load_texture(
+        id,
+        egui::ColorImage::from_rgba_unmultiplied(
+            icon_size,
+            icon_rgba.as_flat_samples().as_slice(),
+        ),
+        Default::default(),
+    );
+
+    IMAGE_CACHE.lock().unwrap().insert(id.to_string(), texture.clone());
+    Ok(texture)
 }
 
 fn add_dependency_credit(dependency: [&str; 2], ui: &mut egui::Ui, sponsor_message: &str) {
@@ -130,8 +201,8 @@ impl egui_dock::TabViewer for TabViewer<'_> {
             ui.heading(locale::get_message(self.locale, "logs", None));
             ui.label(locale::get_message(self.locale, "logs-description", None));
 
-            let mut hide_username_from_logs =
-                config::get_config_bool("hide_username_from_logs").unwrap_or(true);
+            let old_hide = config::get_config_bool("hide_username_from_logs").unwrap_or(true);
+            let mut hide_username_from_logs = old_hide;
 
             let logs = if hide_username_from_logs {
                 log::get_anonymous_logs()
@@ -145,7 +216,12 @@ impl egui_dock::TabViewer for TabViewer<'_> {
                     &mut hide_username_from_logs,
                     locale::get_message(self.locale, "checkbox-hide-user-logs", None),
                 );
-                config::set_config_value("hide_username_from_logs", hide_username_from_logs.into());
+                if hide_username_from_logs != old_hide {
+                    config::set_config_value(
+                        "hide_username_from_logs",
+                        hide_username_from_logs.into(),
+                    );
+                }
 
                 if ui
                     .button(locale::get_message(self.locale, "button-copy-logs", None))
@@ -184,7 +260,7 @@ impl egui_dock::TabViewer for TabViewer<'_> {
 
             // Display logo and name side by side
             ui.horizontal(|ui| {
-                if let Ok(texture) = load_image("ICON", ICON, ui.ctx().clone()) {
+                if let Ok(texture) = load_image("ICON", ICON, ui.ctx().clone(), None) {
                     ui.add(egui::Image::new(&texture).fit_to_exact_size(egui::vec2(40.0, 40.0)));
                 }
                 ui.vertical(|ui| {

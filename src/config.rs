@@ -68,89 +68,59 @@ pub fn get_config() -> Value {
 }
 
 pub fn get_config_string(key: &str) -> Option<String> {
-    if let Some(value) = get_config().get(key) {
-        Some(value.as_str()?.to_owned().replace('"', "")) // For some reason returns in quotes, remove the quotes
-    } else {
-        None
-    }
+    let config = CONFIG.lock().unwrap();
+    let value = config.get(key)?;
+    Some(value.as_str()?.to_owned().replace('"', ""))
 }
 
 pub fn get_config_bool(key: &str) -> Option<bool> {
-    if let Some(value) = get_config().get(key) {
-        value.as_bool()
-    } else {
-        None
-    }
+    let config = CONFIG.lock().unwrap();
+    config.get(key)?.as_bool()
 }
 
 pub fn get_config_u64(key: &str) -> Option<u64> {
-    if let Some(value) = get_config().get(key) {
-        value.as_u64()
-    } else {
-        None
-    }
+    let config = CONFIG.lock().unwrap();
+    config.get(key)?.as_u64()
 }
 
 pub fn get_asset_alias(asset: &str) -> String {
-    if let Some(aliases) = get_config().get("aliases") {
+    let config = CONFIG.lock().unwrap();
+    if let Some(aliases) = config.get("aliases") {
         if let Some(value) = aliases.get(asset) {
-            value.as_str().unwrap().to_owned().replace('"', "")
-        } else {
-            asset.to_string()
+            return value.as_str().unwrap().to_owned().replace('"', "");
         }
-    } else {
-        asset.to_string()
     }
-}
-
-pub fn set_config(value: Value) {
-    let mut config = CONFIG.lock().unwrap();
-    // Change only if it changes
-    if *config != value {
-        *config = value;
-    }
+    asset.to_string()
 }
 
 pub fn set_config_value(key: &str, value: Value) {
-    let mut config = get_config();
+    let mut config = CONFIG.lock().unwrap();
     config[key] = value;
-    set_config(config);
 }
 
 pub fn remove_config_value(key: &str) {
-    let mut config = get_config();
+    let mut config = CONFIG.lock().unwrap();
     config.as_object_mut().map(|obj| obj.remove(key));
-    set_config(config);
 }
 
 pub fn set_asset_alias(asset: &str, value: &str) {
-    let mut config = get_config();
+    let mut config = CONFIG.lock().unwrap();
     if config.get("aliases").is_none() {
         config["aliases"] = json!({});
     }
 
     config["aliases"][asset] = value.replace('"', "").into();
-    set_config(config);
-}
-
-pub fn get_system_config() -> Value {
-    SYSTEM_CONFIG.lock().unwrap().clone()
 }
 
 pub fn get_system_config_string(key: &str) -> Option<String> {
-    if let Some(value) = get_system_config().get(key) {
-        Some(value.as_str()?.to_owned().replace('"', "")) // For some reason returns in quotes, remove the quotes
-    } else {
-        None
-    }
+    let config = SYSTEM_CONFIG.lock().unwrap();
+    let value = config.get(key)?;
+    Some(value.as_str()?.to_owned().replace('"', ""))
 }
 
 pub fn get_system_config_bool(key: &str) -> Option<bool> {
-    if let Some(value) = get_system_config().get(key) {
-        value.as_bool()
-    } else {
-        None
-    }
+    let config = SYSTEM_CONFIG.lock().unwrap();
+    config.get(key)?.as_bool()
 }
 
 pub fn save_config_file() {

@@ -224,10 +224,13 @@ pub fn updates(ui: &mut egui::Ui, locale: &FluentBundle<Arc<FluentResource>>) {
     ui.heading(locale::get_message(locale, "updates", None));
 
     // Get configurations for use in checkboxes
-    let mut check_for_updates = config::get_config_bool("check_for_updates").unwrap_or(true);
-    let mut automatically_install_updates =
-        config::get_config_bool("automatically_install_updates").unwrap_or(false);
-    let mut include_prerelease = config::get_config_bool("include_prerelease").unwrap_or(false);
+    let old_check = config::get_config_bool("check_for_updates").unwrap_or(true);
+    let old_auto = config::get_config_bool("automatically_install_updates").unwrap_or(false);
+    let old_pre = config::get_config_bool("include_prerelease").unwrap_or(false);
+
+    let mut check_for_updates = old_check;
+    let mut automatically_install_updates = old_auto;
+    let mut include_prerelease = old_pre;
 
     ui.checkbox(
         &mut check_for_updates,
@@ -248,13 +251,19 @@ pub fn updates(ui: &mut egui::Ui, locale: &FluentBundle<Arc<FluentResource>>) {
         locale::get_message(locale, "download-development-build", None),
     );
 
-    // Add them to the config again
-    config::set_config_value("check_for_updates", check_for_updates.into());
-    config::set_config_value(
-        "automatically_install_updates",
-        automatically_install_updates.into(),
-    );
-    config::set_config_value("include_prerelease", include_prerelease.into());
+    // Only write back when a value actually changed (avoids per-frame writes)
+    if check_for_updates != old_check {
+        config::set_config_value("check_for_updates", check_for_updates.into());
+    }
+    if automatically_install_updates != old_auto {
+        config::set_config_value(
+            "automatically_install_updates",
+            automatically_install_updates.into(),
+        );
+    }
+    if include_prerelease != old_pre {
+        config::set_config_value("include_prerelease", include_prerelease.into());
+    }
 }
 
 pub fn behavior(ui: &mut egui::Ui, locale: &FluentBundle<Arc<FluentResource>>) {
@@ -262,49 +271,63 @@ pub fn behavior(ui: &mut egui::Ui, locale: &FluentBundle<Arc<FluentResource>>) {
     ui.heading(locale::get_message(locale, "behavior", None));
 
     egui::widgets::global_theme_preference_buttons(ui);
-    match ui.ctx().options(|opt| opt.theme_preference) {
-        egui::ThemePreference::Dark => config::set_config_value("theme", "dark".into()),
-        egui::ThemePreference::Light => config::set_config_value("theme", "light".into()),
-        egui::ThemePreference::System => config::set_config_value("theme", "system".into()),
+    let theme_str = match ui.ctx().options(|opt| opt.theme_preference) {
+        egui::ThemePreference::Dark => "dark",
+        egui::ThemePreference::Light => "light",
+        egui::ThemePreference::System => "system",
+    };
+    if config::get_config_string("theme").as_deref() != Some(theme_str) {
+        config::set_config_value("theme", theme_str.into());
     }
 
     ui.label(locale::get_message(locale, "use-alias-description", None));
 
-    let mut use_alias = config::get_config_bool("use_alias").unwrap_or(true);
-    ui.checkbox(
-        &mut use_alias,
-        locale::get_message(locale, "use-alias", None),
-    );
-    config::set_config_value("use_alias", use_alias.into());
+    let old = config::get_config_bool("use_alias").unwrap_or(true);
+    let mut use_alias = old;
+    ui.checkbox(&mut use_alias, locale::get_message(locale, "use-alias", None));
+    if use_alias != old {
+        config::set_config_value("use_alias", use_alias.into());
+    }
 
-    let mut use_alias = config::get_config_bool("refresh_before_extract").unwrap_or(false);
+    let old = config::get_config_bool("refresh_before_extract").unwrap_or(false);
+    let mut refresh_before_extract = old;
     ui.checkbox(
-        &mut use_alias,
+        &mut refresh_before_extract,
         locale::get_message(locale, "refresh-before-extract", None),
     );
-    config::set_config_value("refresh_before_extract", use_alias.into());
+    if refresh_before_extract != old {
+        config::set_config_value("refresh_before_extract", refresh_before_extract.into());
+    }
 
-    let mut use_topbar_buttons = config::get_config_bool("use_topbar_buttons").unwrap_or(true);
+    let old = config::get_config_bool("use_topbar_buttons").unwrap_or(true);
+    let mut use_topbar_buttons = old;
     ui.checkbox(
         &mut use_topbar_buttons,
         locale::get_message(locale, "use-topbar-buttons", None),
     );
-    config::set_config_value("use_topbar_buttons", use_topbar_buttons.into());
+    if use_topbar_buttons != old {
+        config::set_config_value("use_topbar_buttons", use_topbar_buttons.into());
+    }
 
-    let mut display_image_preview =
-        config::get_config_bool("display_image_preview").unwrap_or(false);
+    let old = config::get_config_bool("display_image_preview").unwrap_or(false);
+    let mut display_image_preview = old;
     ui.checkbox(
         &mut display_image_preview,
         locale::get_message(locale, "button-display-image-preview", None),
     );
-    config::set_config_value("display_image_preview", display_image_preview.into());
+    if display_image_preview != old {
+        config::set_config_value("display_image_preview", display_image_preview.into());
+    }
 
-    let mut image_preview_size = config::get_config_u64("image_preview_size").unwrap_or(128);
+    let old = config::get_config_u64("image_preview_size").unwrap_or(128);
+    let mut image_preview_size = old;
     ui.add(
         egui::widgets::Slider::new(&mut image_preview_size, 16_u64..=512_u64)
             .text(locale::get_message(locale, "input-preview-size", None)),
     );
-    config::set_config_value("image_preview_size", image_preview_size.into());
+    if image_preview_size != old {
+        config::set_config_value("image_preview_size", image_preview_size.into());
+    }
 }
 
 pub fn language(ui: &mut egui::Ui, locale: &FluentBundle<Arc<FluentResource>>) -> bool {
