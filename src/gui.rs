@@ -63,10 +63,10 @@ fn texture_bytes(max_dim: u32) -> usize {
 }
 
 /// Max cached previews for a preview size: `TEXTURE_VRAM_BUDGET / texture_bytes`,
-/// clamped to [16, 1024] so small previews cache more, large ones fewer.
+/// floored at 16 so small previews cache more, large ones fewer.
 pub fn max_textures_for_preview(preview_size: u32) -> usize {
     let count = TEXTURE_VRAM_BUDGET / texture_bytes(preview_max_dimension(preview_size)).max(1);
-    count.clamp(16, 1024)
+    count.max(16)
 }
 
 struct ImageCache {
