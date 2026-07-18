@@ -167,9 +167,8 @@ fn load_asset_image(asset: AssetInfo, ctx: egui::Context) -> Option<TextureHandl
         }
     }
 
-    // Cap the texture to 2x the preview size (for retina) before uploading to
-    // GPU — drastically reduces per-image VRAM for large source textures. The
-    // cache count scales with the preview size so total VRAM stays bounded.
+    // Cap to 2x preview size before GPU upload; cache count scales with it
+    // so total VRAM stays bounded.
     let preview_size = config::get_config_u64("image_preview_size").unwrap_or(128) as u32;
     let max_dimension = gui::preview_max_dimension(preview_size);
     let max_textures = gui::max_textures_for_preview(preview_size);

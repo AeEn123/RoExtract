@@ -1,8 +1,6 @@
 use std::sync::{LazyLock, Mutex};
 
-/// Maximum retained log size (~1 MB). When exceeded, the oldest lines are
-/// trimmed so RAM usage stays bounded during long sessions that log thousands
-/// of asset operations.
+/// Max retained log size (~1 MB); oldest lines trimmed to bound RAM.
 const MAX_LOG_BYTES: usize = 1_000_000;
 
 static LOG: LazyLock<Mutex<String>> = LazyLock::new(|| Mutex::new(String::new()));
@@ -16,8 +14,7 @@ pub fn log(log_type: &str, message: &str, file: &str, line: u32, column: u32) {
     let mut log = LOG.lock().unwrap();
     log.push_str(&format!("{log_message}\n"));
 
-    // Trim oldest entries when the buffer exceeds the cap.  We look for the
-    // next newline after the trim point so we never cut mid-line.
+    // Trim at a line boundary so we never cut mid-line.
     if log.len() > MAX_LOG_BYTES {
         let cut = log.len() - MAX_LOG_BYTES;
         let start = log[cut..].find('\n').map(|p| cut + p + 1).unwrap_or(cut);

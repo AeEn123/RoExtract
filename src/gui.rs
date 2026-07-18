@@ -46,30 +46,24 @@ const DEPENDENCIES: [[&str; 2]; 14] = [
     ["https://github.com/image-rs/image", ""],
 ];
 
-/// Target GPU memory budget for the cached image previews, in bytes (~64 MB).
-/// The cache holds as many previews as fit in this budget: large previews
-/// (high per-texture cost) cache fewer, small previews cache more, keeping
-/// total VRAM roughly constant regardless of the preview size setting.
+/// VRAM budget for cached previews (~64 MB); larger previews cache fewer.
 const TEXTURE_VRAM_BUDGET: usize = 64 * 1024 * 1024;
 
 /// Preview size used to initialise the cache before the first insert.
 const DEFAULT_PREVIEW_SIZE: u32 = 128;
 
-/// Max edge (px) a preview texture is downscaled to for the given preview
-/// size (2x for retina, with a floor so thumbnails stay legible).
+/// Preview texture max edge (px): 2x size, floored at 256 for legibility.
 pub fn preview_max_dimension(preview_size: u32) -> u32 {
     (preview_size * 2).max(256)
 }
 
-/// Bytes a single RGBA8 texture of the given edge consumes on the GPU.
+/// RGBA8 VRAM bytes for a texture of the given edge length.
 fn texture_bytes(max_dim: u32) -> usize {
     (max_dim as usize) * (max_dim as usize) * 4
 }
 
-/// How many previews fit in `TEXTURE_VRAM_BUDGET` at the given preview size.
-/// This is what makes the cache cap scale with the preview size: a 512px
-/// preview (4 MB each) caches only ~16, while a 128px preview (256 KB each)
-/// caches ~256. Clamped to [16, 1024] so the cache is never empty or absurd.
+/// Max cached previews for a preview size: `TEXTURE_VRAM_BUDGET / texture_bytes`,
+/// clamped to [16, 1024] so small previews cache more, large ones fewer.
 pub fn max_textures_for_preview(preview_size: u32) -> usize {
     let count = TEXTURE_VRAM_BUDGET / texture_bytes(preview_max_dimension(preview_size)).max(1);
     count.clamp(16, 1024)
@@ -100,8 +94,7 @@ impl ImageCache {
         Some(texture)
     }
 
-    /// Insert a texture, evicting least-recently-used entries if over capacity.
-    /// `max_count` is the preview-size-derived cap (see `max_textures_for_preview`).
+    /// Insert a texture, evicting LRU entries past `max_count`.
     fn insert(&mut self, id: String, texture: TextureHandle, max_count: usize) {
         self.max_count = max_count;
         if self.textures.contains_key(&id) {
@@ -142,9 +135,8 @@ pub fn clear_image_cache() {
     IMAGE_CACHE.lock().unwrap().clear();
 }
 
-/// Decode `data` into a GPU texture, optionally downscaling it first to cap
-/// per-texture VRAM usage. `max_textures` is the preview-size-derived cache cap
-/// (see `max_textures_for_preview`).
+/// Decode `data` into a GPU texture, downscaling to `max_dimension` and
+/// caching up to `max_textures` (preview-size-derived cap).
 pub fn load_image(
     id: &str,
     data: &[u8],
@@ -158,8 +150,7 @@ pub fn load_image(
 
     let mut icon_image = image::load_from_memory(data)?;
 
-    // Downscale large images before uploading to GPU. For thumbnail previews
-    // there's no need to keep full resolution — this can cut VRAM by 10-60x.
+    // Downscale before GPU upload (thumbnails don't need full resolution).
     if let Some(max_dim) = max_dimension {
         if icon_image.width() > max_dim || icon_image.height() > max_dim {
             icon_image = icon_image.thumbnail(max_dim, max_dim);
