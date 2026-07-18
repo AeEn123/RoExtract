@@ -152,6 +152,7 @@ fn extract_file_button(asset: logic::AssetInfo) {
 
 fn load_asset_image(asset: AssetInfo, ctx: egui::Context) -> Option<TextureHandle> {
     if let Some(texture) = gui::get_cached_texture(&asset.name) {
+        gui::mark_texture_used(&asset.name); // keep on-screen texture from eviction
         return Some(texture);
     }
 
@@ -180,14 +181,15 @@ fn load_asset_image(asset: AssetInfo, ctx: egui::Context) -> Option<TextureHandl
         }
 
         match logic::extract_asset_to_bytes(asset.clone()) {
-            Ok(bytes) => match gui::load_image(
+                Ok(bytes) => match gui::load_image(
                 &asset.name,
                 bytes.as_slice(),
-                ctx,
+                ctx.clone(),
                 Some(max_dimension),
                 max_textures,
             ) {
                 Ok(_) => {
+                    ctx.request_repaint(); // paint the newly loaded thumbnail promptly
                     let mut assets_loading = ASSETS_LOADING.lock().unwrap();
                     assets_loading.retain(|x| x != &asset.name);
                 }
@@ -844,6 +846,7 @@ impl FileListUi {
         // }
 
         // File list for assets
+        gui::clear_used_textures(); // reset this frame's displayed-texture set
         egui::ScrollArea::vertical().auto_shrink(false).show_rows(
             ui,
             row_height,

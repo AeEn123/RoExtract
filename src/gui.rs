@@ -8,7 +8,7 @@ use std::sync::Arc;
 use std::sync::{LazyLock, Mutex};
 use std::time::Duration;
 
-use std::collections::{HashMap, VecDeque};
+use std::collections::{HashMap, HashSet, VecDeque};
 // Used for input
 use crate::{config, locale, log, logic, updater}; // Used for functionality
 use eframe::egui::TextureHandle;
@@ -73,6 +73,10 @@ struct ImageCache {
     textures: HashMap<String, TextureHandle>,
     order: VecDeque<String>,
     max_count: usize,
+    /// Ids displayed this frame. These are never evicted, so on-screen
+    /// thumbnails don't flicker when the cache cap is below the number of
+    /// visible thumbnails (e.g. at small preview sizes).
+    pinned: HashSet<String>,
 }
 
 impl ImageCache {
@@ -81,6 +85,7 @@ impl ImageCache {
             textures: HashMap::new(),
             order: VecDeque::new(),
             max_count: max_textures_for_preview(DEFAULT_PREVIEW_SIZE),
+            pinned: HashSet::new(),
         }
     }
 
@@ -94,7 +99,10 @@ impl ImageCache {
         Some(texture)
     }
 
-    /// Insert a texture, evicting LRU entries past `max_count`.
+    /// Insert a texture, evicting the oldest *non-displayed* entries past
+    /// `max_count`. Displayed (pinned) textures are never dropped, so visible
+    /// thumbnails stay stable. If only displayed textures remain, eviction
+    /// stops — the cache temporarily exceeds the budget rather than flicker.
     fn insert(&mut self, id: String, texture: TextureHandle, max_count: usize) {
         self.max_count = max_count;
         if self.textures.contains_key(&id) {
@@ -105,15 +113,29 @@ impl ImageCache {
         self.textures.insert(id.clone(), texture);
         self.order.push_back(id);
         while self.order.len() > self.max_count {
-            if let Some(old_id) = self.order.pop_front() {
-                self.textures.remove(&old_id);
+            match self.order.iter().position(|k| !self.pinned.contains(k)) {
+                Some(pos) => {
+                    if let Some(old_id) = self.order.remove(pos) {
+                        self.textures.remove(&old_id);
+                    }
+                }
+                None => break, // only displayed textures left; don't flicker
             }
         }
+    }
+
+    fn mark_used(&mut self, id: &str) {
+        self.pinned.insert(id.to_owned());
+    }
+
+    fn clear_used(&mut self) {
+        self.pinned.clear();
     }
 
     fn clear(&mut self) {
         self.textures.clear();
         self.order.clear();
+        self.pinned.clear();
     }
 }
 
@@ -133,6 +155,18 @@ pub fn get_cached_texture(id: &str) -> Option<TextureHandle> {
 /// Evict all cached textures, freeing GPU memory.
 pub fn clear_image_cache() {
     IMAGE_CACHE.lock().unwrap().clear();
+}
+
+/// Mark `id` as currently displayed so the cache won't evict it. Call this for
+/// every thumbnail that is painted this frame to prevent flicker.
+pub fn mark_texture_used(id: &str) {
+    IMAGE_CACHE.lock().unwrap().mark_used(id);
+}
+
+/// Clear the set of displayed texture ids. Call once per frame, before the
+/// image list is rendered, so `mark_texture_used` reflects the current frame.
+pub fn clear_used_textures() {
+    IMAGE_CACHE.lock().unwrap().clear_used();
 }
 
 /// Decode `data` into a GPU texture, downscaling to `max_dimension` and
