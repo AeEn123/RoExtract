@@ -46,14 +46,39 @@ const DEPENDENCIES: [[&str; 2]; 14] = [
     ["https://github.com/image-rs/image", ""],
 ];
 
-/// Maximum number of image textures kept in GPU memory. Once exceeded, the
-/// least-recently-used entries are evicted. Without this bound, browsing
-/// thousands of cached images would consume unbounded VRAM.
-const MAX_TEXTURES: usize = 256;
+/// Target GPU memory budget for the cached image previews, in bytes (~64 MB).
+/// The cache holds as many previews as fit in this budget: large previews
+/// (high per-texture cost) cache fewer, small previews cache more, keeping
+/// total VRAM roughly constant regardless of the preview size setting.
+const TEXTURE_VRAM_BUDGET: usize = 64 * 1024 * 1024;
+
+/// Preview size used to initialise the cache before the first insert.
+const DEFAULT_PREVIEW_SIZE: u32 = 128;
+
+/// Max edge (px) a preview texture is downscaled to for the given preview
+/// size (2x for retina, with a floor so thumbnails stay legible).
+pub fn preview_max_dimension(preview_size: u32) -> u32 {
+    (preview_size * 2).max(256)
+}
+
+/// Bytes a single RGBA8 texture of the given edge consumes on the GPU.
+fn texture_bytes(max_dim: u32) -> usize {
+    (max_dim as usize) * (max_dim as usize) * 4
+}
+
+/// How many previews fit in `TEXTURE_VRAM_BUDGET` at the given preview size.
+/// This is what makes the cache cap scale with the preview size: a 512px
+/// preview (4 MB each) caches only ~16, while a 128px preview (256 KB each)
+/// caches ~256. Clamped to [16, 1024] so the cache is never empty or absurd.
+pub fn max_textures_for_preview(preview_size: u32) -> usize {
+    let count = TEXTURE_VRAM_BUDGET / texture_bytes(preview_max_dimension(preview_size)).max(1);
+    count.clamp(16, 1024)
+}
 
 struct ImageCache {
     textures: HashMap<String, TextureHandle>,
     order: VecDeque<String>,
+    max_count: usize,
 }
 
 impl ImageCache {
@@ -61,6 +86,7 @@ impl ImageCache {
         Self {
             textures: HashMap::new(),
             order: VecDeque::new(),
+            max_count: max_textures_for_preview(DEFAULT_PREVIEW_SIZE),
         }
     }
 
@@ -75,7 +101,9 @@ impl ImageCache {
     }
 
     /// Insert a texture, evicting least-recently-used entries if over capacity.
-    fn insert(&mut self, id: String, texture: TextureHandle) {
+    /// `max_count` is the preview-size-derived cap (see `max_textures_for_preview`).
+    fn insert(&mut self, id: String, texture: TextureHandle, max_count: usize) {
+        self.max_count = max_count;
         if self.textures.contains_key(&id) {
             if let Some(pos) = self.order.iter().position(|k| k == &id) {
                 self.order.remove(pos);
@@ -83,7 +111,7 @@ impl ImageCache {
         }
         self.textures.insert(id.clone(), texture);
         self.order.push_back(id);
-        while self.order.len() > MAX_TEXTURES {
+        while self.order.len() > self.max_count {
             if let Some(old_id) = self.order.pop_front() {
                 self.textures.remove(&old_id);
             }
@@ -115,12 +143,14 @@ pub fn clear_image_cache() {
 }
 
 /// Decode `data` into a GPU texture, optionally downscaling it first to cap
-/// per-texture VRAM usage. Cached in a bounded LRU.
+/// per-texture VRAM usage. `max_textures` is the preview-size-derived cache cap
+/// (see `max_textures_for_preview`).
 pub fn load_image(
     id: &str,
     data: &[u8],
     ctx: egui::Context,
     max_dimension: Option<u32>,
+    max_textures: usize,
 ) -> Result<TextureHandle, image::ImageError> {
     if let Some(texture) = get_cached_texture(id) {
         return Ok(texture);
@@ -147,7 +177,10 @@ pub fn load_image(
         Default::default(),
     );
 
-    IMAGE_CACHE.lock().unwrap().insert(id.to_string(), texture.clone());
+    IMAGE_CACHE
+        .lock()
+        .unwrap()
+        .insert(id.to_string(), texture.clone(), max_textures);
     Ok(texture)
 }
 
@@ -260,7 +293,15 @@ impl egui_dock::TabViewer for TabViewer<'_> {
 
             // Display logo and name side by side
             ui.horizontal(|ui| {
-                if let Ok(texture) = load_image("ICON", ICON, ui.ctx().clone(), None) {
+                let preview_size = config::get_config_u64("image_preview_size")
+                    .unwrap_or(128) as u32;
+                if let Ok(texture) = load_image(
+                    "ICON",
+                    ICON,
+                    ui.ctx().clone(),
+                    None,
+                    max_textures_for_preview(preview_size),
+                ) {
                     ui.add(egui::Image::new(&texture).fit_to_exact_size(egui::vec2(40.0, 40.0)));
                 }
                 ui.vertical(|ui| {

@@ -168,9 +168,11 @@ fn load_asset_image(asset: AssetInfo, ctx: egui::Context) -> Option<TextureHandl
     }
 
     // Cap the texture to 2x the preview size (for retina) before uploading to
-    // GPU — drastically reduces per-image VRAM for large source textures.
+    // GPU — drastically reduces per-image VRAM for large source textures. The
+    // cache count scales with the preview size so total VRAM stays bounded.
     let preview_size = config::get_config_u64("image_preview_size").unwrap_or(128) as u32;
-    let max_dimension = (preview_size * 2).max(256);
+    let max_dimension = gui::preview_max_dimension(preview_size);
+    let max_textures = gui::max_textures_for_preview(preview_size);
 
     thread::spawn(move || {
         {
@@ -179,7 +181,13 @@ fn load_asset_image(asset: AssetInfo, ctx: egui::Context) -> Option<TextureHandl
         }
 
         match logic::extract_asset_to_bytes(asset.clone()) {
-            Ok(bytes) => match gui::load_image(&asset.name, bytes.as_slice(), ctx, Some(max_dimension)) {
+            Ok(bytes) => match gui::load_image(
+                &asset.name,
+                bytes.as_slice(),
+                ctx,
+                Some(max_dimension),
+                max_textures,
+            ) {
                 Ok(_) => {
                     let mut assets_loading = ASSETS_LOADING.lock().unwrap();
                     assets_loading.retain(|x| x != &asset.name);
