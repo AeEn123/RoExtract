@@ -73,10 +73,12 @@ struct ImageCache {
     textures: HashMap<String, TextureHandle>,
     order: VecDeque<String>,
     max_count: usize,
-    /// Ids displayed this frame. These are never evicted, so on-screen
-    /// thumbnails don't flicker when the cache cap is below the number of
-    /// visible thumbnails (e.g. at small preview sizes).
+    /// Ids painted in the frame currently being built.
     pinned: HashSet<String>,
+    /// Ids painted in the last completed frame. A texture is only evictable
+    /// once it has not been painted for a full frame, which closes the window
+    /// between clearing `pinned` and re-marking this frame's thumbnails.
+    pinned_prev: HashSet<String>,
 }
 
 impl ImageCache {
@@ -86,6 +88,7 @@ impl ImageCache {
             order: VecDeque::new(),
             max_count: max_textures_for_preview(DEFAULT_PREVIEW_SIZE),
             pinned: HashSet::new(),
+            pinned_prev: HashSet::new(),
         }
     }
 
@@ -99,10 +102,15 @@ impl ImageCache {
         Some(texture)
     }
 
+    /// True if `id` was painted this frame or the previous one.
+    fn is_pinned(&self, id: &str) -> bool {
+        self.pinned.contains(id) || self.pinned_prev.contains(id)
+    }
+
     /// Insert a texture, evicting the oldest *non-displayed* entries past
-    /// `max_count`. Displayed (pinned) textures are never dropped, so visible
-    /// thumbnails stay stable. If only displayed textures remain, eviction
-    /// stops — the cache temporarily exceeds the budget rather than flicker.
+    /// `max_count`. Displayed textures (painted this or last frame) are never
+    /// dropped, so visible thumbnails stay stable. If only displayed textures
+    /// remain, eviction stops — the cache exceeds the budget rather than flicker.
     fn insert(&mut self, id: String, texture: TextureHandle, max_count: usize) {
         self.max_count = max_count;
         if self.textures.contains_key(&id) {
@@ -111,9 +119,11 @@ impl ImageCache {
             }
         }
         self.textures.insert(id.clone(), texture);
-        self.order.push_back(id);
+        self.order.push_back(id.clone());
+        // Protect the just-loaded texture until it is painted.
+        self.pinned.insert(id);
         while self.order.len() > self.max_count {
-            match self.order.iter().position(|k| !self.pinned.contains(k)) {
+            match self.order.iter().position(|k| !self.is_pinned(k)) {
                 Some(pos) => {
                     if let Some(old_id) = self.order.remove(pos) {
                         self.textures.remove(&old_id);
@@ -128,14 +138,17 @@ impl ImageCache {
         self.pinned.insert(id.to_owned());
     }
 
-    fn clear_used(&mut self) {
-        self.pinned.clear();
+    /// Start a new frame: the current frame's set becomes the previous one,
+    /// so displayed textures stay protected across the whole frame boundary.
+    fn begin_frame(&mut self) {
+        self.pinned_prev = std::mem::take(&mut self.pinned);
     }
 
     fn clear(&mut self) {
         self.textures.clear();
         self.order.clear();
         self.pinned.clear();
+        self.pinned_prev.clear();
     }
 }
 
@@ -163,10 +176,11 @@ pub fn mark_texture_used(id: &str) {
     IMAGE_CACHE.lock().unwrap().mark_used(id);
 }
 
-/// Clear the set of displayed texture ids. Call once per frame, before the
-/// image list is rendered, so `mark_texture_used` reflects the current frame.
-pub fn clear_used_textures() {
-    IMAGE_CACHE.lock().unwrap().clear_used();
+/// Begin a new frame: rotate the displayed-texture sets so textures painted
+/// last frame stay protected until this frame's thumbnails are marked. Call
+/// once per frame, before the image list is rendered.
+pub fn begin_frame_textures() {
+    IMAGE_CACHE.lock().unwrap().begin_frame();
 }
 
 /// Decode `data` into a GPU texture, downscaling to `max_dimension` and

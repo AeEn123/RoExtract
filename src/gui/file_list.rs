@@ -846,7 +846,7 @@ impl FileListUi {
         // }
 
         // File list for assets
-        gui::clear_used_textures(); // reset this frame's displayed-texture set
+        gui::begin_frame_textures(); // rotate this frame's displayed-texture set
         egui::ScrollArea::vertical().auto_shrink(false).show_rows(
             ui,
             row_height,
