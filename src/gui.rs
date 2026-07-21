@@ -8,7 +8,7 @@ use std::sync::Arc;
 use std::sync::{LazyLock, Mutex};
 use std::time::Duration;
 
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet, VecDeque};
 // Used for input
 use crate::{config, locale, log, logic, updater}; // Used for functionality
 use eframe::egui::TextureHandle;
@@ -46,38 +46,171 @@ const DEPENDENCIES: [[&str; 2]; 14] = [
     ["https://github.com/image-rs/image", ""],
 ];
 
-pub static IMAGES: LazyLock<Mutex<HashMap<String, TextureHandle>>> =
-    LazyLock::new(|| Mutex::new(HashMap::new()));
+/// VRAM budget for cached previews (~64 MB).
+const TEXTURE_VRAM_BUDGET: usize = 64 * 1024 * 1024;
+
+/// Preview size used before the first insert.
+const DEFAULT_PREVIEW_SIZE: u32 = 128;
+
+/// Preview texture max edge: 2x size, floored at 256.
+pub fn preview_max_dimension(preview_size: u32) -> u32 {
+    (preview_size * 2).max(256)
+}
+
+/// RGBA8 bytes for a texture of the given edge.
+fn texture_bytes(max_dim: u32) -> usize {
+    (max_dim as usize) * (max_dim as usize) * 4
+}
+
+/// Max cached previews for a preview size, floored at 16.
+pub fn max_textures_for_preview(preview_size: u32) -> usize {
+    let count = TEXTURE_VRAM_BUDGET / texture_bytes(preview_max_dimension(preview_size)).max(1);
+    count.max(16)
+}
+
+struct ImageCache {
+    textures: HashMap<String, TextureHandle>,
+    order: VecDeque<String>,
+    max_count: usize,
+    /// Ids painted this frame.
+    pinned: HashSet<String>,
+    /// Ids painted last frame; keeps textures unevictable across the frame boundary.
+    pinned_prev: HashSet<String>,
+}
+
+impl ImageCache {
+    fn new() -> Self {
+        Self {
+            textures: HashMap::new(),
+            order: VecDeque::new(),
+            max_count: max_textures_for_preview(DEFAULT_PREVIEW_SIZE),
+            pinned: HashSet::new(),
+            pinned_prev: HashSet::new(),
+        }
+    }
+
+    /// Look up a texture and bump LRU.
+    fn get(&mut self, id: &str) -> Option<TextureHandle> {
+        let texture = self.textures.get(id)?.clone();
+        if let Some(pos) = self.order.iter().position(|k| k == id) {
+            self.order.remove(pos);
+        }
+        self.order.push_back(id.to_owned());
+        Some(texture)
+    }
+
+    /// True if `id` was painted this frame or last.
+    fn is_pinned(&self, id: &str) -> bool {
+        self.pinned.contains(id) || self.pinned_prev.contains(id)
+    }
+
+    /// Insert a texture, evicting oldest non-displayed entries past `max_count`.
+    /// Never drops painted textures; stops evicting when only displayed ones remain.
+    fn insert(&mut self, id: String, texture: TextureHandle, max_count: usize) {
+        self.max_count = max_count;
+        if self.textures.contains_key(&id) {
+            if let Some(pos) = self.order.iter().position(|k| k == &id) {
+                self.order.remove(pos);
+            }
+        }
+        self.textures.insert(id.clone(), texture);
+        self.order.push_back(id.clone());
+        // Protect until first paint.
+        self.pinned.insert(id);
+        while self.order.len() > self.max_count {
+            match self.order.iter().position(|k| !self.is_pinned(k)) {
+                Some(pos) => {
+                    if let Some(old_id) = self.order.remove(pos) {
+                        self.textures.remove(&old_id);
+                    }
+                }
+                None => break, // only displayed textures left
+            }
+        }
+    }
+
+    fn mark_used(&mut self, id: &str) {
+        self.pinned.insert(id.to_owned());
+    }
+
+    /// Start a frame: current pins become previous pins.
+    fn begin_frame(&mut self) {
+        self.pinned_prev = std::mem::take(&mut self.pinned);
+    }
+
+    fn clear(&mut self) {
+        self.textures.clear();
+        self.order.clear();
+        self.pinned.clear();
+        self.pinned_prev.clear();
+    }
+}
+
+static IMAGE_CACHE: LazyLock<Mutex<ImageCache>> =
+    LazyLock::new(|| Mutex::new(ImageCache::new()));
 
 struct TabViewer<'a> {
     locale: &'a mut FluentBundle<Arc<FluentResource>>,
     file_list_ui: &'a mut file_list::FileListUi,
 }
 
+/// Returns a cached texture without cloning the entire cache.
+pub fn get_cached_texture(id: &str) -> Option<TextureHandle> {
+    IMAGE_CACHE.lock().unwrap().get(id)
+}
+
+/// Evict all cached textures, freeing GPU memory.
+pub fn clear_image_cache() {
+    IMAGE_CACHE.lock().unwrap().clear();
+}
+
+/// Mark `id` as displayed this frame so it won't be evicted.
+pub fn mark_texture_used(id: &str) {
+    IMAGE_CACHE.lock().unwrap().mark_used(id);
+}
+
+/// Rotate the pin sets for a new frame. Call once per frame before rendering.
+pub fn begin_frame_textures() {
+    IMAGE_CACHE.lock().unwrap().begin_frame();
+}
+
+/// Decode, downscale to `max_dimension`, cache up to `max_textures`.
 pub fn load_image(
     id: &str,
     data: &[u8],
     ctx: egui::Context,
+    max_dimension: Option<u32>,
+    max_textures: usize,
 ) -> Result<TextureHandle, image::ImageError> {
-    let images = { IMAGES.lock().unwrap().clone() };
-    if let Some(texture) = images.get(id) {
-        Ok(texture.clone())
-    } else {
-        let icon_image = image::load_from_memory(data)?;
-        let icon_rgba = icon_image.to_rgba8();
-        let icon_size = [icon_rgba.width() as usize, icon_rgba.height() as usize];
-        let texture = ctx.load_texture(
-            id,
-            egui::ColorImage::from_rgba_unmultiplied(
-                icon_size,
-                icon_rgba.as_flat_samples().as_slice(),
-            ),
-            Default::default(),
-        );
-        let mut images = IMAGES.lock().unwrap();
-        images.insert(id.to_string(), texture.clone());
-        Ok(texture)
+    if let Some(texture) = get_cached_texture(id) {
+        return Ok(texture);
     }
+
+    let mut icon_image = image::load_from_memory(data)?;
+
+    // Downscale before GPU upload.
+    if let Some(max_dim) = max_dimension {
+        if icon_image.width() > max_dim || icon_image.height() > max_dim {
+            icon_image = icon_image.thumbnail(max_dim, max_dim);
+        }
+    }
+
+    let icon_rgba = icon_image.to_rgba8();
+    let icon_size = [icon_rgba.width() as usize, icon_rgba.height() as usize];
+    let texture = ctx.load_texture(
+        id,
+        egui::ColorImage::from_rgba_unmultiplied(
+            icon_size,
+            icon_rgba.as_flat_samples().as_slice(),
+        ),
+        Default::default(),
+    );
+
+    IMAGE_CACHE
+        .lock()
+        .unwrap()
+        .insert(id.to_string(), texture.clone(), max_textures);
+    Ok(texture)
 }
 
 fn add_dependency_credit(dependency: [&str; 2], ui: &mut egui::Ui, sponsor_message: &str) {
@@ -130,8 +263,8 @@ impl egui_dock::TabViewer for TabViewer<'_> {
             ui.heading(locale::get_message(self.locale, "logs", None));
             ui.label(locale::get_message(self.locale, "logs-description", None));
 
-            let mut hide_username_from_logs =
-                config::get_config_bool("hide_username_from_logs").unwrap_or(true);
+            let old_hide = config::get_config_bool("hide_username_from_logs").unwrap_or(true);
+            let mut hide_username_from_logs = old_hide;
 
             let logs = if hide_username_from_logs {
                 log::get_anonymous_logs()
@@ -145,7 +278,12 @@ impl egui_dock::TabViewer for TabViewer<'_> {
                     &mut hide_username_from_logs,
                     locale::get_message(self.locale, "checkbox-hide-user-logs", None),
                 );
-                config::set_config_value("hide_username_from_logs", hide_username_from_logs.into());
+                if hide_username_from_logs != old_hide {
+                    config::set_config_value(
+                        "hide_username_from_logs",
+                        hide_username_from_logs.into(),
+                    );
+                }
 
                 if ui
                     .button(locale::get_message(self.locale, "button-copy-logs", None))
@@ -184,7 +322,15 @@ impl egui_dock::TabViewer for TabViewer<'_> {
 
             // Display logo and name side by side
             ui.horizontal(|ui| {
-                if let Ok(texture) = load_image("ICON", ICON, ui.ctx().clone()) {
+                let preview_size = config::get_config_u64("image_preview_size")
+                    .unwrap_or(128) as u32;
+                if let Ok(texture) = load_image(
+                    "ICON",
+                    ICON,
+                    ui.ctx().clone(),
+                    None,
+                    max_textures_for_preview(preview_size),
+                ) {
                     ui.add(egui::Image::new(&texture).fit_to_exact_size(egui::vec2(40.0, 40.0)));
                 }
                 ui.vertical(|ui| {

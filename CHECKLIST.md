@@ -83,6 +83,7 @@ Fixed missing localisation files in English and German (Thanks to @Vonercent)
 **Full Changelog**: https://github.com/AeEn123/RoExtract/compare/v1.0.0...v1.0.1
 
 ## 1.1.0
+- [ ] - Fallback to an egui-based dialog (e.g. via a compatible crate) when native_dialog is unavailable/missing-dep (e.g. headless or systems without zenity/kdialog). Currently `sql_database.rs` `.unwrap()`s the native_dialog result, which panics and aborts the entire `refresh` scan when no SQL database is detected without a fallback UI.
 - [ ] - Rewrite in listing - independent lists for each type
 - [ ] - Split cache_directory.rs into two files
 - [ ] - Hande file list filtering in file_list.rs instead
