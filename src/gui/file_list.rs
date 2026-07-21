@@ -152,7 +152,7 @@ fn extract_file_button(asset: logic::AssetInfo) {
 
 fn load_asset_image(asset: AssetInfo, ctx: egui::Context) -> Option<TextureHandle> {
     if let Some(texture) = gui::get_cached_texture(&asset.name) {
-        gui::mark_texture_used(&asset.name); // keep on-screen texture from eviction
+        gui::mark_texture_used(&asset.name);
         return Some(texture);
     }
 
@@ -168,8 +168,7 @@ fn load_asset_image(asset: AssetInfo, ctx: egui::Context) -> Option<TextureHandl
         }
     }
 
-    // Cap to 2x preview size before GPU upload; cache count scales with it
-    // so total VRAM stays bounded.
+    // Downscale capped to 2x preview; bounds VRAM.
     let preview_size = config::get_config_u64("image_preview_size").unwrap_or(128) as u32;
     let max_dimension = gui::preview_max_dimension(preview_size);
     let max_textures = gui::max_textures_for_preview(preview_size);
@@ -189,7 +188,7 @@ fn load_asset_image(asset: AssetInfo, ctx: egui::Context) -> Option<TextureHandl
                 max_textures,
             ) {
                 Ok(_) => {
-                    ctx.request_repaint(); // paint the newly loaded thumbnail promptly
+                    ctx.request_repaint(); // paint loaded thumbnail promptly
                     let mut assets_loading = ASSETS_LOADING.lock().unwrap();
                     assets_loading.retain(|x| x != &asset.name);
                 }
@@ -846,7 +845,7 @@ impl FileListUi {
         // }
 
         // File list for assets
-        gui::begin_frame_textures(); // rotate this frame's displayed-texture set
+        gui::begin_frame_textures(); // rotate pin sets
         egui::ScrollArea::vertical().auto_shrink(false).show_rows(
             ui,
             row_height,

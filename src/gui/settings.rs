@@ -251,7 +251,7 @@ pub fn updates(ui: &mut egui::Ui, locale: &FluentBundle<Arc<FluentResource>>) {
         locale::get_message(locale, "download-development-build", None),
     );
 
-    // Write only on change (avoids per-frame writes).
+    // Write only on change.
     if check_for_updates != old_check {
         config::set_config_value("check_for_updates", check_for_updates.into());
     }
