@@ -668,55 +668,6 @@ impl FileListUi {
             return;
         }
 
-        let mut scroll_to: Option<usize> = None; // This is reset every frame, so it doesn't constantly scroll to the same label
-        let mut none_selected: bool = false; // Used to scroll to the first value shown when none is selected
-
-        // Only allow navigation of the user is not renaming
-        if !self.renaming {
-            // If the user presses up, decrement the selected value
-            if ui.input(|i| i.key_pressed(egui::Key::ArrowUp)) {
-                if let Some(selected) = self.selected {
-                    if selected > 0 {
-                        // Check if it is larger than 0 otherwise it'll attempt to select non-existant labels
-                        self.selected = Some(selected - 1);
-                        scroll_to = Some(selected - 1); // This is also set to the same number, allowing for auto scrolling
-                    }
-                } else {
-                    none_selected = true // Select the first visible entry
-                }
-            }
-
-            // If the user presses down, increment the selected value
-            if ui.input(|i| i.key_pressed(egui::Key::ArrowDown)) {
-                if let Some(selected) = self.selected {
-                    if selected < file_list.len() - 1 {
-                        // Stop it from overflowing otherwise it'll attempt to select non-existant labels
-                        self.selected = Some(selected + 1);
-                        scroll_to = Some(selected + 1); // This is also set to the same number, allowing for auto scrolling
-                    }
-                } else {
-                    none_selected = true // Select the first visible entry
-                }
-            }
-
-            // Allow the user to confirm with enter
-            if ui.input(|i| i.key_pressed(egui::Key::Enter)) {
-                if let Some(selected) = self.selected {
-                    // Get file name after getting the selected value
-                    if let Some(asset) = file_list.get(selected) {
-                        double_click(
-                            asset.clone(),
-                            &mut self.swapping,
-                            &mut self.copying,
-                            &mut self.swapping_asset,
-                        );
-                    }
-                }
-            }
-        }
-
-        let mut navigation_accepted: bool = false; // Used to check if the selected label is available to accept the keyboard navigation
-
         if self.swapping {
             if self.swapping_asset.as_ref().is_none() {
                 ui.heading(locale::get_message(&self.locale, "swap-choose-file", None));
@@ -771,14 +722,31 @@ impl FileListUi {
         let display_image_preview =
             config::get_config_bool("display_image_preview").unwrap_or(false) && tab == "images";
 
+        // Ctrl+scroll changes the image preview size (clamped to the settings range).
+        if display_image_preview {
+            let old = config::get_config_u64("image_preview_size").unwrap_or(128);
+            let new = gui::preview_size_from_scroll(ui.ctx(), old);
+            if new != old {
+                config::set_config_value("image_preview_size", new.into());
+            }
+        }
+
         let row_height = if display_image_preview {
             config::get_config_u64("image_preview_size").unwrap_or(128) as f32
         } else {
             ui.text_style_height(&egui::TextStyle::Body)
         };
 
+        // `ui.horizontal` advances by `tile + item_spacing` per tile, so n tiles
+        // need `n*tile + (n-1)*spacing` width. The old `row_height + 7.5` guess
+        // (real spacing is 8.0) over-packed rows at small sizes, making each row
+        // wider than the viewport so the list scrolled left/right.
         let amount_per_row = if display_image_preview {
-            ui.available_width() as usize / (row_height + 7.5) as usize // Account for padding because ui.horizontal adds padding
+            gui::tiles_per_row(
+                ui.available_width(),
+                row_height,
+                ui.spacing().item_spacing.x,
+            )
         } else {
             1
         };
@@ -789,6 +757,60 @@ impl FileListUi {
         } else {
             file_list.len()
         };
+
+        let mut scroll_to: Option<usize> = None; // This is reset every frame, so it doesn't constantly scroll to the same label
+        let mut none_selected: bool = false; // Used to scroll to the first value shown when none is selected
+
+        // Only allow navigation of the user is not renaming
+        if !self.renaming {
+            // In grid mode the list reads left-to-right, so up/down must move by a
+            // whole row; in list mode one item is one row.
+            let step = amount_per_row.max(1);
+
+            // If the user presses up, move the selection up
+            if ui.input(|i| i.key_pressed(egui::Key::ArrowUp)) {
+                if let Some(selected) = self.selected {
+                    // Check if it is large enough otherwise it'll attempt to select non-existant labels
+                    let target = selected.saturating_sub(step);
+                    if target != selected {
+                        self.selected = Some(target);
+                        scroll_to = Some(target); // This is also set to the same number, allowing for auto scrolling
+                    }
+                } else {
+                    none_selected = true // Select the first visible entry
+                }
+            }
+
+            // If the user presses down, move the selection down
+            if ui.input(|i| i.key_pressed(egui::Key::ArrowDown)) {
+                if let Some(selected) = self.selected {
+                    if selected + step < file_list.len() {
+                        // Stop it from overflowing otherwise it'll attempt to select non-existant labels
+                        self.selected = Some(selected + step);
+                        scroll_to = Some(selected + step); // This is also set to the same number, allowing for auto scrolling
+                    }
+                } else {
+                    none_selected = true // Select the first visible entry
+                }
+            }
+
+            // Allow the user to confirm with enter
+            if ui.input(|i| i.key_pressed(egui::Key::Enter)) {
+                if let Some(selected) = self.selected {
+                    // Get file name after getting the selected value
+                    if let Some(asset) = file_list.get(selected) {
+                        double_click(
+                            asset.clone(),
+                            &mut self.swapping,
+                            &mut self.copying,
+                            &mut self.swapping_asset,
+                        );
+                    }
+                }
+            }
+        }
+
+        let mut navigation_accepted: bool = false; // Used to check if the selected label is available to accept the keyboard navigation
 
         // let mut table_properties = Vec::new();
         // table_properties.push(("name", 0.0));
