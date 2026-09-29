@@ -57,6 +57,55 @@ pub fn preview_max_dimension(preview_size: u32) -> u32 {
     (preview_size * 2).max(256)
 }
 
+/// Preview size bounds, shared by the settings slider and ctrl+scroll zoom.
+pub const PREVIEW_SIZE_MIN: u64 = 16;
+pub const PREVIEW_SIZE_MAX: u64 = 512;
+
+/// Cells that fit in `available_width` with `spacing` between them. `ui.horizontal`
+/// advances `tile + spacing` per cell but only spaces *between* cells, so n cells
+/// need `n*tile + (n-1)*spacing`. Always at least one.
+pub fn tiles_per_row(available_width: f32, tile: f32, spacing: f32) -> usize {
+    (((available_width + spacing) / (tile + spacing))
+        .floor()
+        .max(1.0)) as usize
+}
+
+/// Scale the preview size by a signed wheel `notches` amount (positive = zoom in).
+pub fn preview_size_after_zoom(current: u64, notches: f32) -> u64 {
+    if notches == 0.0 {
+        return current;
+    }
+    let scaled = current as f32 * (notches * 0.25).exp();
+    (scaled.round() as u64).clamp(PREVIEW_SIZE_MIN, PREVIEW_SIZE_MAX)
+}
+
+/// Ctrl+scroll scales the preview size. egui's own zoom gesture goes unused here
+/// and its smoothed `zoom_delta()` is too small to change an integer size, so
+/// read the raw wheel events.
+pub fn preview_size_from_scroll(ctx: &egui::Context, current: u64) -> u64 {
+    let zoom_modifier = ctx.options(|o| o.input_options.zoom_modifier);
+
+    let notches = ctx.input(|i| {
+        i.events
+            .iter()
+            .filter_map(|event| match event {
+                egui::Event::MouseWheel {
+                    unit,
+                    delta,
+                    modifiers,
+                } if modifiers.matches_any(zoom_modifier) => Some(match unit {
+                    egui::MouseWheelUnit::Line => delta.x + delta.y,
+                    egui::MouseWheelUnit::Point => (delta.x + delta.y) / 40.0,
+                    egui::MouseWheelUnit::Page => (delta.x + delta.y) * 10.0,
+                }),
+                _ => None,
+            })
+            .sum::<f32>()
+    });
+
+    preview_size_after_zoom(current, notches)
+}
+
 /// RGBA8 bytes for a texture of the given edge.
 fn texture_bytes(max_dim: u32) -> usize {
     (max_dim as usize) * (max_dim as usize) * 4
@@ -146,8 +195,7 @@ impl ImageCache {
     }
 }
 
-static IMAGE_CACHE: LazyLock<Mutex<ImageCache>> =
-    LazyLock::new(|| Mutex::new(ImageCache::new()));
+static IMAGE_CACHE: LazyLock<Mutex<ImageCache>> = LazyLock::new(|| Mutex::new(ImageCache::new()));
 
 struct TabViewer<'a> {
     locale: &'a mut FluentBundle<Arc<FluentResource>>,
@@ -199,10 +247,7 @@ pub fn load_image(
     let icon_size = [icon_rgba.width() as usize, icon_rgba.height() as usize];
     let texture = ctx.load_texture(
         id,
-        egui::ColorImage::from_rgba_unmultiplied(
-            icon_size,
-            icon_rgba.as_flat_samples().as_slice(),
-        ),
+        egui::ColorImage::from_rgba_unmultiplied(icon_size, icon_rgba.as_flat_samples().as_slice()),
         Default::default(),
     );
 
@@ -322,8 +367,8 @@ impl egui_dock::TabViewer for TabViewer<'_> {
 
             // Display logo and name side by side
             ui.horizontal(|ui| {
-                let preview_size = config::get_config_u64("image_preview_size")
-                    .unwrap_or(128) as u32;
+                let preview_size =
+                    config::get_config_u64("image_preview_size").unwrap_or(128) as u32;
                 if let Ok(texture) = load_image(
                     "ICON",
                     ICON,
@@ -612,5 +657,84 @@ pub fn run_gui() {
         if result.is_err() {
             log_critical!("GUI failed: {}", result.unwrap_err());
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_tiles_per_row_accounts_for_spacing() {
+        // 33 tiles fit (33*16 + 32*8 = 784); a 34th would need 808.
+        assert_eq!(tiles_per_row(800.0, 16.0, 8.0), 33);
+    }
+
+    #[test]
+    fn test_tiles_per_row_never_zero() {
+        // Keep one per row even when a tile can't fit.
+        assert_eq!(tiles_per_row(10.0, 512.0, 8.0), 1);
+        assert_eq!(tiles_per_row(0.0, 16.0, 8.0), 1);
+    }
+
+    #[test]
+    fn test_tiles_per_row_large_tiles() {
+        // 5 fit (5*128 + 4*8 = 672), 6 would need 808.
+        assert_eq!(tiles_per_row(800.0, 128.0, 8.0), 5);
+    }
+
+    #[test]
+    fn test_preview_size_after_zoom_no_scroll_is_noop() {
+        assert_eq!(preview_size_after_zoom(128, 0.0), 128);
+    }
+
+    #[test]
+    fn test_preview_size_after_zoom_increases_and_decreases() {
+        assert!(preview_size_after_zoom(128, 1.0) > 128);
+        assert!(preview_size_after_zoom(128, -1.0) < 128);
+    }
+
+    #[test]
+    fn test_preview_size_after_zoom_clamps() {
+        assert_eq!(preview_size_after_zoom(512, 100.0), PREVIEW_SIZE_MAX);
+        assert_eq!(preview_size_after_zoom(16, -100.0), PREVIEW_SIZE_MIN);
+    }
+
+    #[test]
+    fn test_preview_size_from_scroll_reads_ctrl_wheel() {
+        let ctx = egui::Context::default();
+        let mut raw = egui::RawInput::default();
+        raw.events.push(egui::Event::MouseWheel {
+            unit: egui::MouseWheelUnit::Line,
+            delta: egui::Vec2::new(0.0, 1.0),
+            modifiers: egui::Modifiers::COMMAND,
+        });
+        let mut zoomed = 0;
+        ctx.run(raw, |ctx| zoomed = preview_size_from_scroll(ctx, 128));
+        assert!(zoomed > 128, "ctrl+wheel up should grow the preview");
+
+        let mut raw = egui::RawInput::default();
+        raw.events.push(egui::Event::MouseWheel {
+            unit: egui::MouseWheelUnit::Line,
+            delta: egui::Vec2::new(0.0, -1.0),
+            modifiers: egui::Modifiers::COMMAND,
+        });
+        let mut shrunk = 0;
+        ctx.run(raw, |ctx| shrunk = preview_size_from_scroll(ctx, 128));
+        assert!(shrunk < 128, "ctrl+wheel down should shrink the preview");
+    }
+
+    #[test]
+    fn test_preview_size_from_scroll_ignores_plain_wheel() {
+        let ctx = egui::Context::default();
+        let mut raw = egui::RawInput::default();
+        raw.events.push(egui::Event::MouseWheel {
+            unit: egui::MouseWheelUnit::Line,
+            delta: egui::Vec2::new(0.0, 1.0),
+            modifiers: egui::Modifiers::NONE,
+        });
+        let mut size = 0;
+        ctx.run(raw, |ctx| size = preview_size_from_scroll(ctx, 128));
+        assert_eq!(size, 128, "plain wheel must not change the preview size");
     }
 }

@@ -1,4 +1,4 @@
-use crate::{config, locale, logic};
+use crate::{config, gui, locale, logic};
 use fluent_bundle::{FluentArgs, FluentBundle, FluentResource};
 use native_dialog::{DialogBuilder, MessageLevel};
 use std::sync::Arc;
@@ -322,8 +322,11 @@ pub fn behavior(ui: &mut egui::Ui, locale: &FluentBundle<Arc<FluentResource>>) {
     let old = config::get_config_u64("image_preview_size").unwrap_or(128);
     let mut image_preview_size = old;
     ui.add(
-        egui::widgets::Slider::new(&mut image_preview_size, 16_u64..=512_u64)
-            .text(locale::get_message(locale, "input-preview-size", None)),
+        egui::widgets::Slider::new(
+            &mut image_preview_size,
+            gui::PREVIEW_SIZE_MIN..=gui::PREVIEW_SIZE_MAX,
+        )
+        .text(locale::get_message(locale, "input-preview-size", None)),
     );
     if image_preview_size != old {
         config::set_config_value("image_preview_size", image_preview_size.into());
