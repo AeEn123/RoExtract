@@ -8,12 +8,13 @@ use std::sync::Arc;
 use std::sync::{LazyLock, Mutex};
 use std::time::Duration;
 
-use std::collections::{HashMap, HashSet, VecDeque};
+use std::collections::{HashMap, HashSet};
 // Used for input
 use crate::{config, locale, log, logic, updater}; // Used for functionality
 use eframe::egui::TextureHandle;
 
 mod file_list;
+mod ktx_preview;
 mod settings;
 mod welcome;
 
@@ -117,9 +118,47 @@ pub fn max_textures_for_preview(preview_size: u32) -> usize {
     count.max(16)
 }
 
-struct ImageCache {
-    textures: HashMap<String, TextureHandle>,
-    order: VecDeque<String>,
+/// Max cached GPU-compressed KTX previews. ETC2/BC formats cost at most 1 byte per
+/// texel, so the same budget holds 4x as many as RGBA previews.
+pub fn max_ktx_textures_for_preview(preview_size: u32) -> usize {
+    let max_dim = preview_max_dimension(preview_size) as usize;
+    (TEXTURE_VRAM_BUDGET / (max_dim * max_dim).max(1)).max(16)
+}
+
+/// A cached preview: an egui-managed texture, or a GPU-compressed KTX texture.
+#[derive(Clone)]
+pub enum PreviewTexture {
+    Egui(TextureHandle),
+    Ktx(Arc<ktx_preview::KtxTexture>),
+}
+
+impl PreviewTexture {
+    /// Paint fitted inside `rect`, keeping the aspect ratio.
+    pub fn paint(&self, ui: &egui::Ui, rect: egui::Rect) {
+        match self {
+            Self::Egui(texture) => {
+                egui::Image::new(texture).paint_at(ui, fit_rect(rect, texture.size_vec2()))
+            }
+            Self::Ktx(texture) => {
+                ktx_preview::paint(ui, fit_rect(rect, texture.size()), texture.clone())
+            }
+        }
+    }
+}
+
+/// Largest rect with `size`'s aspect ratio that fits centred in `rect`.
+pub fn fit_rect(rect: egui::Rect, size: egui::Vec2) -> egui::Rect {
+    if size.x <= 0.0 || size.y <= 0.0 {
+        return rect;
+    }
+    let scale = (rect.width() / size.x).min(rect.height() / size.y);
+    egui::Rect::from_center_size(rect.center(), size * scale)
+}
+
+struct ImageCache<T> {
+    /// Texture plus the stamp of its last use, for LRU eviction.
+    textures: HashMap<String, (T, u64)>,
+    clock: u64,
     max_count: usize,
     /// Ids painted this frame.
     pinned: HashSet<String>,
@@ -127,24 +166,31 @@ struct ImageCache {
     pinned_prev: HashSet<String>,
 }
 
-impl ImageCache {
-    fn new() -> Self {
+impl<T: Clone> ImageCache<T> {
+    fn new(max_count: usize) -> Self {
         Self {
             textures: HashMap::new(),
-            order: VecDeque::new(),
-            max_count: max_textures_for_preview(DEFAULT_PREVIEW_SIZE),
+            clock: 0,
+            max_count,
             pinned: HashSet::new(),
             pinned_prev: HashSet::new(),
         }
     }
 
-    /// Look up a texture and bump LRU.
-    fn get(&mut self, id: &str) -> Option<TextureHandle> {
-        let texture = self.textures.get(id)?.clone();
-        if let Some(pos) = self.order.iter().position(|k| k == id) {
-            self.order.remove(pos);
+    /// Look up a texture and bump LRU. O(1), as this runs per visible tile per frame.
+    fn get(&mut self, id: &str) -> Option<T> {
+        self.clock += 1;
+        let (texture, last_used) = self.textures.get_mut(id)?;
+        *last_used = self.clock;
+        Some(texture.clone())
+    }
+
+    /// Look up a texture that is about to be painted, pinning it for this frame.
+    fn get_pinned(&mut self, id: &str) -> Option<T> {
+        let texture = self.get(id)?;
+        if !self.pinned.contains(id) {
+            self.pinned.insert(id.to_owned());
         }
-        self.order.push_back(id.to_owned());
         Some(texture)
     }
 
@@ -153,33 +199,28 @@ impl ImageCache {
         self.pinned.contains(id) || self.pinned_prev.contains(id)
     }
 
-    /// Insert a texture, evicting oldest non-displayed entries past `max_count`.
-    /// Never drops painted textures; stops evicting when only displayed ones remain.
-    fn insert(&mut self, id: String, texture: TextureHandle, max_count: usize) {
+    /// Insert a texture, evicting least recently used non-displayed entries past
+    /// `max_count`. Never drops painted textures; stops when only those remain.
+    fn insert(&mut self, id: String, texture: T, max_count: usize) {
         self.max_count = max_count;
-        if self.textures.contains_key(&id) {
-            if let Some(pos) = self.order.iter().position(|k| k == &id) {
-                self.order.remove(pos);
-            }
-        }
-        self.textures.insert(id.clone(), texture);
-        self.order.push_back(id.clone());
+        self.clock += 1;
+        self.textures.insert(id.clone(), (texture, self.clock));
         // Protect until first paint.
         self.pinned.insert(id);
-        while self.order.len() > self.max_count {
-            match self.order.iter().position(|k| !self.is_pinned(k)) {
-                Some(pos) => {
-                    if let Some(old_id) = self.order.remove(pos) {
-                        self.textures.remove(&old_id);
-                    }
+        while self.textures.len() > self.max_count {
+            let oldest = self
+                .textures
+                .iter()
+                .filter(|(k, _)| !self.is_pinned(k))
+                .min_by_key(|(_, (_, last_used))| *last_used)
+                .map(|(k, _)| k.clone());
+            match oldest {
+                Some(old_id) => {
+                    self.textures.remove(&old_id);
                 }
                 None => break, // only displayed textures left
             }
         }
-    }
-
-    fn mark_used(&mut self, id: &str) {
-        self.pinned.insert(id.to_owned());
     }
 
     /// Start a frame: current pins become previous pins.
@@ -189,13 +230,23 @@ impl ImageCache {
 
     fn clear(&mut self) {
         self.textures.clear();
-        self.order.clear();
         self.pinned.clear();
         self.pinned_prev.clear();
     }
 }
 
-static IMAGE_CACHE: LazyLock<Mutex<ImageCache>> = LazyLock::new(|| Mutex::new(ImageCache::new()));
+static IMAGE_CACHE: LazyLock<Mutex<ImageCache<TextureHandle>>> = LazyLock::new(|| {
+    Mutex::new(ImageCache::new(max_textures_for_preview(
+        DEFAULT_PREVIEW_SIZE,
+    )))
+});
+
+/// GPU-compressed KTX previews, budgeted separately from RGBA textures.
+static KTX_CACHE: LazyLock<Mutex<ImageCache<Arc<ktx_preview::KtxTexture>>>> = LazyLock::new(|| {
+    Mutex::new(ImageCache::new(max_ktx_textures_for_preview(
+        DEFAULT_PREVIEW_SIZE,
+    )))
+});
 
 struct TabViewer<'a> {
     locale: &'a mut FluentBundle<Arc<FluentResource>>,
@@ -207,19 +258,79 @@ pub fn get_cached_texture(id: &str) -> Option<TextureHandle> {
     IMAGE_CACHE.lock().unwrap().get(id)
 }
 
+/// Look up a preview in either cache and pin it for this frame.
+pub fn get_cached_preview(id: &str) -> Option<PreviewTexture> {
+    // Bind first: an `if let` scrutinee guard would stay locked through the body.
+    let ktx_texture = KTX_CACHE.lock().unwrap().get_pinned(id);
+    if let Some(texture) = ktx_texture {
+        return Some(PreviewTexture::Ktx(texture));
+    }
+    let texture = IMAGE_CACHE.lock().unwrap().get_pinned(id)?;
+    Some(PreviewTexture::Egui(texture))
+}
+
 /// Evict all cached textures, freeing GPU memory.
 pub fn clear_image_cache() {
     IMAGE_CACHE.lock().unwrap().clear();
-}
-
-/// Mark `id` as displayed this frame so it won't be evicted.
-pub fn mark_texture_used(id: &str) {
-    IMAGE_CACHE.lock().unwrap().mark_used(id);
+    KTX_CACHE.lock().unwrap().clear();
 }
 
 /// Rotate the pin sets for a new frame. Call once per frame before rendering.
 pub fn begin_frame_textures() {
     IMAGE_CACHE.lock().unwrap().begin_frame();
+    KTX_CACHE.lock().unwrap().begin_frame();
+}
+
+/// Load a KTX preview. Uses GPU decoding when the context supports the format,
+/// otherwise decodes on the CPU into a regular texture.
+pub fn load_ktx(
+    id: &str,
+    data: &[u8],
+    ctx: egui::Context,
+    preview_size: u32,
+) -> Result<(), String> {
+    let max_dimension = preview_max_dimension(preview_size);
+    let image = logic::ktx::read_preview_level(data, max_dimension)?;
+
+    if ktx_preview::gpu_supports(image.format) {
+        let texture = Arc::new(ktx_preview::KtxTexture::new(image));
+        KTX_CACHE.lock().unwrap().insert(
+            id.to_owned(),
+            texture,
+            max_ktx_textures_for_preview(preview_size),
+        );
+        return Ok(());
+    }
+
+    let rgba = logic::ktx::decode_to_rgba(&image)?;
+    let mut decoded = image::RgbaImage::from_raw(image.width, image.height, rgba)
+        .ok_or("Decoded KTX image has the wrong size")?;
+    if decoded.width() > max_dimension || decoded.height() > max_dimension {
+        decoded = image::DynamicImage::ImageRgba8(decoded)
+            .thumbnail(max_dimension, max_dimension)
+            .to_rgba8();
+    }
+    let _ = insert_rgba_texture(id, &decoded, ctx, max_textures_for_preview(preview_size));
+    Ok(())
+}
+
+fn insert_rgba_texture(
+    id: &str,
+    rgba: &image::RgbaImage,
+    ctx: egui::Context,
+    max_textures: usize,
+) -> TextureHandle {
+    let size = [rgba.width() as usize, rgba.height() as usize];
+    let texture = ctx.load_texture(
+        id,
+        egui::ColorImage::from_rgba_unmultiplied(size, rgba.as_flat_samples().as_slice()),
+        Default::default(),
+    );
+    IMAGE_CACHE
+        .lock()
+        .unwrap()
+        .insert(id.to_string(), texture.clone(), max_textures);
+    texture
 }
 
 /// Decode, downscale to `max_dimension`, cache up to `max_textures`.
@@ -243,19 +354,12 @@ pub fn load_image(
         }
     }
 
-    let icon_rgba = icon_image.to_rgba8();
-    let icon_size = [icon_rgba.width() as usize, icon_rgba.height() as usize];
-    let texture = ctx.load_texture(
+    Ok(insert_rgba_texture(
         id,
-        egui::ColorImage::from_rgba_unmultiplied(icon_size, icon_rgba.as_flat_samples().as_slice()),
-        Default::default(),
-    );
-
-    IMAGE_CACHE
-        .lock()
-        .unwrap()
-        .insert(id.to_string(), texture.clone(), max_textures);
-    Ok(texture)
+        &icon_image.to_rgba8(),
+        ctx,
+        max_textures,
+    ))
 }
 
 fn add_dependency_credit(dependency: [&str; 2], ui: &mut egui::Ui, sponsor_message: &str) {
@@ -557,6 +661,7 @@ pub fn gui_setup(cc: &eframe::CreationContext<'_>) {
 impl MyApp {
     pub fn new(cc: &eframe::CreationContext<'_>) -> Self {
         gui_setup(cc);
+        ktx_preview::init(cc.gl.as_deref());
 
         Default::default()
     }
@@ -663,6 +768,37 @@ pub fn run_gui() {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn test_image_cache_evicts_least_recently_used() {
+        let mut cache = ImageCache::new(2);
+        cache.insert("a".to_owned(), 1, 2);
+        cache.insert("b".to_owned(), 2, 2);
+        cache.begin_frame();
+        cache.begin_frame(); // nothing painted for two frames: all unpinned
+        assert_eq!(cache.get("a"), Some(1)); // "b" is now least recently used
+        cache.insert("c".to_owned(), 3, 2);
+        assert_eq!(cache.get("b"), None);
+        assert_eq!(cache.get("a"), Some(1));
+        assert_eq!(cache.get("c"), Some(3));
+    }
+
+    #[test]
+    fn test_image_cache_never_evicts_painted_textures() {
+        let mut cache = ImageCache::new(1);
+        cache.insert("a".to_owned(), 1, 1);
+        cache.begin_frame();
+        assert_eq!(cache.get_pinned("a"), Some(1)); // painted this frame
+        cache.insert("b".to_owned(), 2, 1);
+        // Over budget, but both are on screen.
+        assert_eq!(cache.get("a"), Some(1));
+        assert_eq!(cache.get("b"), Some(2));
+        cache.begin_frame();
+        cache.begin_frame();
+        cache.insert("c".to_owned(), 3, 1);
+        assert_eq!(cache.textures.len(), 1);
+        assert_eq!(cache.get("c"), Some(3));
+    }
 
     #[test]
     fn test_tiles_per_row_accounts_for_spacing() {
