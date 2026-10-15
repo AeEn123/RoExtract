@@ -15,6 +15,7 @@ use strum_macros::{Display, EnumIter};
 use crate::{config, locale};
 
 pub mod cache_directory;
+pub mod ktx;
 pub mod rbx_storage_directory;
 pub mod sql_database;
 

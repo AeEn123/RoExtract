@@ -2,7 +2,7 @@ use crate::{
     config, gui, locale,
     logic::{self, AssetInfo},
 };
-use egui::{Color32, TextureHandle};
+use egui::Color32;
 // Used for functionality
 use fluent_bundle::{FluentBundle, FluentResource};
 use native_dialog::{DialogBuilder, MessageLevel};
@@ -150,9 +150,30 @@ fn extract_file_button(asset: logic::AssetInfo) {
     }
 }
 
-fn load_asset_image(asset: AssetInfo, ctx: egui::Context) -> Option<TextureHandle> {
-    if let Some(texture) = gui::get_cached_texture(&asset.name) {
-        gui::mark_texture_used(&asset.name);
+/// Decode a preview into the texture cache. KTX goes through the GPU path.
+fn load_preview(
+    asset: &AssetInfo,
+    bytes: &[u8],
+    ctx: egui::Context,
+    preview_size: u32,
+) -> Result<(), String> {
+    if asset.category == logic::Category::Ktx {
+        return gui::load_ktx(&asset.name, bytes, ctx, preview_size);
+    }
+    // Downscale capped to 2x preview; bounds VRAM.
+    gui::load_image(
+        &asset.name,
+        bytes,
+        ctx,
+        Some(gui::preview_max_dimension(preview_size)),
+        gui::max_textures_for_preview(preview_size),
+    )
+    .map(|_| ())
+    .map_err(|e| e.to_string())
+}
+
+fn load_asset_image(asset: AssetInfo, ctx: egui::Context) -> Option<gui::PreviewTexture> {
+    if let Some(texture) = gui::get_cached_preview(&asset.name) {
         return Some(texture);
     }
 
@@ -168,10 +189,7 @@ fn load_asset_image(asset: AssetInfo, ctx: egui::Context) -> Option<TextureHandl
         }
     }
 
-    // Downscale capped to 2x preview; bounds VRAM.
     let preview_size = config::get_config_u64("image_preview_size").unwrap_or(128) as u32;
-    let max_dimension = gui::preview_max_dimension(preview_size);
-    let max_textures = gui::max_textures_for_preview(preview_size);
 
     thread::spawn(move || {
         {
@@ -180,13 +198,7 @@ fn load_asset_image(asset: AssetInfo, ctx: egui::Context) -> Option<TextureHandl
         }
 
         match logic::extract_asset_to_bytes(asset.clone()) {
-                Ok(bytes) => match gui::load_image(
-                &asset.name,
-                bytes.as_slice(),
-                ctx.clone(),
-                Some(max_dimension),
-                max_textures,
-            ) {
+            Ok(bytes) => match load_preview(&asset, &bytes, ctx.clone(), preview_size) {
                 Ok(_) => {
                     ctx.request_repaint(); // paint loaded thumbnail promptly
                     let mut assets_loading = ASSETS_LOADING.lock().unwrap();
@@ -451,7 +463,7 @@ impl FileListUi {
             }
         }
 
-        if category == logic::Category::Images {
+        if matches!(category, logic::Category::Images | logic::Category::Ktx) {
             let message = if config::get_config_bool("display_image_preview").unwrap_or(false) {
                 locale::get_message(&self.locale, "button-disable-display-image-preview", None)
             } else {
@@ -719,8 +731,9 @@ impl FileListUi {
             file_list
         };
 
-        let display_image_preview =
-            config::get_config_bool("display_image_preview").unwrap_or(false) && tab == "images";
+        let display_image_preview = config::get_config_bool("display_image_preview")
+            .unwrap_or(false)
+            && (tab == "images" || tab == "ktx-files");
 
         // Ctrl+scroll resizes the previews.
         if display_image_preview {
@@ -905,10 +918,7 @@ impl FileListUi {
                                             if let Some(texture) =
                                                 load_asset_image(asset.clone(), ui.ctx().clone())
                                             {
-                                                egui::Image::new(&texture)
-                                                    .maintain_aspect_ratio(true)
-                                                    .max_height(row_height)
-                                                    .paint_at(ui, rect);
+                                                texture.paint(ui, rect);
                                             }
                                         }
 
