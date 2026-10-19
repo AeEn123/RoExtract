@@ -2,6 +2,7 @@ pkgname=RoExtract
 pkgdesc='A safe way to extract assets from your Roblox installation.'
 pkgver=0.1.4
 pkgrel=1
+depends=('alsa-lib')
 makedepends=('rust' 'cargo')
 arch=('any')
 source=("${pkgname}-${pkgver}.tar.gz::https://github.com/AeEn123/RoExtract/archive/refs/tags/v0.1.4.tar.gz")

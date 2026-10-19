@@ -59,16 +59,15 @@ macro_rules! log_critical {
         let formatted = format!($($arg)*);
         $crate::log::log("CRITICAL: ", &formatted, file!(), line!(), column!());
 
-        let _ = native_dialog::DialogBuilder::message()
-            .set_level(native_dialog::MessageLevel::Error)
-            .set_title(&$crate::locale::get_message(
+        $crate::dialog::alert(
+            $crate::dialog::Level::Error,
+            &$crate::locale::get_message(
                 &$crate::locale::get_locale(None),
                 "generic-error-critical",
                 None,
-            ))
-            .set_text(&formatted)
-            .alert()
-            .show();
+            ),
+            &formatted,
+        );
     }};
 }
 

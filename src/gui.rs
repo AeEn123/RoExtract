@@ -2,7 +2,6 @@
 use eframe::egui;
 use egui_dock::{DockArea, DockState, NodeIndex, Style, SurfaceIndex};
 use fluent_bundle::{FluentBundle, FluentResource};
-use native_dialog::DialogBuilder;
 use std::path::PathBuf;
 use std::sync::Arc;
 use std::sync::{LazyLock, Mutex};
@@ -10,11 +9,12 @@ use std::time::Duration;
 
 use std::collections::{HashMap, HashSet};
 // Used for input
-use crate::{config, locale, log, logic, updater}; // Used for functionality
+use crate::{config, dialog, locale, log, logic, updater}; // Used for functionality
 use eframe::egui::TextureHandle;
 
 mod file_list;
 mod ktx_preview;
+mod player;
 mod settings;
 mod welcome;
 
@@ -30,7 +30,7 @@ const CONTRIBUTORS: [&str; 7] = [
     "IDDQD1337",
     "yuk1n0w",
 ];
-const DEPENDENCIES: [[&str; 2]; 14] = [
+const DEPENDENCIES: [[&str; 2]; 17] = [
     ["https://github.com/emilk/egui", ""],
     ["https://github.com/Adanos020/egui_dock", ""],
     ["https://github.com/lampsitter/egui_commonmark", ""],
@@ -45,6 +45,9 @@ const DEPENDENCIES: [[&str; 2]; 14] = [
     ["https://github.com/Peternator7/strum", ""],
     ["https://github.com/chronotope/chrono", ""],
     ["https://github.com/image-rs/image", ""],
+    ["https://github.com/RustAudio/rodio", ""],
+    ["https://github.com/pdeljanov/Symphonia", ""],
+    ["https://github.com/jannistpl/egui-file-dialog", ""],
 ];
 
 /// VRAM budget for cached previews (~64 MB).
@@ -401,6 +404,7 @@ impl egui_dock::TabViewer for TabViewer<'_> {
             settings::sql_db_management(ui, self.locale);
             settings::rbx_storage_dir_management(ui, self.locale);
             settings::behavior(ui, self.locale);
+            settings::conversion(ui, self.locale);
             settings::updates(ui, self.locale);
 
             if settings::language(ui, self.locale) {
@@ -444,11 +448,14 @@ impl egui_dock::TabViewer for TabViewer<'_> {
                     .button(locale::get_message(self.locale, "button-export-logs", None))
                     .clicked()
                 {
-                    if let Some(path) = DialogBuilder::file().save_single_file().show().unwrap() {
-                        if let Err(e) = std::fs::write(path, logs.clone()) {
-                            log_critical!("Failed to save logs: {}", e);
+                    let logs = logs.clone();
+                    std::thread::spawn(move || {
+                        if let Some(path) = dialog::save_file("RoExtract.log") {
+                            if let Err(e) = std::fs::write(path, logs) {
+                                log_critical!("Failed to save logs: {}", e);
+                            }
                         }
-                    }
+                    });
                 }
             });
 
@@ -662,6 +669,7 @@ impl MyApp {
     pub fn new(cc: &eframe::CreationContext<'_>) -> Self {
         gui_setup(cc);
         ktx_preview::init(cc.gl.as_deref());
+        dialog::attach(&cc.egui_ctx); // Fallback dialogs draw in this window from now on
 
         Default::default()
     }
@@ -691,6 +699,8 @@ impl eframe::App for MyApp {
                 self.update_prompt = None;
             }
         }
+
+        dialog::show(ctx); // Fallback dialogs, when native ones are unavailable
 
         // Display the status bar at the bottom
         egui::TopBottomPanel::bottom("status_bar").show(ctx, |ui| {
@@ -737,6 +747,8 @@ impl eframe::App for MyApp {
 }
 
 pub fn run_gui() {
+    dialog::allow_windows();
+
     // If the user is not welcomed before, welcome them
     if !config::get_config_bool("welcomed").unwrap_or(false) {
         let _ = welcome::run_gui();
@@ -745,6 +757,10 @@ pub fn run_gui() {
     // Only run GUI after user has been welcomed
     if config::get_config_bool("welcomed").unwrap_or(true) {
         // Update check now runs in MyApp::update (background thread, non-blocking).
+
+        // Find the cache now, on the main thread, so that any dialogs asking the
+        // user for it can open before the main window.
+        logic::init_sources();
 
         let options = eframe::NativeOptions {
             viewport: egui::ViewportBuilder::default().with_icon(
@@ -758,6 +774,8 @@ pub fn run_gui() {
             options,
             Box::new(|cc| Ok(Box::new(MyApp::new(cc)))),
         );
+
+        dialog::detach();
 
         if result.is_err() {
             log_critical!("GUI failed: {}", result.unwrap_err());

@@ -3,6 +3,7 @@
 #[macro_use]
 mod log;
 mod config;
+mod dialog;
 mod gui;
 mod locale;
 mod logic;

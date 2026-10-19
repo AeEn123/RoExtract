@@ -5,6 +5,7 @@ use fluent_bundle::{FluentArgs, FluentBundle, FluentResource};
 use std::sync::{Arc, LazyLock};
 
 use crate::config;
+use crate::dialog;
 use crate::locale;
 use crate::logic::{self, determine_category};
 
@@ -15,48 +16,32 @@ const DEFAULT_DIRECTORIES: [&str; 2] = [
 
 static CACHE_DIRECTORY: LazyLock<Mutex<PathBuf>> = LazyLock::new(|| Mutex::new(detect_directory()));
 
-fn create_asset_info_unchecked(path: &PathBuf, category: logic::Category) -> logic::AssetInfo {
-    match path.file_name() {
-        Some(file_name) => match fs::metadata(path) {
-            Ok(metadata) => {
-                let size = metadata.len();
-                let last_modified = metadata.modified().ok();
-
-                logic::AssetInfo {
-                    name: file_name.to_string_lossy().to_string(),
-                    _size: size,
-                    last_modified,
-                    from_file: true,
-                    from_sql: false,
-                    from_rbx_storage: false,
-                    category,
-                }
-            }
-            Err(e) => {
-                log_warn!("Failed to get asset info: {}", e);
-                logic::AssetInfo {
-                    name: file_name.to_string_lossy().to_string(),
-                    _size: 0,
-                    last_modified: None,
-                    from_file: true,
-                    from_sql: false,
-                    from_rbx_storage: false,
-                    category,
-                }
-            }
-        },
+fn create_asset_info_unchecked(
+    path: &PathBuf,
+    category: logic::Category,
+    format: Option<&'static str>,
+) -> logic::AssetInfo {
+    let name = match path.file_name() {
+        Some(file_name) => file_name.to_string_lossy().to_string(),
         None => {
             log_warn!("Failed to get asset info: No filename");
-            logic::AssetInfo {
-                name: path.to_string_lossy().to_string(),
-                _size: 0,
-                last_modified: None,
-                from_file: true,
-                from_sql: false,
-                from_rbx_storage: false,
-                category,
-            }
+            path.to_string_lossy().to_string()
         }
+    };
+    let metadata = fs::metadata(path)
+        .map_err(|e| log_warn!("Failed to get asset info: {}", e))
+        .ok();
+
+    logic::AssetInfo {
+        name,
+        size: metadata.as_ref().map_or(0, |metadata| metadata.len()),
+        last_modified: metadata.as_ref().and_then(|m| m.modified().ok()),
+        created: metadata.as_ref().and_then(|m| m.created().ok()),
+        format,
+        from_file: true,
+        from_sql: false,
+        from_rbx_storage: false,
+        category,
     }
 }
 
@@ -91,50 +76,28 @@ pub fn detect_directory() -> PathBuf {
     }
 
     // If it was unable to detect any directory, tell the user
-    let _ = native_dialog::DialogBuilder::message()
-        .set_level(native_dialog::MessageLevel::Error)
-        .set_title(locale::get_message(
-            &locale::get_locale(None),
-            "error-directory-detection-title",
-            None,
-        ))
-        .set_text(locale::get_message(
-            &locale::get_locale(None),
-            "error-directory-detection-description",
-            None,
-        ))
-        .alert()
-        .show();
+    let locale = locale::get_locale(None);
+    dialog::alert(
+        dialog::Level::Error,
+        &locale::get_message(&locale, "error-directory-detection-title", None),
+        &locale::get_message(&locale, "error-directory-detection-description", None),
+    );
 
-    let yes = native_dialog::DialogBuilder::message()
-        .set_level(native_dialog::MessageLevel::Error)
-        .set_title(locale::get_message(
-            &locale::get_locale(None),
-            "confirmation-custom-directory-title",
-            None,
-        ))
-        .set_text(locale::get_message(
-            &locale::get_locale(None),
-            "confirmation-custom-directory-description",
-            None,
-        ))
-        .confirm()
-        .show()
-        .unwrap();
+    let yes = dialog::confirm(
+        dialog::Level::Error,
+        &locale::get_message(&locale, "confirmation-custom-directory-title", None),
+        &locale::get_message(&locale, "confirmation-custom-directory-description", None),
+    );
 
     if yes {
-        let option_path = native_dialog::DialogBuilder::file()
-            .open_single_dir()
-            .show()
-            .unwrap();
-        if let Some(path) = option_path {
-            config::set_config_value(
-                "cache_directory",
-                validate_directory(path.to_string_lossy().as_ref())
-                    .unwrap()
-                    .into(),
-            );
-            return detect_directory();
+        if let Some(path) = dialog::pick_folder() {
+            match validate_directory(path.to_string_lossy().as_ref()) {
+                Ok(directory) => {
+                    config::set_config_value("cache_directory", directory.into());
+                    return detect_directory();
+                }
+                Err(e) => log_critical!("Directory detection failed! {}", e),
+            }
         } else {
             log_critical!("Directory detection failed! {}", errors);
         }
@@ -276,10 +239,6 @@ pub fn refresh(
     let total = entries.len();
     let mut count = 0;
 
-    // Tell the user that there is no files to list to make it easy to tell that the program is working and it isn't broken
-    if total == 0 {
-        logic::update_file_list(logic::create_no_files(locale), cli_list_mode);
-    }
     // Filter the files out
     for entry in entries {
         if logic::get_stop_list_running() {
@@ -299,34 +258,44 @@ pub fn refresh(
             let category = &category;
             move || -> std::io::Result<()> {
                 let path = entry?.path();
+                let mut file = fs::File::open(&path)?;
+
+                // Reading the first 2048 bytes of the file
+                let mut buffer = vec![0; 2048];
+                let bytes_read = file.read(&mut buffer)?;
+                buffer.truncate(bytes_read);
+
+                // Decompress asset data so asset detection works with zstd-compressed data.
+                let buffer = logic::maybe_decompress(buffer);
 
                 if category == &logic::Category::Music {
+                    // Everything in /sounds is music, no need to check headers
                     logic::update_file_list(
-                        create_asset_info_unchecked(&path, *category),
+                        *category,
+                        create_asset_info_unchecked(
+                            &path,
+                            *category,
+                            logic::detect_format(*category, &buffer),
+                        ),
                         cli_list_mode,
                     );
                 } else {
-                    let mut file = fs::File::open(&path)?;
-
-                    // Reading the first 2048 bytes of the file
-                    let mut buffer = vec![0; 2048];
-                    let bytes_read = file.read(&mut buffer)?;
-                    buffer.truncate(bytes_read);
-
-                    // Decompress asset data so asset detection works with zstd-compressed data.
-                    let buffer = logic::maybe_decompress(buffer);
-
                     for header in headers {
                         // Check if header is not empty before actually checking file
                         if !header.is_empty() {
                             // Add it to the list if the header is inside of the file.
                             if logic::bytes_contains(&buffer, header.as_bytes()) {
-                                let asset_info = if *category == logic::Category::All {
-                                    create_asset_info_unchecked(&path, determine_category(&buffer))
+                                let detected_category = if *category == logic::Category::All {
+                                    determine_category(&buffer)
                                 } else {
-                                    create_asset_info_unchecked(&path, *category)
+                                    *category
                                 };
-                                logic::update_file_list(asset_info, cli_list_mode);
+                                let asset_info = create_asset_info_unchecked(
+                                    &path,
+                                    detected_category,
+                                    logic::detect_format(detected_category, &buffer),
+                                );
+                                logic::update_file_list(*category, asset_info, cli_list_mode);
                                 break; // Stop after the first match so a file isn't listed twice
                             }
                         }
@@ -398,7 +367,7 @@ pub fn create_asset_info(asset: &str, category: logic::Category) -> Option<logic
     let path = get_category_cache_directory(category).join(asset);
 
     if path.exists() {
-        Some(create_asset_info_unchecked(&path, category))
+        Some(create_asset_info_unchecked(&path, category, None))
     } else {
         None
     }
@@ -426,7 +395,7 @@ mod tests {
         file_path.push("roextract_test_file");
         File::create(&file_path).unwrap();
         assert!(validate_directory(file_path.to_str().unwrap()).is_err()); // It's a file, not a directory
-        
+
         fs::remove_file(&file_path).unwrap();
     }
 }

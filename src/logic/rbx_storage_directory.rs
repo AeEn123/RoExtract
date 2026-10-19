@@ -57,16 +57,23 @@ fn asset_path(dir: &PathBuf, hash: &str) -> PathBuf {
     dir.join(subdir).join(hash)
 }
 
-fn create_asset_info(hash: String, path: &PathBuf, category: logic::Category) -> logic::AssetInfo {
-    let (size, last_modified) = match fs::metadata(path) {
-        Ok(m) => (m.len(), m.modified().ok()),
-        Err(_) => (0, None),
+fn create_asset_info(
+    hash: String,
+    path: &PathBuf,
+    category: logic::Category,
+    format: Option<&'static str>,
+) -> logic::AssetInfo {
+    let (size, last_modified, created) = match fs::metadata(path) {
+        Ok(m) => (m.len(), m.modified().ok(), m.created().ok()),
+        Err(_) => (0, None, None),
     };
 
     logic::AssetInfo {
         name: hash,
-        _size: size,
+        size,
         last_modified,
+        created,
+        format,
         from_file: false,
         from_sql: false,
         from_rbx_storage: true,
@@ -160,8 +167,13 @@ pub fn refresh(
                     } else {
                         category
                     };
-                    let asset_info = create_asset_info(hash.clone(), &path, detected_category);
-                    logic::update_file_list(asset_info, cli_list_mode);
+                    let asset_info = create_asset_info(
+                        hash.clone(),
+                        &path,
+                        detected_category,
+                        logic::detect_format(detected_category, &buffer),
+                    );
+                    logic::update_file_list(category, asset_info, cli_list_mode);
                     break;
                 }
             }

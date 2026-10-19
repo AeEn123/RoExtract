@@ -7,7 +7,7 @@ use std::{
     time::SystemTime,
 };
 
-use crate::{config, locale, logic};
+use crate::{config, dialog, locale, logic};
 
 const DEFAULT_PATHS: [&str; 2] = [
     "%localappdata%\\Roblox\\rbx-storage.db",
@@ -47,43 +47,21 @@ pub fn open_database() -> Option<Connection> {
     }
 
     // If it was unable to detect any path, tell the user
-    let _ = native_dialog::DialogBuilder::message()
-        .set_level(native_dialog::MessageLevel::Error)
-        .set_title(locale::get_message(
-            &locale::get_locale(None),
-            "error-sql-detection-title",
-            None,
-        ))
-        .set_text(locale::get_message(
-            &locale::get_locale(None),
-            "error-sql-detection-description",
-            None,
-        ))
-        .alert()
-        .show();
+    let locale = locale::get_locale(None);
+    dialog::alert(
+        dialog::Level::Error,
+        &locale::get_message(&locale, "error-sql-detection-title", None),
+        &locale::get_message(&locale, "error-sql-detection-description", None),
+    );
 
-    let yes = native_dialog::DialogBuilder::message()
-        .set_level(native_dialog::MessageLevel::Error)
-        .set_title(locale::get_message(
-            &locale::get_locale(None),
-            "confirmation-custom-sql-title",
-            None,
-        ))
-        .set_text(locale::get_message(
-            &locale::get_locale(None),
-            "confirmation-custom-sql-description",
-            None,
-        ))
-        .confirm()
-        .show()
-        .unwrap();
+    let yes = dialog::confirm(
+        dialog::Level::Error,
+        &locale::get_message(&locale, "confirmation-custom-sql-title", None),
+        &locale::get_message(&locale, "confirmation-custom-sql-description", None),
+    );
 
     if yes {
-        let option_path = native_dialog::DialogBuilder::file()
-            .open_single_dir()
-            .show()
-            .unwrap();
-        if let Some(path) = option_path {
+        if let Some(path) = dialog::pick_file() {
             config::set_config_value(
                 "sql_database",
                 logic::resolve_path(path.to_string_lossy().as_ref()).into(),
@@ -267,18 +245,22 @@ pub fn refresh(
                     });
 
                     if header_found {
+                        // Determine category if all
+                        let detected_category = if category == logic::Category::All {
+                            logic::determine_category(&bytes)
+                        } else {
+                            category
+                        };
                         Ok(logic::AssetInfo {
                             name: hex::encode(row.get::<_, Vec<u8>>(0)?),
-                            _size: row.get(1)?,
+                            size: row.get(1)?,
                             last_modified,
+                            created: None,
+                            format: logic::detect_format(detected_category, &bytes),
                             from_file: false,
                             from_sql: true,
                             from_rbx_storage: false,
-                            category: if category == logic::Category::All {
-                                logic::determine_category(&bytes)
-                            } else {
-                                category
-                            }, // Determine category if all
+                            category: detected_category,
                         })
                     } else {
                         Err(rusqlite::Error::InvalidQuery) // Return error for this asset as it doesn't match
@@ -288,7 +270,10 @@ pub fn refresh(
                 match result {
                     Ok(entries) => {
                         for entry in entries.flatten() {
-                            logic::update_file_list(entry, cli_list_mode);
+                            if logic::get_stop_list_running() {
+                                break; // Stop if another thread requests to stop this task.
+                            }
+                            logic::update_file_list(category, entry, cli_list_mode);
                         }
                     }
                     Err(e) => log_error!("{}", e),
@@ -352,8 +337,10 @@ pub fn create_asset_info(asset: &str, category: logic::Category) -> Option<logic
 
                 Ok(logic::AssetInfo {
                     name: asset.to_string(),
-                    _size: row.get(1)?,
+                    size: row.get(1)?,
                     last_modified,
+                    created: None,
+                    format: None,
                     from_file: false,
                     from_sql: true,
                     from_rbx_storage: false,
@@ -477,8 +464,8 @@ pub fn clean_up() -> Result<(), (Connection, rusqlite::Error)> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use std::fs::File;
     use std::env;
+    use std::fs::File;
 
     #[test]
     fn test_validate_file() {
@@ -497,7 +484,7 @@ mod tests {
         assert!(validate_file(invalid_path.to_str().unwrap()).is_err());
 
         assert!(validate_file(env::temp_dir().to_str().unwrap()).is_err()); // It's a directory, not a file
-        
+
         fs::remove_file(&temp_path).unwrap();
     }
 }

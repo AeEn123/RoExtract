@@ -12,8 +12,12 @@ settings = Ustawienia
 about = Informacje
 
 # Buttons
-button-reset-rbx-storage-dir = Reset rbx-storage Directory # TODO: Translate
-button-change-rbx-storage-dir = Change rbx-storage Directory # TODO: Translate
+button-convert = Konwertuj do # AI translated
+button-play = Odtwórz <Space> # AI translated
+button-reset-columns = Zresetuj kolumny # AI translated
+button-ok = OK # AI translated
+button-reset-rbx-storage-dir = Zresetuj katalog rbx-storage # AI translated
+button-change-rbx-storage-dir = Zmień katalog rbx-storage # AI translated
 button-reset-sql-db = Zresetuj bazę danych SQL
 button-change-sql-db = Zmień bazę danych SQL
 button-disable-display-image-preview = Przestań wyświetlać podgląd obrazu
@@ -39,8 +43,8 @@ button-no = Nie
 button-rename = Zmień nazwę <F2>
 
 # Confirmations
-confirmation-custom-sql-title = Choose a SQL Database # TODO: Translate
-confirmation-custom-sql-description = Do you want to choose a different SQL Database? # TODO: Translate
+confirmation-custom-sql-title = Wybierz bazę danych SQL # AI translated
+confirmation-custom-sql-description = Czy chcesz wybrać inną bazę danych SQL? # AI translated
 confirmation-ban-warning-description = Edytowanie zasobów w grach może spowodować inne zachowanie gry i możliwy jest ban twojego konta! Używaj pod własnym ryzykiem
 confirmation-ban-warning-title = Możliwość bana
 confirmation-generic-confirmation-title = Potwierdzenie
@@ -73,7 +77,8 @@ error-invalid-directory-title = Nieprawidłowy katalog
 error-invalid-directory-description = Upewnij się, że ścieżka którą podałeś(aś) jest katalogiem
 
 # Headings
-downloading-update = Downloading update… # TODO: Translate
+conversion = Konwersja formatów # AI translated
+downloading-update = Pobieranie aktualizacji… # AI translated
 actions = Akcje
 updates = Aktualizacje
 language-settings = Ustawienia języka
@@ -83,6 +88,11 @@ dependencies = Zależności
 behavior = Zachowanie
 
 # Checkboxes
+enable-conversion = Włącz konwersję formatów # AI translated
+audio-format = Dźwięk # AI translated
+convert-on-extract = Konwertuj zasoby podczas wyodrębniania # AI translated
+image-format = Obrazy i tekstury # AI translated
+use-builtin-player = Odtwarzaj dźwięki we wbudowanym odtwarzaczu po ich otwarciu # AI translated
 checkbox-hide-user-logs = Ukryj nazwę użytkownika z dziennika
 download-development-build = Używaj wersji deweloperskich, aby wcześniej otrzymywać nowe funkcje (Te wersje mogą być niestabilne)
 refresh-before-extract = Odśwież listę plików przed wyodrębnieniem
@@ -93,7 +103,8 @@ use-alias = Eksportuj alternatywne nazwy plików
 
 
 # Descriptions
-custom-rbx-storage-dir-description = If you want to use a different rbx-storage directory, change it below. You can reset it back to the default with the other button. # TODO: Translate
+conversion-description = Konwertuj zasoby do popularniejszych formatów. Po włączeniu do menu prawego przycisku myszy zostanie dodana opcja "Konwertuj do", a zasoby mogą być konwertowane podczas wyodrębniania. Jeżeli zasobu nie da się przekonwertować, zostanie wyodrębniony bez zmian. # AI translated
+custom-rbx-storage-dir-description = Jeżeli chcesz użyć innego katalogu rbx-storage, zmień go poniżej. Możesz przywrócić domyślny katalog klikając inny przycisk. # AI translated
 custom-sql-db-description = Jeśli chcesz uzyskać dostęp do innej pamięci podręcznej, zmień swoją bazę danych SQL poniżej. Możesz przywrócić domyślną za pomocą drugiego przycisku. To nie jest to samo co folder instalacyjny.
 overwrite-with = Podwójnie kliknij plik aby nadpisać z "{ $asset }"
 copy-choose-file = Podwójnie kliknij plik do skopiowania.
@@ -117,6 +128,8 @@ all-extracted = Wszystkie pliki zostały wyodrębnione.
 stage = Etap { $stage }/{ $max }: { $status }
 
 # Error Statuses
+player-failed = Nie udało się odtworzyć tego pliku, sprawdź dziennik po więcej informacji. # AI translated
+player-no-device = Nie znaleziono urządzenia wyjściowego dźwięku. # AI translated
 failed-deleting-file = BŁĄD: Nie udało się usunąć ({ $item }/{ $total })
 failed-opening-file = BŁĄD: Nie udało się otworzyć pliku: { $error }
 failed-not-file = BŁĄD: '{ $file }' Nie jest plikiem.
@@ -124,8 +137,9 @@ error-extracting-file = BŁĄD: Nie udało się wyodrębnić plików: { $error }
 error-check-logs = BŁĄD: Sprawdź dziennik po więcej informacji.
 
 # Misc
-no-directory = Not found # TODO: Translate
-rbx-storage-directory = rbx-storage Directory: { $directory } # TODO: Translate
+dialog-enter-path = Wpisz ścieżkę (zostaw puste, aby anulować): # AI translated
+no-directory = Nie znaleziono # AI translated
+rbx-storage-directory = Katalog rbx-storage: { $directory } # AI translated
 sql-database = Baza danych SQL: { $path }
 setting-below-restart-required = Uwaga: Zmienianie ustawienia poniżej wymaga restartu programu aby się zastosowało
 support-project-donate = ♥ Wesprzyj projekt darowizną
@@ -136,3 +150,10 @@ cache-directory = Katalog pamięci podręcznej: { $directory }
 welcome = Witamy
 download-update-question = Czy chcesz pobrać aktualizację?
 update-changelog = Lista zmian poniżej:
+
+column-size = Rozmiar # AI translated
+column-type = Typ # AI translated
+column-modified = Zmodyfikowano # AI translated
+column-name = Nazwa # AI translated
+column-created = Utworzono # AI translated
+column-length = Długość # AI translated

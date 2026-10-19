@@ -12,8 +12,12 @@ about = О нас
 logs = Журналы
 
 # Buttons
-button-reset-rbx-storage-dir = Reset rbx-storage Directory # TODO: Translate
-button-change-rbx-storage-dir = Change rbx-storage Directory # TODO: Translate
+button-convert = Конвертировать в # AI translated
+button-play = Воспроизвести <Space> # AI translated
+button-reset-columns = Сбросить столбцы # AI translated
+button-ok = ОК # AI translated
+button-reset-rbx-storage-dir = Сбросить директорию rbx-storage # AI translated
+button-change-rbx-storage-dir = Сменить директорию rbx-storage # AI translated
 button-extract-type = Распаковать все файлы этого типа <F3>
 button-refresh = Перезагрузить <F5>
 button-clear-cache = Очистить кэш <Del>
@@ -73,7 +77,8 @@ error-invalid-database-description = Убедитесь, что указанны
 generic-error-critical = Критическая ошибка
 
 # Headings
-downloading-update = Downloading update… # TODO: Translate
+conversion = Конвертация форматов # AI translated
+downloading-update = Загрузка обновления… # AI translated
 actions = Действия
 updates = Обновления
 language-settings = Настройки языка
@@ -83,6 +88,11 @@ dependencies = Зависимости
 behavior = Поведение
 
 # Checkboxes
+enable-conversion = Включить конвертацию форматов # AI translated
+audio-format = Аудио # AI translated
+convert-on-extract = Конвертировать ресурсы при извлечении # AI translated
+image-format = Изображения и текстуры # AI translated
+use-builtin-player = Воспроизводить звуки во встроенном плеере при открытии # AI translated
 check-for-updates = Проверить наличие обновлений
 automatically-install-updates = Автоматически устанавливать обновления
 use-alias = Экспортировать переименованные файлы
@@ -93,7 +103,8 @@ checkbox-hide-user-logs = Скрыть имя пользователя из жу
 
 
 # Descriptions
-custom-rbx-storage-dir-description = If you want to use a different rbx-storage directory, change it below. You can reset it back to the default with the other button. # TODO: Translate
+conversion-description = Конвертирует ресурсы в более распространённые форматы. Если включено, в контекстное меню добавляется пункт "Конвертировать в", а ресурсы могут конвертироваться при извлечении. Если ресурс не удаётся сконвертировать, он извлекается как есть. # AI translated
+custom-rbx-storage-dir-description = Если вы хотите использовать другую директорию rbx-storage, измените её ниже. Вы можете вернуть директорию по умолчанию с помощью другой кнопки. # AI translated
 clear-cache-description = Если вывод списка файлов и извлечение всех файлов из директории занимает слишком много времени, вы можете очистить кэш с помощью кнопки ниже. Это удалит все файлы из кэша, и ваш клиент автоматически создаст их заново при необходимости.
 extract-all-description = Кнопка ниже скопирует все ресурсы и создаст папки, например, /sounds, /images, для их классификации. Вы можете выбрать корневую папку при запуске.
 custom-cache-dir-description = Если вы хотите получить доступ к другому кэшу, измените директорию кэша ниже. Вы можете вернуть его в директорию по умолчанию с помощью другой кнопки. Это отличается от папки установки.
@@ -118,6 +129,8 @@ swapped = { $item_a } заменён на { $item_b }
 copied = { $item_b } перезаписан файлом { $item_a }
 
 # Error Statuses
+player-failed = Не удалось воспроизвести этот файл. Более подробную информацию смотрите в журнале. # AI translated
+player-no-device = Устройство вывода звука не найдено. # AI translated
 failed-deleting-file = ОШИБКА: Не удалось удалить ({ $item }/{ $total })
 failed-opening-file = ОШИБКА: Не удалось открыть файл
 failed-not-file = ОШИБКА: '{ $file }' Не файл
@@ -125,8 +138,9 @@ error-extracting-file = ОШИБКА: Не удалось извлечь: { $err
 error-check-logs = ОШИБКА: Более подробную информацию смотрите в журнале.
 
 # Misc
-no-directory = Not found # TODO: Translate
-rbx-storage-directory = rbx-storage Directory: { $directory } # TODO: Translate
+dialog-enter-path = Введите путь (оставьте пустым для отмены): # AI translated
+no-directory = Не найдено # AI translated
+rbx-storage-directory = Директория rbx-storage: { $directory } # AI translated
 no-function = (Пока не функционирует)
 version = Версия: v{ $version } (скомпилировано в { $date })
 cache-directory = Директория кэша: { $directory }
@@ -137,3 +151,10 @@ update-changelog = Список изменений смотрите ниже
 support-sponsor = ♥ Спонсорство
 support-project-donate = ♥ Поддержать
 setting-below-restart-required = Примечание: для применения изменений настроек ниже потребуется перезапустить программу.
+
+column-size = Размер # AI translated
+column-type = Тип # AI translated
+column-modified = Изменён # AI translated
+column-name = Имя # AI translated
+column-created = Создан # AI translated
+column-length = Длительность # AI translated

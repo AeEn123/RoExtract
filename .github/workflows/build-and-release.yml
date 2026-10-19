@@ -41,6 +41,8 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: Swatinem/rust-cache@v2
+      - name: Install system dependencies
+        run: sudo apt-get update && sudo apt-get install -y libasound2-dev # ALSA, for the audio player
       - name: Build
         run: cargo build --verbose --release
       - name: Upload Linux Artifact

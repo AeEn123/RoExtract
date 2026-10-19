@@ -13,8 +13,12 @@ about = 'Bout This Vessel
 logs = Ship’s Log  
 
 # Buttons
-button-reset-rbx-storage-dir = Reset rbx-storage Directory # TODO: Translate
-button-change-rbx-storage-dir = Change rbx-storage Directory # TODO: Translate
+button-convert = Turn It Into # AI translated
+button-play = Strike Up the Band <Space> # AI translated
+button-reset-columns = Square Away the Columns # AI translated
+button-ok = Aye Aye # AI translated
+button-reset-rbx-storage-dir = Return the rbx-storage Hold to Safe Waters # AI translated
+button-change-rbx-storage-dir = Chart a New Course fer the rbx-storage Hold # AI translated
 button-reset-sql-db = Scuttle the SQL Ledger
 button-change-sql-db = Chart a New Course fer the SQL Ledger
 button-delete-this-dir = Scuttle This Hold <Del>  
@@ -40,8 +44,8 @@ button-disable-display-image-preview = Hide the Treasure Maps
 input-preview-size = Size o’ the Lookout  
 
 # Confirmations
-confirmation-custom-sql-title = Choose a SQL Database # TODO: Translate
-confirmation-custom-sql-description = Do you want to choose a different SQL Database? # TODO: Translate  
+confirmation-custom-sql-title = Pick Yer SQL Ledger # AI translated
+confirmation-custom-sql-description = Be ye wantin' to pick a different SQL Ledger? # AI translated
 confirmation-generic-confirmation-title = Aye, Be Ye Sure?  
 confirmation-delete-confirmation-title = Sinkin’ the Files  
 confirmation-delete-confirmation-description = Be ye sure ye want to send all these files to Davy Jones’ locker?  
@@ -74,7 +78,8 @@ error-invalid-directory-description = Avast! The path ye set ain’t leadin’ t
 generic-error-critical = A Most Dire Curse!  
 
 # Headings
-downloading-update = Downloading update… # TODO: Translate  
+conversion = Shapeshiftin' the Booty # AI translated
+downloading-update = Haulin' aboard the new rigging… # AI translated
 actions = Orders  
 updates = Messages in a Bottle  
 language-settings = Speak Like a Pirate  
@@ -83,7 +88,12 @@ contributors = Loyal Crew
 dependencies = Ship’s Riggings  
 behavior = How the Crew Acts  
 
-# Checkboxes  
+# Checkboxes
+enable-conversion = Let the booty be shapeshifted # AI translated
+audio-format = Shanties an' Blasts # AI translated
+convert-on-extract = Shapeshift the booty as ye plunder it # AI translated
+image-format = Maps an' Paintings # AI translated
+use-builtin-player = Play the shanties on the ship's own fiddle when ye open 'em # AI translated
 check-for-updates = Keep an Eye on the Horizon  
 automatically-install-updates = Let the Crew Handle Updates  
 use-alias = Mark Ye Plunder with Custom Names  
@@ -93,7 +103,8 @@ download-development-build = Test New Gadgets (May Be Unstable Waters)
 checkbox-hide-user-logs = Hide Ye True Name from the Ship’s Log  
 
 # Descriptions
-custom-rbx-storage-dir-description = If you want to use a different rbx-storage directory, change it below. You can reset it back to the default with the other button. # TODO: Translate
+conversion-description = Turn yer booty into formats more landlubbers can read. When it be on, a "Turn It Into" option be added when ye right click, an' booty can be shapeshifted as ye plunder it. If a piece o' booty can't be changed, it be plundered as it be. # AI translated
+custom-rbx-storage-dir-description = If ye be wantin' a different rbx-storage hold, change it below. Ye can return it to safe waters with the other button. # AI translated
 custom-sql-db-description = If ye be needin’ to access a different stash o’ booty, chart a new course fer yer SQL ledger below. Ye can always sail back to default waters. This be not the same as yer main installin’ cove.
 clear-cache-description = If it be takin’ too long to find treasure, ye can toss all cargo overboard. The ship will fetch new supplies next time ye sail.  
 extract-all-description = This button will haul all loot aboard and sort it into proper holds, like /cannon-blasts and /treasure-maps. Pick yer stash spot when ye begin.  
@@ -116,7 +127,9 @@ stage = Stage { $stage }/{ $max }: { $status }
 swapped = Traded { $item_a } for { $item_b }  
 copied = Overwritten { $item_b } with { $item_a }  
 
-# Error Statuses  
+# Error Statuses
+player-failed = Couldn't play this one, matey. Check the Ship's Log fer more. # AI translated
+player-no-device = There be no speakers aboard this vessel. # AI translated
 failed-deleting-file = ERROR: Couldn’t Toss ({ $item }/{ $total }) Overboard!  
 failed-opening-file = ERROR: Couldn’t Crack Open the Chest: { $error }  
 failed-not-file = ERROR: '{ $file }' Ain’t Proper Booty!  
@@ -124,8 +137,9 @@ error-extracting-file = ERROR: Couldn’t Haul It Aboard: { $error }
 error-check-logs = ERROR: Check the Captain’s Log for More Clues.  
 
 # Misc
-no-directory = Not found # TODO: Translate
-rbx-storage-directory = rbx-storage Directory: { $directory } # TODO: Translate
+dialog-enter-path = Name yer heading (leave it empty to abandon ship): # AI translated
+no-directory = Lost at sea # AI translated
+rbx-storage-directory = rbx-storage Hold: { $directory } # AI translated
 sql-database = Ledger o' SQL: { $path }
 no-function = (Not Workin’ Yet, Matey)  
 version = Ship’s Version: v{ $version } (Forged on { $date })  
@@ -136,3 +150,10 @@ update-changelog = See What’s New Below
 support-sponsor = ♥ Support the Crew  
 support-project-donate = ♥ Toss Some Coins in the Chest  
 setting-below-restart-required = Note: Changin’ this course requires a fresh start to take hold!  
+
+column-size = Heft # AI translated
+column-type = Kind # AI translated
+column-modified = Last Tampered # AI translated
+column-name = Name # AI translated
+column-created = Forged # AI translated
+column-length = How Long # AI translated

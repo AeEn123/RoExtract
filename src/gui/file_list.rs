@@ -1,12 +1,14 @@
+use super::player;
 use crate::{
-    config, gui, locale,
+    config, dialog, gui, locale,
     logic::{self, AssetInfo},
 };
 use egui::Color32;
 // Used for functionality
 use fluent_bundle::{FluentBundle, FluentResource};
-use native_dialog::{DialogBuilder, MessageLevel};
 use std::num::NonZero;
+
+mod table;
 use std::{
     sync::{Arc, LazyLock, Mutex},
     thread,
@@ -63,35 +65,22 @@ fn double_click(
     }
 }
 
-fn extract_all_of_type(category: logic::Category, locale: &FluentBundle<Arc<FluentResource>>) {
-    let mut no = logic::get_list_task_running();
-
-    // Confirmation dialog, the program is still listing files
-    if no {
-        // NOT result, will become false if user clicks yes
-        no = !DialogBuilder::message()
-            .set_level(MessageLevel::Info)
-            .set_title(locale::get_message(
-                locale,
+fn extract_all_of_type(category: logic::Category) {
+    // Runs on its own thread so the dialogs don't block the GUI.
+    thread::spawn(move || {
+        // Confirmation dialog, the program is still listing files
+        if logic::get_list_task_running()
+            && !dialog::confirm_localised(
+                dialog::Level::Info,
                 "confirmation-filter-confirmation-title",
-                None,
-            ))
-            .set_text(locale::get_message(
-                locale,
                 "confirmation-filter-confirmation-description",
-                None,
-            ))
-            .confirm()
-            .show()
-            .unwrap();
-    }
-
-    // The user either agreed or the program is not listing files
-    if !no {
-        let option_path = DialogBuilder::file().open_single_dir().show().unwrap();
+            )
+        {
+            return;
+        }
 
         // If the user provides a directory, the program will extract the assets to that directory
-        if let Some(path) = option_path {
+        if let Some(path) = dialog::pick_folder() {
             logic::extract_dir(
                 path,
                 category,
@@ -99,55 +88,27 @@ fn extract_all_of_type(category: logic::Category, locale: &FluentBundle<Arc<Flue
                 config::get_config_bool("use_alias").unwrap_or(false),
             );
         }
-    }
-}
-fn toggle_swap(
-    swapping: &mut bool,
-    swapping_asset: &mut Option<AssetInfo>,
-    locale: &FluentBundle<Arc<FluentResource>>,
-) {
-    let mut warning_acknowledged = config::get_config_bool("ban-warning-ack").unwrap_or(false);
-
-    if !warning_acknowledged {
-        warning_acknowledged = DialogBuilder::message()
-            .set_level(MessageLevel::Info)
-            .set_title(locale::get_message(
-                locale,
-                "confirmation-ban-warning-title",
-                None,
-            ))
-            .set_text(locale::get_message(
-                locale,
-                "confirmation-ban-warning-description",
-                None,
-            ))
-            .confirm()
-            .show()
-            .unwrap();
-    }
-
-    if warning_acknowledged {
-        config::set_config_value("ban-warning-ack", warning_acknowledged.into());
-        if *swapping {
-            *swapping_asset = None;
-        }
-        *swapping = !*swapping;
-    }
+    });
 }
 
 fn extract_file_button(asset: logic::AssetInfo) {
-    let alias = config::get_asset_alias(&asset.name);
-    if let Some(destination) = native_dialog::DialogBuilder::file()
-        .set_filename(&alias)
-        .save_single_file()
-        .show()
-        .unwrap()
-    {
-        match logic::extract_to_file(asset, destination, false) {
-            Ok(_) => (),
-            Err(e) => log_critical!("{}", e),
+    let target = logic::convert::target_on_extract(&asset);
+    extract_file_as(asset, target);
+}
+
+/// Ask where to save `asset`, then extract it there, converted to `target` if given.
+fn extract_file_as(asset: logic::AssetInfo, target: Option<logic::convert::Target>) {
+    thread::spawn(move || {
+        let mut file_name = config::get_asset_alias(&asset.name);
+        if let Some(target) = target {
+            file_name = format!("{file_name}.{}", target.extension());
         }
-    }
+        if let Some(destination) = dialog::save_file(&file_name) {
+            if let Err(e) = logic::extract_to_file_as(asset, destination, false, target) {
+                log_critical!("{}", e)
+            }
+        }
+    });
 }
 
 /// Decode a preview into the texture cache. KTX goes through the GPU path.
@@ -226,80 +187,58 @@ fn load_asset_image(asset: AssetInfo, ctx: egui::Context) -> Option<gui::Preview
     None
 }
 
-fn clear_cache(locale: &FluentBundle<Arc<FluentResource>>) {
-    // Confirmation dialog
-    let yes = DialogBuilder::message()
-        .set_level(MessageLevel::Info)
-        .set_title(locale::get_message(
-            locale,
+fn clear_cache() {
+    thread::spawn(|| {
+        if dialog::confirm_localised(
+            dialog::Level::Info,
             "confirmation-clear-cache-title",
-            None,
-        ))
-        .set_text(locale::get_message(
-            locale,
             "confirmation-clear-cache-description",
-            None,
-        ))
-        .confirm()
-        .show()
-        .unwrap();
-
-    if yes {
-        gui::clear_image_cache();
-        logic::clear_cache();
-    }
-}
-
-fn toggle_swap_or_copy(
-    swapping_or_copying: &mut bool,
-    swapping_asset: &mut Option<AssetInfo>,
-    locale: &FluentBundle<Arc<FluentResource>>,
-) {
-    let mut warning_acknowledged = config::get_config_bool("ban-warning-ack").unwrap_or(false);
-
-    if !warning_acknowledged {
-        warning_acknowledged = DialogBuilder::message()
-            .set_level(MessageLevel::Info)
-            .set_title(locale::get_message(
-                locale,
-                "confirmation-ban-warning-title",
-                None,
-            ))
-            .set_text(locale::get_message(
-                locale,
-                "confirmation-ban-warning-description",
-                None,
-            ))
-            .confirm()
-            .show()
-            .unwrap();
-    }
-
-    if warning_acknowledged {
-        config::set_config_value("ban-warning-ack", warning_acknowledged.into());
-        if *swapping_or_copying {
-            *swapping_asset = None;
+        ) {
+            gui::clear_image_cache();
+            logic::clear_cache();
         }
-        *swapping_or_copying = !*swapping_or_copying;
-    }
+    });
 }
 
-// fn format_size(bytes: u64) -> String {
-//     const UNITS: [&str; 4] = ["KB", "MB", "GB", "TB"];
-//     let mut size = bytes as f64 / 1024.0;
-//     let mut unit_idx = 0;
+#[derive(Clone, Copy)]
+enum EditMode {
+    Swap,
+    Copy,
+}
 
-//     while size >= 1024.0 && unit_idx < UNITS.len() - 1 {
-//         size /= 1024.0;
-//         unit_idx += 1;
-//     }
-//     format!("{:.1} {}", size, UNITS[unit_idx])
-// }
+fn is_audio(asset: &AssetInfo) -> bool {
+    matches!(
+        asset.category,
+        logic::Category::Music | logic::Category::Sounds
+    ) || matches!(asset.format, Some("ogg" | "mp3"))
+}
 
-// fn format_modified(time: std::time::SystemTime) -> String {
-//     let datetime: chrono::DateTime<chrono::Local> = time.into();
-//     datetime.format("%Y-%m-%d %H:%M").to_string()
-// }
+/// Assets whose name or alias contains `query` (lowercase), case-insensitively.
+fn filter_assets(assets: &[AssetInfo], query: &str) -> Vec<AssetInfo> {
+    assets
+        .iter()
+        .filter(|asset| {
+            asset.name.to_lowercase().contains(query)
+                || config::get_asset_alias(&asset.name)
+                    .to_lowercase()
+                    .contains(query)
+        })
+        .cloned()
+        .collect()
+}
+
+/// The rows shown: the category's list, filtered by the search query and sorted.
+/// Rebuilt only when the list, the query or the sort changes.
+#[derive(Default)]
+struct ListView {
+    category: Option<logic::Category>,
+    generation: u64,
+    query: String,
+    sort: Option<table::Sort>,
+    /// Audio lengths known when sorted by length.
+    lengths_generation: u64,
+    assets: Arc<Vec<AssetInfo>>,
+}
 
 pub struct FileListUi {
     selected: Option<usize>, // Used for storing selected state to retain keyboard navigation as seen in the tkinter version
@@ -311,36 +250,171 @@ pub struct FileListUi {
     swapping_asset: Option<logic::AssetInfo>,
     asset_context_menu_open: Option<usize>,
     copying: bool,
+    view: ListView,
+    table: table::TableLayout,
+    player: player::Player,
+    pending_edit_mode: Option<(dialog::Pending<bool>, EditMode, Option<AssetInfo>)>, // Waiting on the ban warning
     pub locale: FluentBundle<Arc<FluentResource>>,
 }
-// selected: Option<usize>, // Used for storing selected state to retain keyboard navigation as seen in the tkinter version
-// current_tab: Option<String>, // Allows for detecting when the user changes tabs to refresh automatically
-// renaming: bool,
-// searching: bool,
-// search_query: String,
-// swapping: bool,
-// swapping_asset: Option<logic::AssetInfo>,
-// asset_context_menu_open: Option<usize>,
-// copying: bool,
-
-// selected: &'a mut Option<usize>,
-// current_tab: &'a mut Option<String>,
-// renaming: &'a mut bool,
-// searching: &'a mut bool,
-// search_query: &'a mut String,
-// swapping: &'a mut bool,
-// swapping_asset: &'a mut Option<logic::AssetInfo>,
-// locale: &'a mut FluentBundle<Arc<FluentResource>>,
-// asset_context_menu_open: &'a mut Option<usize>,
-// copying: &'a mut bool,
-
 impl FileListUi {
-    fn handle_text_edit(&mut self, ui: &mut egui::Ui, alias: &str, file_name: &str) {
+    /// Double click/Enter/Open: swap or copy when in those modes, otherwise
+    /// play sounds in the built-in player or open the file externally.
+    fn open_asset(&mut self, asset: AssetInfo) {
+        if !self.swapping
+            && !self.copying
+            && is_audio(&asset)
+            && config::get_config_bool("use_builtin_player").unwrap_or(true)
+        {
+            self.player.play(asset);
+        } else {
+            double_click(
+                asset,
+                &mut self.swapping,
+                &mut self.copying,
+                &mut self.swapping_asset,
+            );
+        }
+    }
+
+    /// While something is playing, play whatever gets selected instead.
+    fn preview_selection(&mut self, file_list: &[AssetInfo]) {
+        let Some(asset) = self.selected.and_then(|i| file_list.get(i)) else {
+            return;
+        };
+        let changed = self
+            .player
+            .current()
+            .is_some_and(|current| current.name != asset.name);
+        if changed && self.player.is_playing() && is_audio(asset) && !self.swapping && !self.copying
+        {
+            self.player.play(asset.clone());
+        }
+    }
+
+    /// Toggle swapping/copying, showing the ban warning first if it hasn't been acknowledged.
+    fn toggle_edit_mode(&mut self, mode: EditMode, asset: Option<AssetInfo>) {
+        if config::get_config_bool("ban-warning-ack").unwrap_or(false) {
+            self.apply_edit_mode(mode, asset);
+        } else if self.pending_edit_mode.is_none() {
+            let pending = dialog::spawn(|| {
+                dialog::confirm_localised(
+                    dialog::Level::Warning,
+                    "confirmation-ban-warning-title",
+                    "confirmation-ban-warning-description",
+                )
+            });
+            self.pending_edit_mode = Some((pending, mode, asset));
+        }
+    }
+
+    fn apply_edit_mode(&mut self, mode: EditMode, asset: Option<AssetInfo>) {
+        let enabled = match mode {
+            EditMode::Swap => !self.swapping,
+            EditMode::Copy => !self.copying,
+        };
+        // Only one of the two at a time
+        self.swapping = enabled && matches!(mode, EditMode::Swap);
+        self.copying = enabled && matches!(mode, EditMode::Copy);
+        self.swapping_asset = if enabled { asset } else { None };
+    }
+
+    /// The rows to show for `category`, filtered when searching and sorted.
+    fn update_view(&mut self, category: logic::Category) -> Arc<Vec<AssetInfo>> {
+        let generation = logic::get_file_list_generation(category);
+        let query = if self.searching {
+            self.search_query.to_lowercase()
+        } else {
+            String::new()
+        };
+        // Only audio has a length to sort by
+        let sort = self.table.sort.filter(|sort| {
+            sort.column != table::Column::Length
+                || matches!(category, logic::Category::Music | logic::Category::Sounds)
+        });
+        // Sorting by length re-sorts as lengths come in
+        let sort_by_length = sort.is_some_and(|sort| sort.column == table::Column::Length);
+        let lengths_generation = if sort_by_length {
+            logic::audio::generation()
+        } else {
+            0
+        };
+
+        if self.view.category != Some(category)
+            || self.view.generation != generation
+            || self.view.query != query
+            || self.view.sort != sort
+            || self.view.lengths_generation != lengths_generation
+        {
+            let assets = logic::get_file_list(category);
+            let assets = if query.is_empty() && sort.is_none() {
+                assets // Unchanged, share the snapshot
+            } else {
+                let mut assets = if query.is_empty() {
+                    assets.to_vec()
+                } else {
+                    filter_assets(&assets, &query)
+                };
+                if sort_by_length {
+                    for asset in &assets {
+                        logic::audio::length(asset); // Queue the ones not known yet
+                    }
+                }
+                if let Some(sort) = sort {
+                    table::sort_assets(&mut assets, sort);
+                }
+                Arc::new(assets)
+            };
+
+            // Keep the same asset selected when rows move around
+            if self.view.category == Some(category) {
+                let selected_name = self
+                    .selected
+                    .and_then(|i| self.view.assets.get(i))
+                    .map(|asset| asset.name.clone());
+                self.selected = selected_name
+                    .and_then(|name| assets.iter().position(|asset| asset.name == name));
+            }
+
+            self.view = ListView {
+                category: Some(category),
+                generation,
+                query,
+                sort,
+                lengths_generation,
+                assets,
+            };
+        }
+        self.view.assets.clone()
+    }
+
+    fn poll_pending_edit_mode(&mut self) {
+        let answer = match &self.pending_edit_mode {
+            Some((pending, _, _)) => pending.take(),
+            None => return,
+        };
+        if let Some(acknowledged) = answer {
+            let (_, mode, asset) = self.pending_edit_mode.take().unwrap();
+            if acknowledged {
+                config::set_config_value("ban-warning-ack", true.into());
+                self.apply_edit_mode(mode, asset);
+            }
+        }
+    }
+
+    /// Text box for renaming, laid out normally or placed in `rect`.
+    fn handle_text_edit(
+        &mut self,
+        ui: &mut egui::Ui,
+        alias: &str,
+        file_name: &str,
+        rect: Option<egui::Rect>,
+    ) {
         let mut mutable_name = alias.to_string();
-        let response = egui::TextEdit::singleline(&mut mutable_name)
-            .hint_text(file_name)
-            .show(ui)
-            .response;
+        let edit = egui::TextEdit::singleline(&mut mutable_name).hint_text(file_name);
+        let response = match rect {
+            Some(rect) => ui.put(rect, edit),
+            None => edit.show(ui).response,
+        };
 
         if mutable_name != alias {
             config::set_asset_alias(file_name, &mutable_name);
@@ -368,12 +442,15 @@ impl FileListUi {
                 .button(locale::get_message(&self.locale, "button-open", None))
                 .clicked()
             {
-                double_click(
-                    asset.clone(),
-                    &mut self.swapping,
-                    &mut self.copying,
-                    &mut self.swapping_asset,
-                );
+                self.open_asset(asset.clone());
+                self.asset_context_menu_open = None;
+            }
+            if is_audio(&asset)
+                && ui
+                    .button(locale::get_message(&self.locale, "button-play", None))
+                    .clicked()
+            {
+                self.player.play(asset.clone());
                 self.asset_context_menu_open = None;
             }
             if ui
@@ -384,8 +461,23 @@ impl FileListUi {
                 ))
                 .clicked()
             {
-                extract_file_button(asset);
+                extract_file_button(asset.clone());
                 self.asset_context_menu_open = None;
+            }
+
+            let targets = logic::convert::targets_for(&asset);
+            if logic::convert::is_enabled() && !targets.is_empty() {
+                ui.menu_button(
+                    locale::get_message(&self.locale, "button-convert", None),
+                    |ui| {
+                        for &target in targets {
+                            if ui.button(target.name()).clicked() {
+                                extract_file_as(asset.clone(), Some(target));
+                                self.asset_context_menu_open = None;
+                            }
+                        }
+                    },
+                );
             }
         }
         if ui
@@ -414,7 +506,7 @@ impl FileListUi {
             ))
             .clicked()
         {
-            clear_cache(&self.locale);
+            clear_cache();
             self.asset_context_menu_open = None;
         }
 
@@ -426,7 +518,7 @@ impl FileListUi {
             ))
             .clicked()
         {
-            extract_all_of_type(category, &self.locale);
+            extract_all_of_type(category);
             self.asset_context_menu_open = None;
         }
         if ui
@@ -440,27 +532,15 @@ impl FileListUi {
             .button(locale::get_message(&self.locale, "button-swap", None))
             .clicked()
         {
-            toggle_swap(&mut self.swapping, &mut self.swapping_asset, &self.locale);
+            self.toggle_edit_mode(EditMode::Swap, asset.clone());
             self.asset_context_menu_open = None;
-
-            if let Some(n) = asset.clone() {
-                self.swapping_asset = Some(n);
-            } else {
-                self.swapping_asset = None;
-            }
         }
         if ui
             .button(locale::get_message(&self.locale, "button-copy", None))
             .clicked()
         {
-            toggle_swap(&mut self.copying, &mut self.swapping_asset, &self.locale);
+            self.toggle_edit_mode(EditMode::Copy, asset.clone());
             self.asset_context_menu_open = None;
-
-            if let Some(n) = asset.clone() {
-                self.swapping_asset = Some(n);
-            } else {
-                self.swapping_asset = None;
-            }
         }
 
         if matches!(category, logic::Category::Images | logic::Category::Ktx) {
@@ -525,12 +605,7 @@ impl FileListUi {
         }
 
         if response.double_clicked() {
-            double_click(
-                asset,
-                &mut self.swapping,
-                &mut self.copying,
-                &mut self.swapping_asset,
-            );
+            self.open_asset(asset);
         }
 
         // Handle keyboard scrolling
@@ -552,32 +627,26 @@ impl FileListUi {
             _ => logic::Category::All,
         };
 
-        // Detect if tab changed and do a refresh if so
-        if let Some(current_tab) = &self.current_tab {
-            if current_tab != &tab {
-                self.current_tab = Some(tab.to_owned());
+        // Detect if tab changed and do a refresh if so. Lists already loaded stay
+        // on screen while the new one is made.
+        if self.current_tab.as_ref() != Some(&tab) {
+            self.current_tab = Some(tab.to_owned());
+            self.selected = None;
+            if logic::is_list_loaded(category) {
+                logic::refresh_in_background(category);
+            } else {
                 logic::refresh(category, false, false);
             }
-        } else {
-            self.current_tab = Some(tab.to_owned());
-            logic::refresh(category, false, false);
         }
 
-        let file_list = logic::get_file_list();
+        self.poll_pending_edit_mode();
+
+        let file_list = self.update_view(category);
 
         let mut focus_search_box = false; // Focus the search box toggle for this frame
 
-        let file_list_is_empty = {
-            file_list.is_empty()
-                || (
-                    file_list.len() == 1
-                // The "No files to list" asset shows as from none of these
-                && !file_list[0].from_file
-                && !file_list[0].from_sql
-                && !file_list[0].from_rbx_storage
-                    // TODO: Maybe I should make this an enum...
-                )
-        };
+        let file_list_is_empty =
+            logic::get_file_list(category).is_empty() && !logic::is_listing(category);
 
         // Handle key shortcuts here
         if ui.input(|i| i.key_pressed(egui::Key::F2)) {
@@ -595,16 +664,12 @@ impl FileListUi {
         }
         if ui.input(|i| i.key_pressed(egui::Key::F3)) {
             // Extract all (F3)
-            extract_all_of_type(category, &self.locale);
+            extract_all_of_type(category);
         }
         if ui.input(|i| i.modifiers.ctrl && i.key_pressed(egui::Key::D)) {
             // Swap (Ctrl+D)
-            toggle_swap_or_copy(&mut self.swapping, &mut self.swapping_asset, &self.locale);
-            if let Some(i) = self.selected {
-                self.swapping_asset = file_list.get(i).cloned();
-            } else {
-                self.swapping_asset = None;
-            }
+            let asset = self.selected.and_then(|i| file_list.get(i).cloned());
+            self.toggle_edit_mode(EditMode::Swap, asset);
         }
         if ui.input(|i| i.modifiers.ctrl && i.key_pressed(egui::Key::E)) {
             // Ctrl+E (Extract)
@@ -624,20 +689,25 @@ impl FileListUi {
 
         // Shortcuts to deactivate during text entry
         if !self.renaming && !self.searching {
+            if ui.input(|i| i.key_pressed(egui::Key::Space)) {
+                // Play/pause (Space)
+                let selected = self
+                    .selected
+                    .and_then(|i| file_list.get(i))
+                    .filter(|asset| is_audio(asset))
+                    .cloned();
+                self.player.toggle(selected);
+            }
             if ui.input(|i| i.key_pressed(egui::Key::Delete)) {
                 // Clear cache (del)
-                clear_cache(&self.locale);
+                clear_cache();
             }
 
             if ui.input(|inp| inp.events.iter().any(|ev| matches!(ev, egui::Event::Copy))) {
                 // https://github.com/emilk/egui/issues/4065#issuecomment-2071047410
                 // Copy (Ctrl+C)
-                toggle_swap_or_copy(&mut self.copying, &mut self.swapping_asset, &self.locale);
-                if let Some(i) = self.selected {
-                    self.swapping_asset = file_list.get(i).cloned();
-                } else {
-                    self.swapping_asset = None;
-                }
+                let asset = self.selected.and_then(|i| file_list.get(i).cloned());
+                self.toggle_edit_mode(EditMode::Copy, asset);
             }
         }
 
@@ -652,6 +722,12 @@ impl FileListUi {
                     });
                 })
             });
+        }
+
+        // Player bar along the bottom, once something has been played
+        if self.player.is_visible() {
+            egui::TopBottomPanel::bottom("player")
+                .show_inside(ui, |ui| self.player.ui(ui, &self.locale));
         }
 
         // Empty state
@@ -711,8 +787,6 @@ impl FileListUi {
         }
 
         let file_list = if self.searching {
-            let old_search_query = self.search_query.clone();
-
             let response = ui.text_edit_singleline(&mut self.search_query);
 
             if focus_search_box {
@@ -723,10 +797,7 @@ impl FileListUi {
                 self.searching = false; // Remove the search bar when the use presses escape
             }
 
-            if self.search_query != old_search_query {
-                logic::filter_file_list(self.search_query.clone());
-            }
-            logic::get_filtered_file_list()
+            self.update_view(category) // The query may have changed
         } else {
             file_list
         };
@@ -747,7 +818,7 @@ impl FileListUi {
         let row_height = if display_image_preview {
             config::get_config_u64("image_preview_size").unwrap_or(128) as f32
         } else {
-            ui.text_style_height(&egui::TextStyle::Body)
+            ui.text_style_height(&egui::TextStyle::Body) + 4.0 // Room around the text
         };
 
         // Whole tiles per row; the old hardcoded gap over-packed rows, which is
@@ -809,12 +880,7 @@ impl FileListUi {
                 if let Some(selected) = self.selected {
                     // Get file name after getting the selected value
                     if let Some(asset) = file_list.get(selected) {
-                        double_click(
-                            asset.clone(),
-                            &mut self.swapping,
-                            &mut self.copying,
-                            &mut self.swapping_asset,
-                        );
+                        self.open_asset(asset.clone());
                     }
                 }
             }
@@ -822,59 +888,13 @@ impl FileListUi {
 
         let mut navigation_accepted: bool = false; // Used to check if the selected label is available to accept the keyboard navigation
 
-        // let mut table_properties = Vec::new();
-        // table_properties.push(("name", 0.0));
-        // table_properties.push(("size", 0.5));
-        // table_properties.push(("modified", 0.75));
-
-        // if !display_image_preview {
-        //     // Display table headers
-        //     let full_width = ui.available_width();
-        //     let desired_size = egui::vec2(full_width, row_height);
-        //     let rect = ui.allocate_exact_size(desired_size, egui::Sense::hover()).0;
-
-        //     for property in table_properties {
-        //         let size = rect.size();
-        //         println!("{}", property.1size.x);
-        //         let property_rect = egui::Rect::from_min_size(
-        //             rect.min + egui::vec2(property.1size.x, 0.0),
-        //             egui::vec2((1.0-property.1)size.x, size.y)
-        //         );
-
-        //         ui.put(property_rect,
-        //         egui::Label::new(property.0).truncate().selectable(false));
-        //     }
-
-        //     // // Column positions
-        //     // let alias_x = rect.min.x + 5.0;
-        //     // let size_x = rect.min.x + rect.width() * 0.7;
-        //     // let modified_x = rect.min.x + rect.width() * 1.0 - 5.0; // adjust for padding
-
-        //     // // Draw all columns
-        //     // ui.painter().text(
-        //     //     egui::pos2(alias_x+5, rect.min.y),
-        //     //     egui::Align2::LEFT_TOP,
-        //     //     "Name",
-        //     //     egui::TextStyle::Body.resolve(ui.style()),
-        //     //     visuals.text_color(),
-        //     // );
-
-        //     // ui.painter().text(
-        //     //     egui::pos2(size_x+5, rect.min.y),
-        //     //     egui::Align2::LEFT_TOP,
-        //     //     "Size",
-        //     //     egui::TextStyle::Body.resolve(ui.style()),
-        //     //     visuals.text_color(),
-        //     // );
-
-        //     // ui.painter().text(
-        //     //     egui::pos2(modified_x+5, rect.min.y),
-        //     //     egui::Align2::LEFT_TOP,
-        //     //     "Modified",
-        //     //     egui::TextStyle::Body.resolve(ui.style()),
-        //     //     visuals.text_color(),
-        //     // );
-        // }
+        // Column headers, sticky above the scrolling rows
+        let columns = if display_image_preview {
+            Vec::new()
+        } else {
+            self.table
+                .header_ui(ui, &self.locale, row_height + 4.0, category)
+        };
 
         // File list for assets
         gui::begin_frame_textures(); // rotate pin sets
@@ -903,7 +923,7 @@ impl FileListUi {
 
                                     // Draw the text
                                     if is_selected && self.renaming {
-                                        self.handle_text_edit(ui, &alias, file_name);
+                                        self.handle_text_edit(ui, &alias, file_name, None);
                                     // Allow user to edit
                                     } else {
                                         let desired_size = egui::vec2(row_height, row_height); // Set height to the text style height
@@ -912,14 +932,10 @@ impl FileListUi {
                                             egui::Sense::click(),
                                         );
 
-                                        // Only attempt to load if it's a real asset
-                                        if asset.from_file | asset.from_sql | asset.from_rbx_storage
+                                        if let Some(texture) =
+                                            load_asset_image(asset.clone(), ui.ctx().clone())
                                         {
-                                            if let Some(texture) =
-                                                load_asset_image(asset.clone(), ui.ctx().clone())
-                                            {
-                                                texture.paint(ui, rect);
-                                            }
+                                            texture.paint(ui, rect);
                                         }
 
                                         let visuals = ui.visuals();
@@ -997,69 +1013,52 @@ impl FileListUi {
                                 self.selected == Some(i)
                             };
 
-                            if is_selected && self.renaming {
-                                self.handle_text_edit(ui, &alias, &asset.name);
+                            let (rect, response) = ui.allocate_exact_size(
+                                egui::vec2(ui.available_width(), row_height),
+                                egui::Sense::click(),
+                            );
+
+                            let visuals = ui.visuals().clone();
+                            let (background_colour, text_colour) = self.handle_asset_response(
+                                response,
+                                &visuals,
+                                is_selected,
+                                i,
+                                scroll_to,
+                                &mut navigation_accepted,
+                                &mut focus_search_box,
+                                asset.clone(),
+                            );
+
+                            // Stripe every other row to make rows easier to follow
+                            let background_colour = if !is_selected && i % 2 == 1 {
+                                visuals.faint_bg_color
                             } else {
-                                let full_width = ui.available_width();
-                                let desired_size = egui::vec2(full_width, row_height);
-                                let (rect, response) =
-                                    ui.allocate_exact_size(desired_size, egui::Sense::click());
+                                background_colour
+                            };
+                            ui.painter().rect_filled(rect, 0.0, background_colour);
 
-                                let visuals = ui.visuals();
-                                let colours = self.handle_asset_response(
-                                    response,
-                                    visuals,
-                                    is_selected,
-                                    i,
-                                    scroll_to,
-                                    &mut navigation_accepted,
-                                    &mut focus_search_box,
-                                    asset.clone(),
-                                );
+                            let renaming = is_selected && self.renaming;
+                            let cells: Vec<_> = columns
+                                .iter()
+                                .filter(|column| {
+                                    !(renaming && column.column == table::Column::Name)
+                                })
+                                .copied()
+                                .collect();
+                            table::paint_row(ui, rect, &cells, asset, &alias, text_colour);
 
-                                let text_colour = colours.1;
-                                let background_colour = colours.0;
-
-                                ui.painter().rect_filled(rect, 0.0, background_colour);
-
-                                // // Format metadata
-                                // let size = format_size(asset.size);
-                                // let modified = if asset.last_modified.is_some() {
-                                //     format_modified(asset.last_modified.unwrap())
-                                // } else {
-                                //     "".to_string()
-                                // };
-
-                                // Column positions (add padding)
-                                let alias_x = rect.min.x + 5.0;
-                                // let size_x = rect.min.x + rect.width() * 0.7;
-                                // let modified_x = rect.min.x + rect.width() * 1.0 - 5.0; // adjust for padding
-
-                                // Draw all columns
-                                ui.painter().text(
-                                    egui::pos2(alias_x, rect.min.y),
-                                    egui::Align2::LEFT_TOP,
-                                    alias,
-                                    egui::TextStyle::Body.resolve(ui.style()),
-                                    text_colour,
-                                );
-
-                                // These are for later, broken rn
-                                //     ui.painter().text(
-                                //         egui::pos2(size_x, rect.min.y),
-                                //         egui::Align2::RIGHT_TOP,
-                                //         size,
-                                //         egui::TextStyle::Body.resolve(ui.style()),
-                                //         text_colour,
-                                //     );
-
-                                //     ui.painter().text(
-                                //         egui::pos2(modified_x, rect.min.y),
-                                //         egui::Align2::RIGHT_TOP,
-                                //         modified,
-                                //         egui::TextStyle::Body.resolve(ui.style()),
-                                //         text_colour,
-                                //     );
+                            if renaming {
+                                // Edit the name in place
+                                if let Some(name) =
+                                    columns.iter().find(|c| c.column == table::Column::Name)
+                                {
+                                    let cell = egui::Rect::from_min_size(
+                                        rect.min + egui::vec2(name.x, 0.0),
+                                        egui::vec2(name.width, rect.height()),
+                                    );
+                                    self.handle_text_edit(ui, &alias, &asset.name, Some(cell));
+                                }
                             }
                         }
                     }
@@ -1071,6 +1070,8 @@ impl FileListUi {
             // If the keyboard navigation wasn't accepted and there is keyboard navigation then...
             self.selected = None; // Set the selected to none, so it selects something on-screen
         }
+
+        self.preview_selection(&file_list);
     }
 }
 
@@ -1087,6 +1088,39 @@ impl Default for FileListUi {
             locale: locale::get_locale(None),
             asset_context_menu_open: None,
             copying: false,
+            view: ListView::default(),
+            table: table::TableLayout::load(),
+            player: player::Player::default(),
+            pending_edit_mode: None,
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn asset(name: &str) -> AssetInfo {
+        AssetInfo {
+            name: name.to_owned(),
+            size: 0,
+            last_modified: None,
+            created: None,
+            format: None,
+            from_file: true,
+            from_sql: false,
+            from_rbx_storage: false,
+            category: logic::Category::Sounds,
+        }
+    }
+
+    #[test]
+    fn test_filter_assets_matches_name_case_insensitively() {
+        let assets = vec![asset("Apple"), asset("banana"), asset("pineapple")];
+        let filtered = filter_assets(&assets, "app");
+        let names: Vec<_> = filtered.iter().map(|a| a.name.as_str()).collect();
+        assert_eq!(names, ["Apple", "pineapple"]);
+        assert!(filter_assets(&assets, "cherry").is_empty());
+        assert_eq!(filter_assets(&assets, "").len(), 3);
     }
 }

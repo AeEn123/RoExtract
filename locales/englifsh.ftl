@@ -13,8 +13,12 @@ about = aobut
 logs = loges
 
 # Buttons
-button-reset-rbx-storage-dir = Reset rbx-storage Directory # TODO: Translate
-button-change-rbx-storage-dir = Change rbx-storage Directory # TODO: Translate
+button-convert = conevrt too # AI translated
+button-play = paly <Space> # AI translated
+button-reset-columns = resett colunms # AI translated
+button-ok = okk # AI translated
+button-reset-rbx-storage-dir = reset rbx-storgae direcotry # AI translated
+button-change-rbx-storage-dir = hcange rbx-strogae direcrtory # AI translated
 button-reset-sql-db = reset slq databsae
 button-change-sql-db = hcange slq databse
 button-delete-this-dir = deltlets thsi disrectory <Del>
@@ -74,7 +78,8 @@ error-invalid-directory-description = please make sur eth epath you prpvided is 
 generic-error-critical = cirtical error
 
 # Headings
-downloading-update = Downloading update… # TODO: Translate
+conversion = formaat converison # AI translated
+downloading-update = downlaoding udpate… # AI translated
 actions = atcions
 updates = udopates
 language-settings = languesage settings
@@ -84,6 +89,11 @@ dependencies = depenceinses
 behavior = beahvior
 
 # Checkboxes
+enable-conversion = enabel formaat converison # AI translated
+audio-format = audoi # AI translated
+convert-on-extract = convret asests wehn extreacting # AI translated
+image-format = iamgesz adn texutres # AI translated
+use-builtin-player = paly osduns in teh bulit-in palyer wehn oepning tehm # AI translated
 check-for-updates = chek ofr udopates
 automatically-install-updates = autyom,atically insatll upodates
 use-alias = epxort your rneamved filesnmaes
@@ -94,7 +104,8 @@ checkbox-hide-user-logs = hidies uder5tname from lgo
 
 
 # Descriptions
-custom-rbx-storage-dir-description = If you want to use a different rbx-storage directory, change it below. You can reset it back to the default with the other button. # TODO: Translate
+conversion-description = conevrt asests too mroe comon formaats. wehn enabeld, a "conevrt too" optoin is aded too teh rigth clcik mneu, adn asests cna be convretd as tehy are extreactd. if an asest cant be convretd, it is extreactd as it is. # AI translated
+custom-rbx-storage-dir-description = if yuo wnat too use a difrent rbx-storgae direcotry, chagne it belwo. yuo cna rseet it bakc too teh defualt wiht teh otehr buttno. # AI translated
 custom-sql-db-description = if yotuw ant ttaccess ot a different caceh, change eiyoru slq databse bloew
 clear-cache-description = ife itl is tlanging too lgin to lsit file sm foirmm at edirectory, youc anc lear tyouyr bolxoc ache sto help,t ehc ;leitn  will regerneate this files whern  needed
 extract-all-description = tehbeutotn wiull extadct all assets to folder
@@ -119,8 +130,9 @@ swapped = swaopped { $item_a } with { $item_b }
 copied = overwriten { $item_b } with { $item_a }
 
 # Misc
-no-directory = Not found # TODO: Translate
-rbx-storage-directory = rbx-storage Directory: { $directory } # TODO: Translate
+dialog-enter-path = entre a pahth (laeve blnak too cancle): # AI translated
+no-directory = nto fuond # AI translated
+rbx-storage-directory = rbx-storgae direcotry: { $directory } # AI translated
 sql-database = slq datbase: { $path }
 no-function = (Not functional yet)
 version = vwrisoon: v{ $version } (omcpleid at { $date })
@@ -136,3 +148,12 @@ failed-opening-file = error: fiaeldw to wopen fiel
 error-extracting-file = rror: fialed to aextract beucase { $error }
 error-check-logs = eroror hcekc logs
 failed-not-file = error '{ $file }' not a fiele
+
+column-size = sizee # AI translated
+column-type = tpye # AI translated
+column-modified = modifeid # AI translated
+column-name = nmae # AI translated
+column-created = craeted # AI translated
+player-no-device = no audoi otuput deivce wsa fuond. # AI translated
+player-failed = cudlnt paly tihs fiel, chekc loges fro mroe detials. # AI translated
+column-length = lentgh # AI translated

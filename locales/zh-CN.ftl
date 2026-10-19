@@ -13,10 +13,14 @@ about = 关于
 logs = 日志
 
 # Buttons
-button-reset-rbx-storage-dir = Reset rbx-storage Directory # TODO: Translate
-button-change-rbx-storage-dir = Change rbx-storage Directory # TODO: Translate
-button-reset-sql-db = Reset SQL Database # TODO: Translate
-button-change-sql-db = Change SQL Database # TODO: Translate
+button-convert = 转换为 # AI translated
+button-play = 播放 <Space> # AI translated
+button-reset-columns = 重置列 # AI translated
+button-ok = 确定 # AI translated
+button-reset-rbx-storage-dir = 重置 rbx-storage 目录 # AI translated
+button-change-rbx-storage-dir = 更改 rbx-storage 目录 # AI translated
+button-reset-sql-db = 重置 SQL 数据库 # AI translated
+button-change-sql-db = 更改 SQL 数据库 # AI translated
 button-delete-this-dir = 删除此目录 <Del>
 button-extract-type = 提取此类型的所有文件 <F3>
 button-refresh = 刷新 <F5>
@@ -40,8 +44,8 @@ button-disable-display-image-preview = 停止显示图片预览
 input-preview-size = 预览大小
 
 # Confirmations
-confirmation-custom-sql-title = Choose a SQL Database # TODO: Translate
-confirmation-custom-sql-description = Do you want to choose a different SQL Database? # TODO: Translate
+confirmation-custom-sql-title = 选择 SQL 数据库 # AI translated
+confirmation-custom-sql-description = 您想选择其他 SQL 数据库吗？ # AI translated
 confirmation-generic-confirmation-title = 确认
 confirmation-delete-confirmation-title = 删除文件
 confirmation-delete-confirmation-description = 您确定要删除此目录中的文件吗？
@@ -60,10 +64,10 @@ empty-state-description = 请至少运行一次 Roblox 客户端，然后点击"
 empty-state-hint = 如果提取速度较慢，请先尝试清除缓存。
 
 # Errors
-error-invalid-database-description = Please make sure the path you provided is an SQLite Database # TODO: Translate
-error-invalid-database-title = Invalid database! # TODO: Translate
-error-sql-detection-title = Database detection failed! # TODO: Translate
-error-sql-detection-description = Database detection failed! Is the client installed and you ran it at least once? # TODO: Translate
+error-invalid-database-description = 请确保您提供的路径是 SQLite 数据库 # AI translated
+error-invalid-database-title = 无效的数据库！ # AI translated
+error-sql-detection-title = 数据库检测失败！ # AI translated
+error-sql-detection-description = 数据库检测失败！客户端是否已安装，并且您至少运行过一次？ # AI translated
 no-files = 没有要列出的文件
 error-directory-detection-title = 目录检测失败
 error-directory-detection-description = Roblox是否已安装且 您至少运行过一次？
@@ -74,7 +78,8 @@ error-invalid-directory-description = 请确保您提供的路径是一个目录
 generic-error-critical = 严重错误
 
 # Headings
-downloading-update = Downloading update… # TODO: Translate
+conversion = 格式转换 # AI translated
+downloading-update = 正在下载更新… # AI translated
 actions = 操作
 updates = 更新
 language-settings = 语言设置
@@ -84,6 +89,11 @@ dependencies = 依赖项
 behavior = 可选项
 
 # Checkboxes
+enable-conversion = 启用格式转换 # AI translated
+audio-format = 音频 # AI translated
+convert-on-extract = 提取时转换资源 # AI translated
+image-format = 图片和纹理 # AI translated
+use-builtin-player = 打开声音时使用内置播放器播放 # AI translated
 check-for-updates = 检查更新
 automatically-install-updates = 自动安装更新
 use-alias = 导出您重命名的文件名
@@ -93,8 +103,9 @@ download-development-build = 使用开发版本以提前获得功能
 checkbox-hide-user-logs = 从日志中隐藏用户名
 
 # Descriptions
-custom-rbx-storage-dir-description = If you want to use a different rbx-storage directory, change it below. You can reset it back to the default with the other button. # TODO: Translate
-custom-sql-db-description = If you want to access a different cache, change your SQL Database below, you can set it back to default with the other button. This is different from your installation folder. # TODO: Translate
+conversion-description = 将资源转换为更常见的格式。启用后，右键菜单中会添加"转换为"选项，并且可以在提取时转换资源。如果某个资源无法转换，则会按原样提取。 # AI translated
+custom-rbx-storage-dir-description = 如果您想使用其他 rbx-storage 目录，请在下方更改。您可以使用另一个按钮将其重置为默认值。 # AI translated
+custom-sql-db-description = 如果您想访问不同的缓存，请在下方更改 SQL 数据库，您可以使用另一个按钮将其恢复为默认值。这与您的安装文件夹不同。 # AI translated
 clear-cache-description = 如果从目录列出文件耗时太长，您可以清理Roblox缓存来帮助解决，客户端将在需要时重新生成这些文件
 extract-all-description = 此按钮将把所有资源提取到文件夹
 custom-cache-dir-description = 如果您想访问不同的缓存，可以在下方更改
@@ -117,9 +128,10 @@ swapped = 已将 { $item_a } 与 { $item_b } 替换
 copied = 已用 { $item_a } 覆盖 { $item_b }
 
 # Misc
-no-directory = Not found # TODO: Translate
-rbx-storage-directory = rbx-storage Directory: { $directory } # TODO: Translate
-sql-database = SQL Database: { $path } # TODO: Translate
+dialog-enter-path = 输入路径（留空以取消）： # AI translated
+no-directory = 未找到 # AI translated
+rbx-storage-directory = rbx-storage 目录: { $directory } # AI translated
+sql-database = SQL 数据库: { $path } # AI translated
 no-function = （尚未功能化）
 version = 版本: v{ $version } (编译于 { $date })
 cache-directory = 缓存目录: { $directory }
@@ -134,3 +146,12 @@ failed-opening-file = 错误：打开文件失败
 error-extracting-file = 错误：提取失败，原因：{ $error }
 error-check-logs = 错误，请检查日志
 failed-not-file = 错误 '{ $file }' 不是文件
+
+column-size = 大小 # AI translated
+column-type = 类型 # AI translated
+column-modified = 修改时间 # AI translated
+column-name = 名称 # AI translated
+column-created = 创建时间 # AI translated
+player-no-device = 未找到音频输出设备。 # AI translated
+player-failed = 无法播放此文件，请检查日志了解详情。 # AI translated
+column-length = 时长 # AI translated

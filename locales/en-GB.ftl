@@ -25,6 +25,7 @@ button-reset-rbx-storage-dir = Reset rbx-storage Directory
 button-finish = Finish
 button-yes = Yes
 button-no = No
+button-ok = OK
 button-rename = Rename <F2>
 button-search = Search <Ctrl+F>
 button-swap = Swap assets <F4>
@@ -33,9 +34,20 @@ button-export-logs = Export log to file
 button-copy = Copy <Ctrl+C>
 button-open = Open <Return>
 button-extract-file = Extract <Ctrl+E>
+button-play = Play <Space>
+button-convert = Convert to
 button-display-image-preview = Display image previews
 button-disable-display-image-preview = Stop displaying image previews
 input-preview-size = Preview size
+button-reset-columns = Reset columns
+
+# Table columns
+column-name = Name
+column-type = Type
+column-size = Size
+column-length = Length
+column-created = Created
+column-modified = Modified
 
 # Confirmations
 confirmation-generic-confirmation-title = Confirmation
@@ -80,6 +92,7 @@ downloading-update = Downloading update…
 contributors = Contributors
 dependencies = Dependencies
 behavior = Behavior
+conversion = Format conversion
 
 # Checkboxes
 check-for-updates = Check for updates
@@ -87,8 +100,13 @@ automatically-install-updates = Automatically install updates
 use-alias = Export your renamed filenames
 use-topbar-buttons = Enable toolbar
 refresh-before-extract = Refresh file list before extracting
+use-builtin-player = Play sounds in the built-in player when opening them
 download-development-build = Use development builds to get the latest features early (These builds may be unstable)
 checkbox-hide-user-logs = Hide username from logs
+enable-conversion = Enable format conversion
+convert-on-extract = Convert assets when extracting
+image-format = Images and textures
+audio-format = Audio
 
 
 # Descriptions
@@ -97,6 +115,7 @@ extract-all-description = The button below will copy all assets and create folde
 custom-cache-dir-description = If you want to access a different cache, change your cache directory below, you can set it back to default with the other button. This is different from your installation folder.
 custom-sql-db-description = If you want to access a different cache, change your SQL Database below, you can set it back to default with the other button. This is different from your installation folder.
 custom-rbx-storage-dir-description = If you want to use a different rbx-storage directory, change it below. You can reset it back to the default with the other button.
+conversion-description = Convert assets to more common formats. When enabled, a "Convert to" option is added to the right click menu, and assets can be converted as they are extracted. If an asset can't be converted, it is extracted as it is.
 use-alias-description = Instead of exporting the raw file name for the asset, checking this checkbox will export the filename you choose instead. You can do this by renaming within the application itself.
 swap-choose-file = Double click a file to swap
 swap-with = Double click a file to swap with "{ $asset }"
@@ -122,6 +141,8 @@ failed-opening-file = ERROR: Failed to open file
 failed-not-file = ERROR: '{ $file }' Not a file
 error-extracting-file = ERROR: Failed to extract: { $error }
 error-check-logs = ERROR: Check logs for more details.
+player-failed = Couldn't play this file, check logs for more details.
+player-no-device = No audio output device was found.
 
 # Misc
 no-function = (Not functional yet)
@@ -130,6 +151,7 @@ cache-directory = Cache directory: { $directory }
 sql-database = SQL Database: { $path }
 rbx-storage-directory = rbx-storage Directory: { $directory }
 no-directory = Not found
+dialog-enter-path = Enter a path (leave blank to cancel):
 welcome = Welcome
 download-update-question = Would you like to download the update?
 update-changelog = Update changelog below

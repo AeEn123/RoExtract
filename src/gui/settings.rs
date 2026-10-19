@@ -1,7 +1,6 @@
-use crate::{config, gui, locale, logic};
+use crate::{config, dialog, gui, locale, logic, logic::convert};
 use fluent_bundle::{FluentArgs, FluentBundle, FluentResource};
-use native_dialog::{DialogBuilder, MessageLevel};
-use std::sync::Arc;
+use std::{sync::Arc, thread};
 
 pub fn actions(ui: &mut egui::Ui, locale: &FluentBundle<Arc<FluentResource>>) {
     ui.separator();
@@ -16,26 +15,16 @@ pub fn actions(ui: &mut egui::Ui, locale: &FluentBundle<Arc<FluentResource>>) {
         .clicked()
         || ui.input(|i| i.key_pressed(egui::Key::Delete))
     {
-        // Confirmation dialog
-        let yes = DialogBuilder::message()
-            .set_level(MessageLevel::Info)
-            .set_title(locale::get_message(
-                locale,
+        // Runs on its own thread so the dialog doesn't block the GUI
+        thread::spawn(|| {
+            if dialog::confirm_localised(
+                dialog::Level::Info,
                 "confirmation-clear-cache-title",
-                None,
-            ))
-            .set_text(locale::get_message(
-                locale,
                 "confirmation-clear-cache-description",
-                None,
-            ))
-            .confirm()
-            .show()
-            .unwrap();
-
-        if yes {
-            logic::clear_cache();
-        }
+            ) {
+                logic::clear_cache();
+            }
+        });
     }
 
     // Extract all description
@@ -47,41 +36,27 @@ pub fn actions(ui: &mut egui::Ui, locale: &FluentBundle<Arc<FluentResource>>) {
         .clicked()
         || ui.input(|i| i.key_pressed(egui::Key::F3))
     {
-        let mut no = logic::get_list_task_running();
-
-        // Confirmation dialog, the program is still listing files
-        if no {
-            // NOT result, will become false if user clicks yes
-            no = !DialogBuilder::message()
-                .set_level(MessageLevel::Info)
-                .set_title(locale::get_message(
-                    locale,
+        thread::spawn(|| {
+            // Confirmation dialog, the program is still listing files
+            if logic::get_list_task_running()
+                && !dialog::confirm_localised(
+                    dialog::Level::Info,
                     "confirmation-filter-confirmation-title",
-                    None,
-                ))
-                .set_text(locale::get_message(
-                    locale,
                     "confirmation-filter-confirmation-description",
-                    None,
-                ))
-                .confirm()
-                .show()
-                .unwrap();
-        }
-
-        // The user either agreed or the program is not listing files
-        if !no {
-            let option_path = DialogBuilder::file().open_single_dir().show().unwrap();
+                )
+            {
+                return;
+            }
 
             // If the user provides a directory, the program will extract the assets to that directory
-            if let Some(path) = option_path {
+            if let Some(path) = dialog::pick_folder() {
                 logic::extract_all(
                     path,
                     false,
                     config::get_config_bool("use_alias").unwrap_or(false),
                 )
             }
-        }
+        });
     }
 }
 
@@ -108,45 +83,39 @@ pub fn cache_dir_management(ui: &mut egui::Ui, locale: &FluentBundle<Arc<FluentR
             .button(locale::get_message(locale, "button-change-cache-dir", None))
             .clicked()
         {
-            let option_path = DialogBuilder::file().open_single_dir().show().unwrap();
-
-            // If the user provides a directory, the program will change the cache directory to the new one
-            if let Some(path) = option_path {
-                // Validation checks
-                match logic::cache_directory::validate_directory(path.to_string_lossy().as_ref()) {
-                    Ok(directory) => {
-                        config::set_config_value("cache_directory", directory.into());
-                        logic::cache_directory::set_cache_directory(
-                            logic::cache_directory::detect_directory(),
-                        ); // Set directory to new one
-                    }
-                    Err(_) => {
-                        DialogBuilder::message()
-                            .set_level(MessageLevel::Info)
-                            .set_title(locale::get_message(
-                                locale,
-                                "error-invalid-directory-title",
-                                None,
-                            ))
-                            .set_text(locale::get_message(
-                                locale,
-                                "error-invalid-directory-description",
-                                None,
-                            ))
-                            .alert()
-                            .show()
-                            .unwrap();
+            thread::spawn(|| {
+                // If the user provides a directory, the program will change the cache directory to the new one
+                if let Some(path) = dialog::pick_folder() {
+                    // Validation checks
+                    match logic::cache_directory::validate_directory(
+                        path.to_string_lossy().as_ref(),
+                    ) {
+                        Ok(directory) => {
+                            config::set_config_value("cache_directory", directory.into());
+                            logic::cache_directory::set_cache_directory(
+                                logic::cache_directory::detect_directory(),
+                            ); // Set directory to new one
+                        }
+                        Err(_) => dialog::alert_localised(
+                            dialog::Level::Info,
+                            "error-invalid-directory-title",
+                            "error-invalid-directory-description",
+                        ),
                     }
                 }
-            }
+            });
         }
         if ui
             .button(locale::get_message(locale, "button-reset-cache-dir", None))
             .clicked()
         {
             config::remove_config_value("cache_directory"); // Clear directory in config
-            logic::cache_directory::set_cache_directory(logic::cache_directory::detect_directory());
-            // Set it back to default
+            thread::spawn(|| {
+                // Detection may need to ask the user, so it runs off the GUI thread
+                logic::cache_directory::set_cache_directory(
+                    logic::cache_directory::detect_directory(),
+                ); // Set it back to default
+            });
         }
     });
 }
@@ -172,37 +141,25 @@ pub fn sql_db_management(ui: &mut egui::Ui, locale: &FluentBundle<Arc<FluentReso
             .button(locale::get_message(locale, "button-change-sql-db", None))
             .clicked()
         {
-            let option_path = DialogBuilder::file().open_single_file().show().unwrap();
+            thread::spawn(|| {
+                // If the user provides a path, the program will change the SQL database to the new one
+                if let Some(path) = dialog::pick_file() {
+                    // Validation checks
+                    match logic::sql_database::validate_file(path.to_string_lossy().as_ref()) {
+                        Ok(directory) => {
+                            config::set_config_value("sql_database", directory.into());
 
-            // If the user provides a path, the program will change the SQL database to the new one
-            if let Some(path) = option_path {
-                // Validation checks
-                match logic::sql_database::validate_file(path.to_string_lossy().as_ref()) {
-                    Ok(directory) => {
-                        config::set_config_value("sql_database", directory.into());
-
-                        // Close current db and open new one
-                        let _ = logic::sql_database::reset_database();
-                    }
-                    Err(_) => {
-                        DialogBuilder::message()
-                            .set_level(MessageLevel::Info)
-                            .set_title(locale::get_message(
-                                locale,
-                                "error-invalid-database-title",
-                                None,
-                            ))
-                            .set_text(locale::get_message(
-                                locale,
-                                "error-invalid-database-description",
-                                None,
-                            ))
-                            .alert()
-                            .show()
-                            .unwrap();
+                            // Close current db and open new one
+                            let _ = logic::sql_database::reset_database();
+                        }
+                        Err(_) => dialog::alert_localised(
+                            dialog::Level::Info,
+                            "error-invalid-database-title",
+                            "error-invalid-database-description",
+                        ),
                     }
                 }
-            }
+            });
         }
         if ui
             .button(locale::get_message(locale, "button-reset-sql-db", None))
@@ -210,8 +167,10 @@ pub fn sql_db_management(ui: &mut egui::Ui, locale: &FluentBundle<Arc<FluentReso
         {
             config::remove_config_value("sql_database"); // Clear db in config
 
-            // Close current db and open new one
-            let _ = logic::sql_database::reset_database();
+            // Close current db and open new one, which may need to ask the user
+            thread::spawn(|| {
+                let _ = logic::sql_database::reset_database();
+            });
         }
     });
 }
@@ -284,7 +243,10 @@ pub fn behavior(ui: &mut egui::Ui, locale: &FluentBundle<Arc<FluentResource>>) {
 
     let old = config::get_config_bool("use_alias").unwrap_or(true);
     let mut use_alias = old;
-    ui.checkbox(&mut use_alias, locale::get_message(locale, "use-alias", None));
+    ui.checkbox(
+        &mut use_alias,
+        locale::get_message(locale, "use-alias", None),
+    );
     if use_alias != old {
         config::set_config_value("use_alias", use_alias.into());
     }
@@ -297,6 +259,16 @@ pub fn behavior(ui: &mut egui::Ui, locale: &FluentBundle<Arc<FluentResource>>) {
     );
     if refresh_before_extract != old {
         config::set_config_value("refresh_before_extract", refresh_before_extract.into());
+    }
+
+    let old = config::get_config_bool("use_builtin_player").unwrap_or(true);
+    let mut use_builtin_player = old;
+    ui.checkbox(
+        &mut use_builtin_player,
+        locale::get_message(locale, "use-builtin-player", None),
+    );
+    if use_builtin_player != old {
+        config::set_config_value("use_builtin_player", use_builtin_player.into());
     }
 
     let old = config::get_config_bool("use_topbar_buttons").unwrap_or(true);
@@ -330,6 +302,66 @@ pub fn behavior(ui: &mut egui::Ui, locale: &FluentBundle<Arc<FluentResource>>) {
     );
     if image_preview_size != old {
         config::set_config_value("image_preview_size", image_preview_size.into());
+    }
+}
+
+pub fn conversion(ui: &mut egui::Ui, locale: &FluentBundle<Arc<FluentResource>>) {
+    ui.separator();
+    ui.heading(locale::get_message(locale, "conversion", None));
+    ui.label(locale::get_message(locale, "conversion-description", None));
+
+    let old = convert::is_enabled();
+    let mut enabled = old;
+    ui.checkbox(
+        &mut enabled,
+        locale::get_message(locale, "enable-conversion", None),
+    );
+    if enabled != old {
+        config::set_config_value("conversion_enabled", enabled.into());
+    }
+
+    ui.add_enabled_ui(enabled, |ui| {
+        let old = config::get_config_bool("convert_on_extract").unwrap_or(true);
+        let mut convert_on_extract = old;
+        ui.checkbox(
+            &mut convert_on_extract,
+            locale::get_message(locale, "convert-on-extract", None),
+        );
+        if convert_on_extract != old {
+            config::set_config_value("convert_on_extract", convert_on_extract.into());
+        }
+
+        format_choice(
+            ui,
+            "convert_image_format",
+            &locale::get_message(locale, "image-format", None),
+            &convert::Target::IMAGE,
+        );
+        format_choice(
+            ui,
+            "convert_audio_format",
+            &locale::get_message(locale, "audio-format", None),
+            &convert::Target::AUDIO,
+        );
+    });
+}
+
+/// A drop-down to pick which format to convert to, saved under `key`.
+fn format_choice(ui: &mut egui::Ui, key: &str, label: &str, targets: &[convert::Target]) {
+    let current = config::get_config_string(key)
+        .and_then(|extension| convert::Target::from_extension(&extension))
+        .filter(|target| targets.contains(target))
+        .unwrap_or(targets[0]);
+    let mut selected = current;
+    egui::ComboBox::from_label(label)
+        .selected_text(current.name())
+        .show_ui(ui, |ui| {
+            for &target in targets {
+                ui.selectable_value(&mut selected, target, target.name());
+            }
+        });
+    if selected != current {
+        config::set_config_value(key, selected.extension().into());
     }
 }
 
@@ -410,43 +442,47 @@ pub fn rbx_storage_dir_management(ui: &mut egui::Ui, locale: &FluentBundle<Arc<F
             .unwrap_or_else(|| locale::get_message(locale, "no-directory", None)),
     );
 
-    ui.label(locale::get_message(locale, "rbx-storage-directory", Some(&args)));
+    ui.label(locale::get_message(
+        locale,
+        "rbx-storage-directory",
+        Some(&args),
+    ));
 
     ui.horizontal(|ui| {
         if ui
-            .button(locale::get_message(locale, "button-change-rbx-storage-dir", None))
+            .button(locale::get_message(
+                locale,
+                "button-change-rbx-storage-dir",
+                None,
+            ))
             .clicked()
         {
-            let option_path = DialogBuilder::file().open_single_dir().show().unwrap();
-
-            if let Some(path) = option_path {
-                let path_str = path.to_string_lossy().to_string();
-                if path.is_dir() {
-                    config::set_config_value("rbx_storage_directory", path_str.into());
-                    logic::rbx_storage_directory::set_rbx_storage_dir(
-                        logic::rbx_storage_directory::detect_directory(),
-                    );
-                } else {
-                    DialogBuilder::message()
-                        .set_level(MessageLevel::Info)
-                        .set_title(locale::get_message(
-                            locale,
+            thread::spawn(|| {
+                if let Some(path) = dialog::pick_folder() {
+                    if path.is_dir() {
+                        config::set_config_value(
+                            "rbx_storage_directory",
+                            path.to_string_lossy().to_string().into(),
+                        );
+                        logic::rbx_storage_directory::set_rbx_storage_dir(
+                            logic::rbx_storage_directory::detect_directory(),
+                        );
+                    } else {
+                        dialog::alert_localised(
+                            dialog::Level::Info,
                             "error-invalid-directory-title",
-                            None,
-                        ))
-                        .set_text(locale::get_message(
-                            locale,
                             "error-invalid-directory-description",
-                            None,
-                        ))
-                        .alert()
-                        .show()
-                        .unwrap();
+                        );
+                    }
                 }
-            }
+            });
         }
         if ui
-            .button(locale::get_message(locale, "button-reset-rbx-storage-dir", None))
+            .button(locale::get_message(
+                locale,
+                "button-reset-rbx-storage-dir",
+                None,
+            ))
             .clicked()
         {
             config::remove_config_value("rbx_storage_directory");

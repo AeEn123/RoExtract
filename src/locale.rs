@@ -45,6 +45,7 @@ pub fn get_message(
                 .format_pattern(value, args, &mut err)
                 .to_string()
                 .replace(" # TODO: Translate", "") // Remove the TODO from strings
+                .replace(" # AI translated", "") // and the AI translation label
         } else {
             id.to_owned() // Return id if it is not available
         }
@@ -101,6 +102,36 @@ mod tests {
         // "idling" is a common key, let's check if it returns something other than "idling"
         let msg = get_message(&bundle, "idling", None);
         assert_ne!(msg, "idling");
+    }
+
+    // Every locale must parse (get_locale panics otherwise), have every key
+    // en-GB has, and never show the TODO/AI translation labels.
+    #[test]
+    fn test_all_locales_parse_and_hide_labels() {
+        let reference = get_locale_resources("en-GB").unwrap();
+        let keys: Vec<&str> = reference
+            .lines()
+            .filter_map(|line| line.split_once(" = ").map(|(key, _)| key.trim()))
+            .filter(|key| !key.starts_with('#'))
+            .collect();
+        assert!(keys.contains(&"button-ok"));
+
+        for locale in LOCALES {
+            let resources = get_locale_resources(locale).unwrap();
+            assert!(
+                FluentResource::try_new(resources.to_owned()).is_ok(),
+                "{locale} failed to parse"
+            );
+            let bundle = get_locale(Some(locale));
+            for key in &keys {
+                let message = get_message(&bundle, key, None);
+                assert_ne!(&message, key, "{locale} is missing {key}");
+                assert!(
+                    !message.contains("TODO: Translate") && !message.contains("AI translated"),
+                    "{locale} {key} shows a label: {message}"
+                );
+            }
+        }
     }
 
     #[test]

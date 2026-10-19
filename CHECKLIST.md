@@ -83,14 +83,14 @@ Fixed missing localisation files in English and German (Thanks to @Vonercent)
 **Full Changelog**: https://github.com/AeEn123/RoExtract/compare/v1.0.0...v1.0.1
 
 ## 1.1.0
-- [ ] - Fallback to an egui-based dialog (e.g. via a compatible crate) when native_dialog is unavailable/missing-dep (e.g. headless or systems without zenity/kdialog). Currently `sql_database.rs` `.unwrap()`s the native_dialog result, which panics and aborts the entire `refresh` scan when no SQL database is detected without a fallback UI.
-- [ ] - Rewrite in listing - independent lists for each type
-- [ ] - Split cache_directory.rs into two files
-- [ ] - Hande file list filtering in file_list.rs instead
-- [ ] - Built-in media player to quickly preview sounds
-- [ ] - Ability to convert between formats
-- [ ] - Audio length in list
-- [ ] - Make it into a table with specific details e.g size, type, time created
+- [x] - Fallback to an egui-based dialog (e.g. via a compatible crate) when native_dialog is unavailable/missing-dep (e.g. headless or systems without zenity/kdialog). Currently `sql_database.rs` `.unwrap()`s the native_dialog result, which panics and aborts the entire `refresh` scan when no SQL database is detected without a fallback UI.
+- [x] - Rewrite in listing - independent lists for each type
+- [x] - Split cache_directory.rs into two files
+- [x] - Hande file list filtering in file_list.rs instead
+- [x] - Built-in media player to quickly preview sounds
+- [x] - Ability to convert between formats
+- [x] - Audio length in list
+- [x] - Make it into a table with specific details e.g size, type, time created
 - [ ] - Wait for translations
 
 ## Future releases
